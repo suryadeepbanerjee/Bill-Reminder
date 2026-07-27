@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase, redirectUri } from "../../lib/supabase/client";
+import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { forgotPasswordSchema, ForgotPasswordFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -34,7 +34,7 @@ export default function ForgotPasswordScreen() {
     try {
       const { error: authError } = await supabase.auth.resetPasswordForEmail(
         data.email,
-        { redirectTo: redirectUri }
+        { redirectTo: webRedirectUri }
       );
       if (authError) {
         setError(authError.message);

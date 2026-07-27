@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase, redirectUri } from "../../lib/supabase/client";
+import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { signUpSchema, SignUpFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -57,7 +57,7 @@ export default function SignUpScreen() {
         password: data.password,
         options: {
           data:            { display_name: data.displayName },
-          emailRedirectTo: redirectUri,
+          emailRedirectTo: webRedirectUri,
         },
       });
 

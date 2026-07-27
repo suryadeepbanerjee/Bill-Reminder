@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Text, View, Pressable } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase, redirectUri } from "../../lib/supabase/client";
+import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { Button } from "../../components/ui/Button";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { AlertBadge } from "../../components/ui/AlertBadge";
@@ -30,7 +30,7 @@ export default function VerifyEmailScreen() {
       const { error: resendError } = await supabase.auth.resend({
         type:  "signup",
         email,
-        options: { emailRedirectTo: redirectUri },
+        options: { emailRedirectTo: webRedirectUri },
       });
       if (resendError) {
         setError(resendError.message);
