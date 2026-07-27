@@ -19,8 +19,8 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       {/* Top nav */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        maxWidth: 1120, margin: "0 auto", width: "100%",
-        padding: "18px 24px",
+        maxWidth: 1360, margin: "0 auto", width: "100%",
+        padding: "18px 20px",
       }}>
         <Link to="/" style={{
           display: "flex", alignItems: "center", gap: 8,

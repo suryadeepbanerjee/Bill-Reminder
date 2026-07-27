@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Logo from "../ui/Logo";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -27,13 +28,7 @@ export default function Footer() {
           {/* Brand */}
           <div style={{ flex: "1 1 220px", maxWidth: 280 }}>
             <Link to="/" style={{ textDecoration: "none", color: "var(--ink)", fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
-                  <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="white"/>
-                  <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="white"/>
-                  <circle cx="9" cy="13.5" r="1.2" fill="white"/>
-                </svg>
-              </div>
+              <Logo size={24} />
               Bill Reminder
             </Link>
             <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.65, maxWidth: 220 }}>

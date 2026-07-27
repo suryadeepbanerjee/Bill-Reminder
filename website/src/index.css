@@ -12,23 +12,23 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: #07070f;
-  color: #e8e8f0;
+  background: #000000;
+  color: #ffffff;
   line-height: 1.6;
   overflow-x: hidden;
 }
 
 /* Accessible focus */
 :focus-visible {
-  outline: 2px solid rgba(130, 119, 247, 0.7);
+  outline: 2px solid rgba(255, 255, 255, 0.7);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
 /* Selection */
 ::selection {
-  background: rgba(130, 119, 247, 0.25);
-  color: #e8e8f0;
+  background: rgba(255, 255, 255, 0.2);
+  color: #000000;
 }
 
 /* Custom scrollbar */
@@ -42,29 +42,29 @@ body {
 
 /* ─── Color tokens ───────────────────────────────────────────── */
 :root {
-  /* Brand */
-  --brand: #8277f7;           /* primary purple */
-  --brand-dim: #5f55d4;       /* darker for hover */
-  --brand-faint: rgba(130, 119, 247, 0.08);
-  --brand-border: rgba(130, 119, 247, 0.18);
+  /* Brand — monochrome: white reads as the accent against a black surface */
+  --brand: #ffffff;
+  --brand-dim: #cfcfcf;        /* dimmed for hover, since bg is black not white */
+  --brand-faint: rgba(255, 255, 255, 0.06);
+  --brand-border: rgba(255, 255, 255, 0.16);
 
-  /* Surfaces */
-  --bg: #07070f;
-  --surface-1: #0c0c1a;
-  --surface-2: #101022;
-  --surface-3: #14142c;
+  /* Surfaces — true black/grey, zero color chroma */
+  --bg: #000000;
+  --surface-1: #0d0d0d;
+  --surface-2: #161616;
+  --surface-3: #202020;
 
   /* Ink */
-  --ink: #e8e8f0;
-  --ink-2: rgba(232, 232, 240, 0.65);
-  --ink-3: rgba(232, 232, 240, 0.38);
-  --ink-4: rgba(232, 232, 240, 0.20);
+  --ink: #ffffff;
+  --ink-2: rgba(255, 255, 255, 0.65);
+  --ink-3: rgba(255, 255, 255, 0.40);
+  --ink-4: rgba(255, 255, 255, 0.22);
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-hover: rgba(255, 255, 255, 0.20);
 
-  /* Status */
+  /* Status — kept semantic (meaning-bearing), not part of the monochrome accent */
   --success: #34d399;
   --warning: #fbbf24;
   --danger: #f87171;
@@ -76,7 +76,7 @@ body {
   --r-xl: 20px;
 
   /* Shadow */
-  --shadow-brand: 0 4px 24px rgba(130, 119, 247, 0.22);
+  --shadow-brand: 0 4px 24px rgba(255, 255, 255, 0.10);
 }
 
 /* ─── Utility classes ────────────────────────────────────────── */
@@ -116,7 +116,7 @@ body {
   padding: 11px 22px;
   border-radius: var(--r-md);
   background: var(--brand);
-  color: #fff;
+  color: #000;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -216,9 +216,9 @@ body {
 /* Container */
 .container {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 20px;
 }
 
 /* Section spacing */

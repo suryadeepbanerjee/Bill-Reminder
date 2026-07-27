@@ -68,7 +68,7 @@ export default function Features() {
       <div style={{
         position: "absolute", top: 0, right: 0,
         width: 400, height: 400,
-        background: "radial-gradient(ellipse at top right, rgba(130,119,247,0.06) 0%, transparent 70%)",
+        background: "radial-gradient(ellipse at top right, rgba(255,255,255,0.05) 0%, transparent 70%)",
         pointerEvents: "none",
       }} aria-hidden="true" />
 

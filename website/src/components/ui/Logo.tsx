@@ -14,7 +14,7 @@ export default function Logo({ size = 36, className = "" }: LogoProps) {
       className={className}
       aria-hidden="true"
     >
-      <rect width="36" height="36" rx="10" fill="url(#logo-gradient)" />
+      <rect width="35" height="35" x="0.5" y="0.5" rx="9.5" fill="url(#logo-gradient)" stroke="rgba(255,255,255,0.14)" />
       {/* Bell body */}
       <path
         d="M18 8C14.5 8 11.5 10.8 11.5 14.5V22H24.5V14.5C24.5 10.8 21.5 8 18 8Z"
@@ -29,8 +29,8 @@ export default function Logo({ size = 36, className = "" }: LogoProps) {
       <rect x="15.5" y="11" width="5" height="1.5" rx="0.75" fill="white" fillOpacity="0.3" />
       <defs>
         <linearGradient id="logo-gradient" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#6366F1" />
-          <stop offset="1" stopColor="#4338CA" />
+          <stop stopColor="#3a3a3a" />
+          <stop offset="1" stopColor="#000000" />
         </linearGradient>
       </defs>
     </svg>

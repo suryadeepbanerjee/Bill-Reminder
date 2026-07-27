@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import Logo from "../components/ui/Logo";
 
 /* ─────────────────────────────────────────────────────────────────
    AuthCallback — handles every possible Supabase auth redirect.
@@ -92,11 +93,7 @@ function Page({ children }: { children: React.ReactNode }) {
         fontSize: 14, fontWeight: 500,
         transition: "color 150ms",
       }}>
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M10 2C7 2 4.5 4.3 4.5 7.25V14H15.5V7.25C15.5 4.3 13 2 10 2Z" fill="currentColor" opacity="0.7"/>
-          <rect x="3.5" y="13.5" width="13" height="1.5" rx="0.75" fill="currentColor" opacity="0.7"/>
-          <circle cx="10" cy="16.8" r="1.5" fill="currentColor" opacity="0.7"/>
-        </svg>
+        <Logo size={20} />
         Bill Reminder
       </Link>
 

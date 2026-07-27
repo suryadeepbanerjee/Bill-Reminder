@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import Logo from "../ui/Logo";
 
 const NAV_LINKS = [
   { label: "Features",    href: "/#features" },
@@ -8,14 +9,6 @@ const NAV_LINKS = [
   { label: "Download",    href: "/#download" },
   { label: "FAQ",         href: "/#faq" },
 ];
-
-const BellIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-    <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="currentColor"/>
-    <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="currentColor"/>
-    <circle cx="9" cy="13.5" r="1.2" fill="currentColor"/>
-  </svg>
-);
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -44,9 +37,9 @@ export default function Navbar() {
         }}
       >
         <div style={{
-          maxWidth: scrolled ? "calc(100% - 48px)" : "1120px",
+          maxWidth: scrolled ? "calc(100% - 32px)" : "1360px",
           margin: "0 auto",
-          padding: "0 24px",
+          padding: "0 20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -62,14 +55,7 @@ export default function Navbar() {
             textDecoration: "none", color: "var(--ink)",
             fontWeight: 600, fontSize: 15, letterSpacing: "-0.02em",
           }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 8,
-              background: "var(--brand)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-              color: "#fff",
-            }}>
-              <BellIcon />
-            </div>
+            <Logo size={30} />
             Bill Reminder
           </Link>
 
