@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Verification Complete — Bill Reminder</title>
+<meta name="robots" content="noindex" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #000000;
+    color: #ffffff;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Ambient glow — subtle, monochrome */
+  body::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60vh;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(255,255,255,0.7);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::selection { background: rgba(255,255,255,0.2); color: #000; }
+
+  /* Logo, top-left */
+  .brand {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: rgba(255,255,255,0.65);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    transition: color 150ms ease;
+    z-index: 2;
+  }
+  .brand:hover { color: #ffffff; }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, #3a3a3a, #000000);
+    border: 1px solid rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Card */
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 20px;
+    padding: 44px 36px 36px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Success icon — circle + animated checkmark draw */
+  .icon-wrap {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 24px;
+    border-radius: 16px;
+    background: rgba(52, 211, 153, 0.10);
+    border: 1px solid rgba(52, 211, 153, 0.24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-wrap svg { display: block; }
+
+  .check-path {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: draw 0.5s 0.35s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+
+  @keyframes draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .pulse-ring {
+    stroke-dasharray: 88;
+    stroke-dashoffset: 88;
+    opacity: 0;
+    animation: ring 0.6s 0.1s ease-out forwards;
+  }
+
+  @keyframes ring {
+    0%   { stroke-dashoffset: 88; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 1; }
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+
+  p.sub {
+    font-size: 14px;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.60);
+    max-width: 300px;
+    margin: 0 auto 30px;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 99px;
+    background: rgba(52, 211, 153, 0.10);
+    border: 1px solid rgba(52, 211, 153, 0.24);
+    color: #34d399;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 0 3px rgba(52,211,153,0.18);
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 150ms ease, transform 100ms ease, border-color 150ms ease, color 150ms ease;
+  }
+
+  .btn-primary {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 4px 24px rgba(255,255,255,0.10);
+  }
+  .btn-primary:hover { background: #cfcfcf; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); box-shadow: none; }
+
+  .btn-outline {
+    background: transparent;
+    color: rgba(255,255,255,0.65);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .btn-outline:hover {
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.20);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 22px 0 18px;
+  }
+
+  .footnote {
+    font-size: 12px;
+    color: rgba(255,255,255,0.30);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 420px) {
+    .card { padding: 36px 24px 28px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .card { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+  <a href="/" class="brand">
+    <span class="brand-mark">
+      <svg width="13" height="13" viewBox="0 0 18 18" fill="none">
+        <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="white" fill-opacity="0.95"/>
+        <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="white" fill-opacity="0.95"/>
+        <circle cx="9" cy="13.5" r="1.2" fill="white" fill-opacity="0.95"/>
+      </svg>
+    </span>
+    Bill Reminder
+  </a>
+
+  <main class="card" role="main" aria-labelledby="success-heading">
+
+    <div class="icon-wrap" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle class="pulse-ring" cx="14" cy="14" r="14" stroke="#34d399" stroke-width="1.5" stroke-opacity="0.3" fill="none"/>
+        <path class="check-path" d="M8 14.5L12 18.5L20 9.5" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+
+    <div class="status-pill">
+      <span class="status-dot" aria-hidden="true"></span>
+      Verification complete
+    </div>
+
+    <h1 id="success-heading">Your email is verified</h1>
+    <p class="sub">
+      That's it — your account is fully set up. Head back to Bill Reminder to sign in and start tracking your bills.
+    </p>
+
+    <div class="actions">
+      <a href="bill-reminder://signin" class="btn btn-primary" id="open-app-btn">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        Back to App
+      </a>
+      <a href="https://billreminder.suryadeepbanerjee.in/sign-in" class="btn btn-outline">
+        Sign In on Web
+      </a>
+    </div>
+
+    <div class="divider"></div>
+    <p class="footnote">
+      "Back to App" opens Bill Reminder directly if it's installed on this device.
+    </p>
+
+  </main>
+
+  <script>
+    // Best-effort deep-link fallback: if the app isn't installed, the custom
+    // scheme silently fails — after a short delay, nudge the user to the web
+    // sign-in instead so they're never left staring at a dead click.
+    (function () {
+      var openAppBtn = document.getElementById('open-app-btn');
+      if (!openAppBtn) return;
+
+      openAppBtn.addEventListener('click', function () {
+        var fallbackTimer = setTimeout(function () {
+          window.location.href = 'https://billreminder.suryadeepbanerjee.in/sign-in';
+        }, 1500);
+
+        window.addEventListener('blur', function clearFallback() {
+          clearTimeout(fallbackTimer);
+          window.removeEventListener('blur', clearFallback);
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>
