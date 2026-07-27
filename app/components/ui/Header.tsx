@@ -1,5 +1,6 @@
 import { View, Text, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useColorScheme } from "nativewind";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -27,6 +28,8 @@ export function Header({
   transparent = false,
 }: HeaderProps) {
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const iconColor = colorScheme === "dark" ? Colors.neutral[100] : Colors.neutral[900];
 
   const handleBack = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -55,7 +58,7 @@ export function Header({
             <Ionicons
               name="chevron-back"
               size={24}
-              color={Colors.neutral[900]}
+              color={iconColor}
               style={{ marginLeft: -2 }}
             />
           </Pressable>

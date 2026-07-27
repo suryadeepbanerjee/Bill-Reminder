@@ -275,19 +275,25 @@ export default function AddBillScreen() {
 
       // 2. Create the bill
       const bill = await createBill({
-        ...data,
-        category_id:  categoryId,
-        household_id: householdData.household.id,
-        is_active:    true,
-        created_by:   undefined,
+        household_id:    householdData.household.id,
+        category_id:     categoryId,
+        title:           data.title,
+        provider_name:   data.provider_name   ?? null,
+        behavior_type:   data.behavior_type,
+        amount_expected: data.amount_expected  ?? null,
+        currency:        data.currency         ?? "INR",
+        repeat_kind:     data.repeat_kind,
+        repeat_interval: data.repeat_interval  ?? null,
+        is_active:       true,
+        created_by:      null,
         // Null out fields not relevant to the behavior type
-        validity_days:       data.behavior_type === "prepaid_validity" ? (data.validity_days ?? null) : null,
+        validity_days:       data.behavior_type === "prepaid_validity" ? (data.validity_days       ?? null) : null,
         check_interval_days: data.behavior_type === "wallet_balance"   ? (data.check_interval_days ?? null) : null,
-        minimum_balance:     data.behavior_type === "wallet_balance"   ? (data.minimum_balance ?? null) : null,
-        balance_notes:       data.behavior_type === "wallet_balance"   ? (data.balance_notes ?? null) : null,
-        generation_day_offset:       data.behavior_type === "fixed_due_date" ? (data.generation_day_offset ?? -7) : null,
+        minimum_balance:     data.behavior_type === "wallet_balance"   ? (data.minimum_balance     ?? null) : null,
+        balance_notes:       data.behavior_type === "wallet_balance"   ? (data.balance_notes       ?? null) : null,
+        generation_day_offset:       data.behavior_type === "fixed_due_date" ? (data.generation_day_offset       ?? -7) : null,
         expected_payment_day_offset: data.behavior_type === "fixed_due_date" ? (data.expected_payment_day_offset ?? -3) : null,
-        due_day_offset:              data.behavior_type === "fixed_due_date" ? (data.due_day_offset ?? 0) : null,
+        due_day_offset:              data.behavior_type === "fixed_due_date" ? (data.due_day_offset               ?? 0)  : null,
       });
 
       // 3. Create default reminder rules

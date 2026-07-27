@@ -89,8 +89,9 @@ export function Modal({
           />
         </Pressable>
 
-        {/* Sheet */}
+        {/* Sheet — background is applied via className for dark-mode support */}
         <Animated.View
+          className="bg-white dark:bg-neutral-900"
           style={[
             variant === "bottom"
               ? {
@@ -98,8 +99,7 @@ export function Modal({
                   bottom:           0,
                   left:             0,
                   right:            0,
-                  paddingBottom:    insets.bottom,
-                  backgroundColor:  "white",
+                  paddingBottom:    Math.max(insets.bottom, 8),
                   borderTopLeftRadius:  20,
                   borderTopRightRadius: 20,
                 }
@@ -109,8 +109,7 @@ export function Modal({
                   left:         24,
                   right:        24,
                   transform:    [{ translateY: -150 }],
-                  borderRadius: 16,
-                  backgroundColor: "white",
+                  borderRadius: 20,
                 },
             sheetStyle,
           ]}

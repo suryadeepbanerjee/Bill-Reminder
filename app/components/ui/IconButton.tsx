@@ -51,7 +51,7 @@ export function IconButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled: Boolean(disabled) }}
       className={`${variantClasses[variant]} ${radiusClass} items-center justify-center`}
       style={({ pressed }) => ({
         width:   dim.container,

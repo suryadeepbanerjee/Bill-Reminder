@@ -4,7 +4,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useColorScheme } from "nativewind";
 import { useAuthStore } from "../stores/auth-store";
+import { useThemeStore } from "../stores/theme-store";
 import { supabase } from "../lib/supabase/client";
 import { Colors } from "../lib/theme";
 
@@ -26,6 +28,18 @@ function LoadingScreen() {
 
 export default function RootLayout() {
   const { setSession, setLoading, isLoading } = useAuthStore();
+  const { resolved, _hydrate } = useThemeStore();
+  const { setColorScheme } = useColorScheme();
+
+  // Hydrate theme from persisted store on first mount
+  useEffect(() => {
+    _hydrate();
+  }, []);
+
+  // Sync resolved theme with NativeWind
+  useEffect(() => {
+    setColorScheme(resolved);
+  }, [resolved, setColorScheme]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,7 +60,7 @@ export default function RootLayout() {
     return (
       <QueryClientProvider client={queryClient}>
         <LoadingScreen />
-        <StatusBar style="auto" />
+        <StatusBar style={resolved === "dark" ? "light" : "dark"} />
       </QueryClientProvider>
     );
   }
@@ -57,7 +71,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="bill/[id]" />
-        {/* Add Bill — full-screen modal over tab bar, per spec */}
+        {/* Add Bill — full-screen modal over tab bar */}
         <Stack.Screen
           name="add-bill"
           options={{
@@ -67,7 +81,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={resolved === "dark" ? "light" : "dark"} />
     </QueryClientProvider>
   );
 }

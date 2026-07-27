@@ -53,9 +53,11 @@ export default function ResetPassword() {
     try {
       const { error: authError } = await supabase.auth.updateUser({ password });
       if (authError) { setError(authError.message); return; }
-      setDone(true);
       await supabase.auth.signOut();
-      setTimeout(() => navigate("/sign-in"), 3000);
+      // Set the gate token so success.html renders, then redirect
+      sessionStorage.setItem("br_auth_verified", "1");
+      window.location.replace("/success.html");
+      return;
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
