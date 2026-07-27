@@ -4,90 +4,85 @@ import Footer from "../components/layout/Footer";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-10">
-      <h2 className="text-xl font-semibold text-white mb-3">{title}</h2>
-      <div className="text-white/55 leading-relaxed space-y-3 text-[15px]">{children}</div>
+    <section style={{ marginBottom: 36 }}>
+      <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.015em", marginBottom: 12 }}>{title}</h2>
+      <div style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.75 }}>{children}</div>
     </section>
+  );
+}
+
+function P({ children }: { children: React.ReactNode }) {
+  return <p style={{ marginBottom: 12 }}>{children}</p>;
+}
+
+function UL({ items }: { items: string[] }) {
+  return (
+    <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
+      {items.map((i, idx) => <li key={idx} style={{ marginBottom: 6 }}>{i}</li>)}
+    </ul>
   );
 }
 
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-[#080810]">
+    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <Navbar />
-      <main className="max-w-3xl mx-auto px-5 pt-32 pb-24">
-        <div className="mb-12">
-          <p className="text-accent-400 text-sm font-medium mb-3">Legal</p>
-          <h1 className="text-4xl font-bold tracking-tight mb-4">Privacy Policy</h1>
-          <p className="text-white/40 text-sm">Last updated: January 2025</p>
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "120px 24px 80px" }}>
+        <div style={{ marginBottom: 48 }}>
+          <p style={{ fontSize: 12, color: "var(--brand)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Legal</p>
+          <h1 style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)", fontWeight: 800, letterSpacing: "-0.025em", color: "var(--ink)", marginBottom: 8 }}>
+            Privacy Policy
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--ink-3)" }}>Last updated: January 2025</p>
         </div>
 
-        <div className="glass rounded-2xl p-8 sm:p-10">
+        <div className="card" style={{ padding: "36px 36px" }}>
           <Section title="Overview">
-            <p>
-              Bill Reminder ("we", "us", "our") is committed to protecting your privacy. This policy explains what data we collect, why we collect it, and how it is handled. We built Bill Reminder with a privacy-first philosophy — your financial data belongs to you.
-            </p>
+            <P>Bill Reminder is committed to protecting your privacy. We built this app with a privacy-first philosophy — your financial data belongs to you and only you. This policy explains what data we collect, why we collect it, and how it is used.</P>
           </Section>
 
           <Section title="Data we collect">
-            <p>We collect only what is strictly necessary to provide the service:</p>
-            <ul className="list-disc pl-5 space-y-1.5">
-              <li><strong className="text-white/80">Email address</strong> — for authentication and account recovery only.</li>
-              <li><strong className="text-white/80">Display name</strong> — optional, used to personalise your experience.</li>
-              <li><strong className="text-white/80">Bill data</strong> — names, amounts, due dates, and categories you enter. This is stored in your private, isolated account.</li>
-            </ul>
-            <p>We do <strong className="text-white/80">not</strong> collect payment card details, bank credentials, government IDs, or any financial institution data.</p>
+            <P>We collect only what is strictly necessary to provide the service:</P>
+            <UL items={[
+              "Email address — for authentication and account recovery only.",
+              "Display name — optional, used to personalise your experience.",
+              "Bill data — names, amounts, due dates, and categories you enter. Stored in your private, isolated account.",
+            ]} />
+            <P>We do <strong>not</strong> collect payment card numbers, bank credentials, government IDs, or any financial institution data.</P>
           </Section>
 
           <Section title="How your data is stored">
-            <p>
-              All data is stored in Supabase, a cloud database protected by Row-Level Security (RLS). This means database queries are enforced at the database level — no query can access another user's data even if application code has a bug.
-            </p>
-            <p>
-              Supabase encrypts data at rest and in transit. For details on Supabase's security posture, see{" "}
-              <a href="https://supabase.com/security" target="_blank" rel="noopener noreferrer" className="text-accent-400 hover:text-accent-300 underline underline-offset-2">
-                supabase.com/security
-              </a>.
-            </p>
+            <P>All data is stored in Supabase, a cloud database protected by Row-Level Security (RLS). This means database-level enforcement prevents any query from accessing another user's data, even if application code has a bug.</P>
+            <P>Supabase encrypts data at rest and in transit. For details on Supabase's security posture, see <a href="https://supabase.com/security" target="_blank" rel="noopener noreferrer" style={{ color: "var(--brand)", textDecoration: "none" }}>supabase.com/security</a>.</P>
           </Section>
 
-          <Section title="Third parties">
-            <p>We use the following third-party services:</p>
-            <ul className="list-disc pl-5 space-y-1.5">
-              <li><strong className="text-white/80">Supabase</strong> — database and authentication.</li>
-              <li><strong className="text-white/80">Resend</strong> — transactional email (verification, password reset). Only your email address is shared.</li>
-              <li><strong className="text-white/80">Vercel</strong> — website hosting. Standard web logs (IP, user agent) apply.</li>
-            </ul>
-            <p>We do <strong className="text-white/80">not</strong> sell, share, or monetise your data with advertisers or data brokers.</p>
+          <Section title="Third-party services">
+            <P>We use the following third parties:</P>
+            <UL items={[
+              "Supabase — database and authentication.",
+              "Resend — transactional email (verification, password reset). Only your email address is shared.",
+              "Vercel — website hosting. Standard web logs (IP, user agent) apply.",
+            ]} />
+            <P>We do <strong>not</strong> sell, share, or monetise your data with advertisers or data brokers.</P>
           </Section>
 
           <Section title="Your rights">
-            <p>You may at any time:</p>
-            <ul className="list-disc pl-5 space-y-1.5">
-              <li>Request a full export of your data.</li>
-              <li>Request deletion of your account and all associated data.</li>
-              <li>Update your email address or display name from the app.</li>
-            </ul>
-            <p>
-              To exercise any of these rights, email{" "}
-              <a href="mailto:privacy@billreminder.suryadeepbanerjee.in" className="text-accent-400 hover:text-accent-300 underline underline-offset-2">
-                privacy@billreminder.suryadeepbanerjee.in
-              </a>
-              . We will respond within 30 days.
-            </p>
+            <P>You may at any time:</P>
+            <UL items={[
+              "Request a full export of your data.",
+              "Request deletion of your account and all associated data.",
+              "Update your email address or display name from within the app.",
+            ]} />
+            <P>To exercise any of these rights, email <a href="mailto:privacy@billreminder.suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>privacy@billreminder.suryadeepbanerjee.in</a>. We will respond within 30 days.</P>
           </Section>
 
           <Section title="Changes to this policy">
-            <p>
-              We will notify you of material changes to this policy via email. The "last updated" date at the top of this page will always reflect the most recent revision.
-            </p>
+            <P>We will notify you of material changes via email. The "last updated" date above always reflects the most recent revision.</P>
           </Section>
         </div>
 
-        <div className="mt-8 text-center">
-          <Link to="/" className="text-sm text-white/30 hover:text-white/60 transition-colors">
-            ← Back to home
-          </Link>
+        <div style={{ marginTop: 24, textAlign: "center" }}>
+          <Link to="/" style={{ fontSize: 13, color: "var(--ink-3)", textDecoration: "none" }}>← Back to home</Link>
         </div>
       </main>
       <Footer />

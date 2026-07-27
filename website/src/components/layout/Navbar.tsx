@@ -1,152 +1,179 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import Logo from "../ui/Logo";
 
-const navLinks = [
-  { label: "Features", href: "/#features" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Download", href: "/#download" },
-  { label: "GitHub", href: "https://github.com/suryadeepbanerjee/Bill-Reminder", external: true },
+const NAV_LINKS = [
+  { label: "Features",    href: "/#features" },
+  { label: "How it Works", href: "/#how-it-works" },
+  { label: "Download",    href: "/#download" },
+  { label: "FAQ",         href: "/#faq" },
 ];
+
+const BellIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="currentColor"/>
+    <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="currentColor"/>
+    <circle cx="9" cy="13.5" r="1.2" fill="currentColor"/>
+  </svg>
+);
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const location = useLocation();
+  const [open, setOpen]         = useState(false);
+  const { pathname }             = useLocation();
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 24);
-    window.addEventListener("scroll", handler, { passive: true });
-    return () => window.removeEventListener("scroll", handler);
+    const onScroll = () => setScrolled(window.scrollY > 32);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  // close menu on route change
+  useEffect(() => setOpen(false), [pathname]);
 
-  const isAuthPage = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"].includes(location.pathname);
+  const isAuth = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"].includes(pathname);
 
   return (
-    <motion.header
-      initial={{ y: -16, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "py-3" : "py-5"
-      }`}
-    >
-      <div
-        className={`mx-auto max-w-6xl px-5 flex items-center justify-between transition-all duration-300 ${
-          scrolled ? "glass rounded-2xl py-2 mx-5" : ""
-        }`}
+    <>
+      <header
+        role="banner"
+        style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+          padding: scrolled ? "8px 0" : "16px 0",
+          transition: "padding 250ms ease",
+        }}
       >
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group" aria-label="Bill Reminder home">
-          <Logo size={32} />
-          <span className="font-semibold text-white/90 group-hover:text-white transition-colors text-[15px] tracking-tight">
+        <div style={{
+          maxWidth: scrolled ? "calc(100% - 48px)" : "1120px",
+          margin: "0 auto",
+          padding: "0 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: scrolled ? "rgba(7,7,15,0.88)" : "transparent",
+          backdropFilter: scrolled ? "blur(12px)" : "none",
+          borderRadius: scrolled ? "14px" : "0",
+          border: scrolled ? "1px solid var(--border)" : "none",
+          transition: "all 250ms ease",
+        }}>
+          {/* Logo */}
+          <Link to="/" style={{
+            display: "flex", alignItems: "center", gap: 8,
+            textDecoration: "none", color: "var(--ink)",
+            fontWeight: 600, fontSize: 15, letterSpacing: "-0.02em",
+          }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 8,
+              background: "var(--brand)", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              color: "#fff",
+            }}>
+              <BellIcon />
+            </div>
             Bill Reminder
-          </span>
-        </Link>
-
-        {/* Desktop nav */}
-        {!isAuthPage && (
-          <nav className="hidden md:flex items-center gap-1" role="navigation" aria-label="Main navigation">
-            {navLinks.map((link) =>
-              link.external ? (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost text-sm"
-                >
-                  {link.label}
-                </a>
-              ) : (
-                <a key={link.label} href={link.href} className="btn-ghost text-sm">
-                  {link.label}
-                </a>
-              )
-            )}
-          </nav>
-        )}
-
-        {/* CTA */}
-        <div className="hidden md:flex items-center gap-3">
-          <Link to="/sign-in" className="btn-ghost text-sm">
-            Sign in
           </Link>
-          <Link to="/sign-up" className="btn-primary text-sm px-5 py-2.5">
-            Get started
-          </Link>
-        </div>
 
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="md:hidden btn-ghost p-2"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-        >
-          <div className="w-5 flex flex-col gap-1.5">
-            <motion.span
-              animate={menuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
-              className="block h-0.5 bg-white/70 rounded-full origin-center transition-colors"
-            />
-            <motion.span
-              animate={menuOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1 }}
-              className="block h-0.5 bg-white/70 rounded-full"
-            />
-            <motion.span
-              animate={menuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
-              className="block h-0.5 bg-white/70 rounded-full origin-center"
-            />
-          </div>
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="md:hidden mx-5 mt-2 overflow-hidden"
-          >
-            <nav className="glass rounded-2xl p-4 flex flex-col gap-1">
-              {navLinks.map((link) =>
-                link.external ? (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 text-sm font-medium transition-all"
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    className="px-4 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 text-sm font-medium transition-all"
-                  >
-                    {link.label}
-                  </a>
-                )
-              )}
-              <div className="h-px bg-white/10 my-2" />
-              <Link to="/sign-in" className="px-4 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
-                Sign in
-              </Link>
-              <Link to="/sign-up" className="btn-primary text-sm mt-1 w-full justify-center">
-                Get started free
-              </Link>
+          {/* Desktop nav */}
+          {!isAuth && (
+            <nav role="navigation" aria-label="Main navigation" style={{
+              display: "flex", alignItems: "center", gap: 4,
+            }} className="desktop-nav">
+              {NAV_LINKS.map(l => (
+                <a key={l.label} href={l.href} className="btn-ghost" style={{ fontSize: 14, color: "var(--ink-2)" }}>
+                  {l.label}
+                </a>
+              ))}
+              <a
+                href="https://github.com/suryadeepbanerjee/Bill-Reminder"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost"
+                style={{ fontSize: 14, color: "var(--ink-2)" }}
+              >
+                GitHub
+              </a>
             </nav>
+          )}
+
+          {/* CTA */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }} className="desktop-cta">
+            <Link to="/sign-in" className="btn-ghost" style={{ color: "var(--ink-2)" }}>Sign in</Link>
+            <Link to="/sign-up" className="btn-primary" style={{ padding: "8px 16px", fontSize: 13 }}>
+              Get started
+            </Link>
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setOpen(v => !v)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            className="mobile-menu-btn"
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              padding: 8, color: "var(--ink-2)",
+              display: "none",
+            }}
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+              {open ? (
+                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+              ) : (
+                <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+              )}
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: "fixed", top: 72, left: 16, right: 16,
+              background: "var(--surface-1)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-xl)",
+              padding: "12px",
+              zIndex: 99,
+            }}
+          >
+            {NAV_LINKS.map(l => (
+              <a key={l.label} href={l.href} onClick={() => setOpen(false)} style={{
+                display: "block", padding: "10px 14px",
+                borderRadius: "var(--r-sm)",
+                color: "var(--ink-2)", fontSize: 14, fontWeight: 500,
+                textDecoration: "none",
+                transition: "background 150ms, color 150ms",
+              }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.background = "rgba(255,255,255,0.05)"; (e.target as HTMLElement).style.color = "var(--ink)"; }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "var(--ink-2)"; }}
+              >
+                {l.label}
+              </a>
+            ))}
+            <div className="divider" style={{ margin: "8px 0" }} />
+            <Link to="/sign-in" onClick={() => setOpen(false)} className="btn-ghost" style={{ display: "block", width: "100%", textAlign: "center" }}>
+              Sign in
+            </Link>
+            <Link to="/sign-up" onClick={() => setOpen(false)} className="btn-primary" style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+              Get started
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-nav, .desktop-cta { display: none !important; }
+          .mobile-menu-btn { display: flex !important; }
+        }
+      `}</style>
+    </>
   );
 }

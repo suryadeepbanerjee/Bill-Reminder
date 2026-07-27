@@ -1,338 +1,319 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { supabase, APP_SCHEME } from "../lib/supabase";
-import AuthLayout from "../components/layout/AuthLayout";
+import { supabase } from "../lib/supabase";
 
-type CallbackState =
-  | "loading"
-  | "verified"
-  | "password_reset"
-  | "email_changed"
-  | "already_verified"
-  | "expired"
-  | "invalid"
-  | "error";
+/* ─────────────────────────────────────────────────────────────────
+   AuthCallback — handles every possible Supabase auth redirect.
 
-interface CallbackResult {
-  state: CallbackState;
-  message?: string;
-}
+   Supabase sends two kinds of links:
+   • PKCE (default): /auth/callback?code=xxx&type=yyy
+   • Legacy implicit:  /auth/callback#access_token=...&type=yyy
 
-function parseCallbackResult(): Promise<CallbackResult> {
-  return new Promise((resolve) => {
-    const url    = new URL(window.location.href);
-    const code   = url.searchParams.get("code");
-    const type   = url.searchParams.get("type");
-    const error  = url.searchParams.get("error");
-    const errDesc = url.searchParams.get("error_description");
-    const hash   = window.location.hash;
+   We handle both, map every outcome to a distinct UI state, and
+   NEVER show a blank page.
+───────────────────────────────────────────────────────────────── */
 
-    // ── Error from Supabase (e.g. expired link) ──────────────────────
-    if (error) {
-      const desc = errDesc?.toLowerCase() ?? "";
-      if (desc.includes("expired") || desc.includes("otp_expired")) {
-        resolve({ state: "expired", message: errDesc ?? undefined });
-      } else if (desc.includes("already") || desc.includes("already confirmed")) {
-        resolve({ state: "already_verified" });
-      } else {
-        resolve({ state: "invalid", message: errDesc ?? error });
+type State =
+  | { kind: "loading" }
+  | { kind: "verified" }
+  | { kind: "reset_ready" }
+  | { kind: "email_changed" }
+  | { kind: "already_verified" }
+  | { kind: "expired" }
+  | { kind: "invalid"; detail?: string }
+  | { kind: "error"; detail?: string };
+
+async function resolve(): Promise<State> {
+  const params  = new URLSearchParams(window.location.search);
+  const code    = params.get("code");
+  const type    = params.get("type");   // "recovery" | "email_change" | "signup"
+  const err     = params.get("error");
+  const errDesc = params.get("error_description") ?? undefined;
+  const hash    = window.location.hash;
+
+  // ── Supabase forwarded an error ──────────────────────────────────
+  if (err) {
+    const d = (errDesc ?? "").toLowerCase();
+    if (d.includes("expired") || d.includes("otp_expired")) return { kind: "expired" };
+    if (d.includes("already confirmed") || d.includes("already verified")) return { kind: "already_verified" };
+    return { kind: "invalid", detail: errDesc };
+  }
+
+  // ── Hash fragment — implicit flow (older links) ──────────────────
+  if (hash.includes("access_token")) {
+    if (hash.includes("type=recovery")) {
+      const { data } = await supabase.auth.getSession();
+      return data.session ? { kind: "reset_ready" } : { kind: "expired" };
+    }
+    if (hash.includes("type=email_change")) return { kind: "email_changed" };
+    // magic-link or email verification
+    const { data } = await supabase.auth.getSession();
+    return data.session ? { kind: "verified" } : { kind: "expired" };
+  }
+
+  // ── PKCE code exchange ───────────────────────────────────────────
+  if (code) {
+    const { data, error: exchErr } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchErr) {
+      const msg = exchErr.message.toLowerCase();
+      if (msg.includes("expired") || msg.includes("already been used") || msg.includes("single use")) {
+        return { kind: "expired" };
       }
-      return;
+      return { kind: "error", detail: exchErr.message };
     }
+    if (!data.session) return { kind: "error" };
+    if (type === "recovery")     return { kind: "reset_ready" };
+    if (type === "email_change") return { kind: "email_changed" };
+    return { kind: "verified" };
+  }
 
-    // ── Hash fragment — recovery / email_change (old implicit flow) ──
-    if (hash.includes("access_token") && hash.includes("type=recovery")) {
-      // Supabase already set the session via detectSessionInUrl — check
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          resolve({ state: "password_reset" });
-        } else {
-          resolve({ state: "expired" });
-        }
-      });
-      return;
-    }
-
-    if (hash.includes("access_token") && hash.includes("type=email_change")) {
-      resolve({ state: "email_changed" });
-      return;
-    }
-
-    // ── PKCE code exchange ───────────────────────────────────────────
-    if (code) {
-      supabase.auth
-        .exchangeCodeForSession(code)
-        .then(({ data, error: exchError }) => {
-          if (exchError) {
-            const msg = exchError.message.toLowerCase();
-            if (msg.includes("expired") || msg.includes("used")) {
-              resolve({ state: "expired" });
-            } else if (msg.includes("invalid")) {
-              resolve({ state: "invalid", message: exchError.message });
-            } else {
-              resolve({ state: "error", message: exchError.message });
-            }
-            return;
-          }
-
-          // Determine intent from the Supabase session
-          const session = data.session;
-          if (!session) { resolve({ state: "error" }); return; }
-
-          // type from query param beats everything
-          if (type === "recovery") { resolve({ state: "password_reset" }); return; }
-          if (type === "email_change") { resolve({ state: "email_changed" }); return; }
-
-          // Default — email verification / magic link sign-in
-          resolve({ state: "verified" });
-        })
-        .catch(() => resolve({ state: "error" }));
-      return;
-    }
-
-    // ── No code, no hash, no error ──────────────────────────────────
-    resolve({ state: "invalid" });
-  });
+  // ── No meaningful params at all ──────────────────────────────────
+  return { kind: "invalid" };
 }
 
-// ── UI States ─────────────────────────────────────────────────────────────────
-
-function LoadingState() {
+/* ─── Layout wrapper ─────────────────────────────────────────── */
+function Page({ children }: { children: React.ReactNode }) {
   return (
-    <AuthLayout title="Verifying…" subtitle="Completing your authentication">
-      <div className="flex flex-col items-center py-8 gap-4">
-        <div className="relative w-14 h-14">
-          <div className="absolute inset-0 rounded-full border-2 border-accent-500/20" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent-500 animate-spin" />
-        </div>
-        <p className="text-sm text-white/35 text-center">
-          This takes just a moment…
-        </p>
-      </div>
-    </AuthLayout>
+    <div style={{
+      minHeight: "100vh",
+      background: "var(--bg)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+    }}>
+      {/* Logo */}
+      <Link to="/" style={{
+        position: "absolute", top: 24, left: 24,
+        display: "flex", alignItems: "center", gap: 8,
+        textDecoration: "none", color: "var(--ink-3)",
+        fontSize: 14, fontWeight: 500,
+        transition: "color 150ms",
+      }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2C7 2 4.5 4.3 4.5 7.25V14H15.5V7.25C15.5 4.3 13 2 10 2Z" fill="currentColor" opacity="0.7"/>
+          <rect x="3.5" y="13.5" width="13" height="1.5" rx="0.75" fill="currentColor" opacity="0.7"/>
+          <circle cx="10" cy="16.8" r="1.5" fill="currentColor" opacity="0.7"/>
+        </svg>
+        Bill Reminder
+      </Link>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          width: "100%",
+          maxWidth: 400,
+          background: "var(--surface-1)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-xl)",
+          padding: "40px 36px",
+          textAlign: "center",
+        }}
+      >
+        {children}
+      </motion.div>
+    </div>
   );
 }
 
-function VerifiedState() {
-  const openApp = () => { window.location.href = `${APP_SCHEME}://signin`; };
-
+/* ─── Icon component ─────────────────────────────────────────── */
+function StatusIcon({ type }: { type: "success" | "warning" | "error" | "info" }) {
+  const configs = {
+    success: { bg: "rgba(52,211,153,0.1)", border: "rgba(52,211,153,0.22)", color: "#34d399" },
+    warning: { bg: "rgba(251,191,36,0.1)",  border: "rgba(251,191,36,0.22)",  color: "#fbbf24" },
+    error:   { bg: "rgba(248,113,113,0.1)", border: "rgba(248,113,113,0.22)", color: "#f87171" },
+    info:    { bg: "var(--brand-faint)",    border: "var(--brand-border)",    color: "var(--brand)" },
+  };
+  const c = configs[type];
   return (
-    <AuthLayout title="Email verified" subtitle="Your account is now active and ready to use">
-      <div className="text-center py-2">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 18 }}
-          className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto mb-5"
-        >
-          <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <div style={{
+      width: 56, height: 56, borderRadius: 14,
+      background: c.bg, border: `1px solid ${c.border}`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      margin: "0 auto 20px",
+    }}>
+      {type === "success" && (
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke={c.color} strokeWidth={2.2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      )}
+      {type === "warning" && (
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke={c.color} strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      )}
+      {type === "error" && (
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke={c.color} strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      )}
+      {type === "info" && (
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke={c.color} strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+      )}
+    </div>
+  );
+}
+
+function H({ children }: { children: React.ReactNode }) {
+  return <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.02em", marginBottom: 8 }}>{children}</h1>;
+}
+function Sub({ children }: { children: React.ReactNode }) {
+  return <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6, marginBottom: 28, maxWidth: 300, margin: "0 auto 28px" }}>{children}</p>;
+}
+function Actions({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>;
+}
+
+/* ─── State views ────────────────────────────────────────────── */
+
+function Verified() {
+  const APP_SCHEME = "bill-reminder";
+  return (
+    <Page>
+      <StatusIcon type="success" />
+      <H>Email Verified</H>
+      <Sub>Your email has been successfully verified. You can now sign in to Bill Reminder.</Sub>
+      <Actions>
+        <a href={`${APP_SCHEME}://signin`} className="btn-primary" style={{ justifyContent: "center" }}>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
           </svg>
-        </motion.div>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-sm text-white/50 mb-8 leading-relaxed"
-        >
-          Your email has been successfully verified. You can now sign in to Bill Reminder on any device.
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-3"
-        >
-          <button onClick={openApp} className="btn-primary w-full justify-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            Open App
-          </button>
-          <Link to="/sign-in" className="btn-secondary w-full justify-center">
-            Sign in on web
-          </Link>
-        </motion.div>
-        <p className="text-xs text-white/25 mt-6">
-          "Open App" launches the Bill Reminder app if installed on this device.
-        </p>
-      </div>
-    </AuthLayout>
+          Open App
+        </a>
+        <Link to="/sign-in" className="btn-outline" style={{ justifyContent: "center" }}>
+          Sign in on Web
+        </Link>
+      </Actions>
+      <p style={{ marginTop: 20, fontSize: 12, color: "var(--ink-4)" }}>
+        "Open App" launches the Bill Reminder app if installed on this device.
+      </p>
+    </Page>
   );
 }
 
-function PasswordResetReadyState() {
+function ResetReady() {
   const navigate = useNavigate();
   useEffect(() => { navigate("/reset-password", { replace: true }); }, [navigate]);
-  return <LoadingState />;
-}
-
-function EmailChangedState() {
   return (
-    <AuthLayout title="Email updated" subtitle="Your email address has been changed successfully">
-      <div className="text-center py-2">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 18 }}
-          className="w-16 h-16 rounded-2xl bg-accent-500/15 border border-accent-500/25 flex items-center justify-center mx-auto mb-5"
-        >
-          <svg className="w-8 h-8 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </motion.div>
-        <p className="text-sm text-white/50 mb-8 leading-relaxed">
-          Your email address has been changed. Sign in with your new email going forward.
-        </p>
-        <Link to="/sign-in" className="btn-primary w-full justify-center">
-          Sign in
-        </Link>
-      </div>
-    </AuthLayout>
+    <Page>
+      <div className="spinner" style={{ margin: "0 auto 16px" }} />
+      <p style={{ color: "var(--ink-3)", fontSize: 14 }}>Redirecting…</p>
+    </Page>
   );
 }
 
-function AlreadyVerifiedState() {
+function EmailChanged() {
   return (
-    <AuthLayout title="Already verified" subtitle="This account has already been confirmed">
-      <div className="text-center py-2">
-        <div className="w-14 h-14 rounded-2xl bg-accent-500/15 border border-accent-500/25 flex items-center justify-center mx-auto mb-5">
-          <svg className="w-7 h-7 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        </div>
-        <p className="text-sm text-white/50 mb-8 leading-relaxed">
-          Your email is already confirmed. You can sign in to your account right now.
-        </p>
-        <div className="space-y-3">
-          <Link to="/sign-in" className="btn-primary w-full justify-center">
-            Sign in
-          </Link>
-        </div>
-      </div>
-    </AuthLayout>
+    <Page>
+      <StatusIcon type="info" />
+      <H>Email Updated</H>
+      <Sub>Your email address has been changed successfully. Sign in with your new address going forward.</Sub>
+      <Actions>
+        <Link to="/sign-in" className="btn-primary" style={{ justifyContent: "center" }}>Sign In</Link>
+      </Actions>
+    </Page>
   );
 }
 
-function ExpiredState() {
+function AlreadyVerified() {
   return (
-    <AuthLayout title="Link expired" subtitle="This link is no longer valid">
-      <div className="text-center py-2">
-        <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center mx-auto mb-5">
-          <svg className="w-7 h-7 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <p className="text-sm text-white/50 mb-2 leading-relaxed">
-          Verification links expire after 24 hours for security. Request a new one to continue.
-        </p>
-        <p className="text-xs text-white/30 mb-8">
-          Make sure to click the link within 24 hours of receiving it.
-        </p>
-        <div className="space-y-3">
-          <Link to="/sign-up" className="btn-primary w-full justify-center">
-            Create new account
-          </Link>
-          <Link to="/sign-in" className="btn-secondary w-full justify-center">
-            Sign in
-          </Link>
-        </div>
-        <p className="text-xs text-white/25 mt-6">
-          Need help?{" "}
-          <a
-            href="mailto:support@billreminder.suryadeepbanerjee.in"
-            className="hover:text-white/50 transition-colors underline underline-offset-2"
-          >
-            Contact support
-          </a>
-        </p>
-      </div>
-    </AuthLayout>
+    <Page>
+      <StatusIcon type="info" />
+      <H>Already Verified</H>
+      <Sub>This email address has already been confirmed. You can sign in right now.</Sub>
+      <Actions>
+        <Link to="/sign-in" className="btn-primary" style={{ justifyContent: "center" }}>Sign In</Link>
+      </Actions>
+    </Page>
   );
 }
 
-function InvalidState({ message }: { message?: string }) {
+function Expired() {
   return (
-    <AuthLayout title="Invalid link" subtitle="This verification link is not recognised">
-      <div className="text-center py-2">
-        <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center mx-auto mb-5">
-          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <p className="text-sm text-white/50 mb-2 leading-relaxed">
-          This link appears to be malformed or has already been used.
-        </p>
-        {message && (
-          <p className="text-xs text-white/25 mb-6 font-mono px-2 py-1.5 bg-white/[0.03] rounded-lg">
-            {message}
-          </p>
-        )}
-        <div className="space-y-3 mt-4">
-          <Link to="/sign-in" className="btn-primary w-full justify-center">
-            Go to Sign In
-          </Link>
-          <Link to="/sign-up" className="btn-secondary w-full justify-center">
-            Create new account
-          </Link>
-        </div>
-        <p className="text-xs text-white/25 mt-6">
-          Need help?{" "}
-          <a
-            href="mailto:support@billreminder.suryadeepbanerjee.in"
-            className="hover:text-white/50 transition-colors underline underline-offset-2"
-          >
-            Contact support
-          </a>
-        </p>
-      </div>
-    </AuthLayout>
+    <Page>
+      <StatusIcon type="warning" />
+      <H>Link Expired</H>
+      <Sub>This verification link has expired or been used already. Links are valid for 24 hours — request a new one below.</Sub>
+      <Actions>
+        <Link to="/sign-up" className="btn-primary" style={{ justifyContent: "center" }}>Create New Account</Link>
+        <Link to="/sign-in" className="btn-outline" style={{ justifyContent: "center" }}>Sign In</Link>
+      </Actions>
+      <p style={{ marginTop: 20, fontSize: 12, color: "var(--ink-4)" }}>
+        If you keep seeing this,{" "}
+        <a href="mailto:support@billreminder.app" style={{ color: "var(--ink-3)", textDecoration: "underline" }}>
+          contact support
+        </a>.
+      </p>
+    </Page>
   );
 }
 
-function ErrorState({ message }: { message?: string }) {
+function Invalid({ detail }: { detail?: string }) {
   return (
-    <AuthLayout title="Something went wrong" subtitle="We couldn't complete your verification">
-      <div className="text-center py-2">
-        <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center mx-auto mb-5">
-          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <p className="text-sm text-white/50 mb-8 leading-relaxed">
-          An unexpected error occurred. Please try again or contact support if the problem persists.
+    <Page>
+      <StatusIcon type="error" />
+      <H>Invalid Link</H>
+      <Sub>This verification link is malformed or has already been used. Please request a new one.</Sub>
+      <Actions>
+        <Link to="/sign-up" className="btn-primary" style={{ justifyContent: "center" }}>Create Account</Link>
+        <Link to="/sign-in" className="btn-outline" style={{ justifyContent: "center" }}>Sign In</Link>
+      </Actions>
+      {detail && (
+        <p style={{ marginTop: 16, fontSize: 11, color: "var(--ink-4)", fontFamily: "monospace", wordBreak: "break-all" }}>
+          {detail}
         </p>
-        <div className="space-y-3">
-          <Link to="/sign-in" className="btn-primary w-full justify-center">
-            Go to Sign In
-          </Link>
-        </div>
-        {message && (
-          <p className="text-xs text-white/20 mt-6 font-mono">{message}</p>
-        )}
-      </div>
-    </AuthLayout>
+      )}
+    </Page>
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+function ErrorState({ detail }: { detail?: string }) {
+  return (
+    <Page>
+      <StatusIcon type="error" />
+      <H>Something Went Wrong</H>
+      <Sub>We couldn't complete your verification. Please try again or contact support if this persists.</Sub>
+      <Actions>
+        <Link to="/sign-in" className="btn-primary" style={{ justifyContent: "center" }}>Go to Sign In</Link>
+      </Actions>
+      {detail && (
+        <p style={{ marginTop: 16, fontSize: 11, color: "var(--ink-4)", fontFamily: "monospace", wordBreak: "break-all" }}>
+          {detail}
+        </p>
+      )}
+    </Page>
+  );
+}
 
+function Loading() {
+  return (
+    <Page>
+      <div className="spinner" style={{ margin: "0 auto 16px" }} />
+      <p style={{ color: "var(--ink-3)", fontSize: 14 }}>Verifying your link…</p>
+    </Page>
+  );
+}
+
+/* ─── Main export ───────────────────────────────────────────── */
 export default function AuthCallback() {
-  const [result, setResult] = useState<CallbackResult>({ state: "loading" });
+  const [state, setState] = useState<State>({ kind: "loading" });
 
-  useEffect(() => {
-    parseCallbackResult().then(setResult);
-  }, []);
+  useEffect(() => { resolve().then(setState); }, []);
 
-  switch (result.state) {
-    case "loading":         return <LoadingState />;
-    case "verified":        return <VerifiedState />;
-    case "password_reset":  return <PasswordResetReadyState />;
-    case "email_changed":   return <EmailChangedState />;
-    case "already_verified": return <AlreadyVerifiedState />;
-    case "expired":         return <ExpiredState />;
-    case "invalid":         return <InvalidState message={result.message} />;
-    case "error":           return <ErrorState message={result.message} />;
+  switch (state.kind) {
+    case "loading":          return <Loading />;
+    case "verified":         return <Verified />;
+    case "reset_ready":      return <ResetReady />;
+    case "email_changed":    return <EmailChanged />;
+    case "already_verified": return <AlreadyVerified />;
+    case "expired":          return <Expired />;
+    case "invalid":          return <Invalid detail={state.detail} />;
+    case "error":            return <ErrorState detail={state.detail} />;
   }
 }

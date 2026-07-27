@@ -1,122 +1,114 @@
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
-// Animated grid dots background
-function GridBackground() {
+/* Bill card shown in the phone mockup */
+function BillCard({
+  emoji, name, amount, category, daysLeft, paid,
+}: {
+  emoji: string; name: string; amount: string;
+  category: string; daysLeft?: number; paid?: boolean;
+}) {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Grid lines */}
-      <div className="absolute inset-0 grid-bg opacity-60" />
-
-      {/* Central radial glow */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-20 animate-glow-pulse"
-        style={{
-          background: "radial-gradient(ellipse at center, rgba(91,91,214,0.5) 0%, rgba(91,91,214,0.15) 40%, transparent 70%)",
-        }}
-      />
-
-      {/* Top center highlight */}
-      <div
-        className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px]"
-        style={{
-          background: "radial-gradient(ellipse at top, rgba(91,91,214,0.18) 0%, transparent 70%)",
-        }}
-      />
-
-      {/* Floating orbs */}
-      <div
-        className="absolute top-1/4 left-1/4 w-48 h-48 rounded-full blur-3xl animate-float"
-        style={{ background: "rgba(99,102,241,0.1)", animationDelay: "0s" }}
-      />
-      <div
-        className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full blur-3xl animate-float"
-        style={{ background: "rgba(67,56,202,0.08)", animationDelay: "-3s" }}
-      />
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 0",
+      borderBottom: "1px solid rgba(255,255,255,0.06)",
+    }}>
+      <div style={{
+        width: 34, height: 34, borderRadius: 9,
+        background: "rgba(130,119,247,0.12)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 16, flexShrink: 0,
+      }}>
+        {emoji}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "#e8e8f0", marginBottom: 2 }}>{name}</p>
+        <p style={{ fontSize: 10, color: "rgba(232,232,240,0.45)" }}>{category}</p>
+      </div>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#e8e8f0", marginBottom: 2 }}>{amount}</p>
+        {paid ? (
+          <p style={{ fontSize: 10, color: "#34d399" }}>✓ Paid</p>
+        ) : (
+          <p style={{ fontSize: 10, color: daysLeft! <= 2 ? "#f87171" : "rgba(232,232,240,0.45)" }}>
+            {daysLeft === 0 ? "Due today" : `${daysLeft}d left`}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
-// Phone mockup with bill card UI
 function PhoneMockup() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mx-auto w-[280px]"
+      initial={{ opacity: 0, y: 24, rotateX: 6 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0 }}
+      transition={{ duration: 0.9, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      style={{ perspective: 1000 }}
     >
-      {/* Glow behind phone */}
-      <div
-        className="absolute inset-0 blur-3xl rounded-full scale-90 translate-y-8"
-        style={{ background: "radial-gradient(ellipse, rgba(91,91,214,0.35) 0%, transparent 70%)" }}
-      />
-
-      {/* Phone frame */}
-      <div className="relative glass rounded-[40px] p-3 border border-white/10 shadow-2xl">
-        <div className="rounded-[32px] bg-surface-1 overflow-hidden" style={{ aspectRatio: "9/19" }}>
+      <div style={{
+        width: 260,
+        background: "#0c0c1a",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 32,
+        padding: 12,
+        boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)",
+        position: "relative",
+      }}>
+        {/* Screen */}
+        <div style={{
+          borderRadius: 22,
+          overflow: "hidden",
+          background: "#07070f",
+        }}>
           {/* Status bar */}
-          <div className="flex items-center justify-between px-5 pt-3 pb-2">
-            <span className="text-white/50 text-[10px] font-medium">9:41</span>
-            <div className="flex gap-1">
-              <div className="w-3 h-1.5 bg-white/30 rounded-full" />
-              <div className="w-1 h-1.5 bg-white/30 rounded-full" />
-              <div className="w-1 h-1.5 bg-white/30 rounded-full" />
+          <div style={{ padding: "10px 16px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 10, color: "rgba(232,232,240,0.5)", fontWeight: 600 }}>9:41</span>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <div style={{ width: 12, height: 6, background: "#34d399", borderRadius: 2, opacity: 0.6 }} />
             </div>
           </div>
 
           {/* App content */}
-          <div className="px-4 pb-4">
+          <div style={{ padding: "4px 14px 14px" }}>
             {/* Header */}
-            <div className="mb-5">
-              <p className="text-white/40 text-[10px] mb-0.5">Good morning</p>
-              <p className="text-white font-semibold text-sm">Surya 👋</p>
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ fontSize: 10, color: "rgba(232,232,240,0.4)", marginBottom: 2 }}>Good morning,</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "#e8e8f0", letterSpacing: "-0.02em" }}>Surya 👋</p>
             </div>
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            {/* Summary bar */}
+            <div style={{
+              display: "flex", gap: 8, marginBottom: 14,
+            }}>
               {[
-                { label: "Due this month", value: "₹4,850", color: "rgba(91,91,214,0.2)" },
-                { label: "Overdue", value: "₹0", color: "rgba(16,185,129,0.15)" },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-xl p-2.5"
-                  style={{ background: card.color, border: "1px solid rgba(255,255,255,0.07)" }}
-                >
-                  <p className="text-white/50 text-[8px] mb-1">{card.label}</p>
-                  <p className="text-white font-semibold text-sm">{card.value}</p>
+                { label: "Due this month", value: "₹4,850", color: "rgba(130,119,247,0.15)" },
+                { label: "Overdue", value: "₹0", color: "rgba(52,211,153,0.1)" },
+              ].map(c => (
+                <div key={c.label} style={{
+                  flex: 1, padding: "8px 10px", borderRadius: 10,
+                  background: c.color, border: "1px solid rgba(255,255,255,0.06)",
+                }}>
+                  <p style={{ fontSize: 8, color: "rgba(232,232,240,0.45)", marginBottom: 3 }}>{c.label}</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e8e8f0" }}>{c.value}</p>
                 </div>
               ))}
             </div>
 
-            {/* Bill cards */}
-            <p className="text-white/40 text-[9px] uppercase tracking-wider mb-2 font-medium">Today</p>
-            {[
-              { name: "Netflix", amount: "₹649", color: "#DC2626", emoji: "🎬" },
-              { name: "Spotify", amount: "₹119", color: "#22C55E", emoji: "🎵" },
-              { name: "iCloud", amount: "₹75", color: "#3B82F6", emoji: "☁️" },
-            ].map((bill) => (
-              <div
-                key={bill.name}
-                className="flex items-center gap-2.5 py-2 border-b last:border-b-0"
-                style={{ borderColor: "rgba(255,255,255,0.05)" }}
-              >
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-                  style={{ background: bill.color + "20" }}
-                >
-                  <span style={{ fontSize: 12 }}>{bill.emoji}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-[11px] font-medium">{bill.name}</p>
-                  <p className="text-white/40 text-[9px]">Monthly</p>
-                </div>
-                <span className="text-white text-[11px] font-semibold tabular-nums">{bill.amount}</span>
-              </div>
-            ))}
+            {/* Bills */}
+            <p style={{ fontSize: 9, color: "rgba(232,232,240,0.35)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Upcoming</p>
+            <BillCard emoji="📺" name="Netflix"   amount="₹649" category="Streaming"   daysLeft={2} />
+            <BillCard emoji="🎵" name="Spotify"   amount="₹119" category="Music"       daysLeft={5} />
+            <BillCard emoji="☁️" name="iCloud"    amount="₹75"  category="Storage"     paid />
+            <BillCard emoji="⚡" name="Electricity" amount="₹1,200" category="Utilities" daysLeft={0} />
           </div>
+        </div>
+
+        {/* Home indicator */}
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 8 }}>
+          <div style={{ width: 60, height: 3, borderRadius: 99, background: "rgba(255,255,255,0.25)" }} />
         </div>
       </div>
     </motion.div>
@@ -124,128 +116,147 @@ function PhoneMockup() {
 }
 
 export default function Hero() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true });
-
   return (
     <section
-      ref={ref}
-      className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden"
       aria-labelledby="hero-heading"
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        paddingTop: 100,
+        paddingBottom: 64,
+        position: "relative",
+        overflow: "hidden",
+      }}
     >
-      <GridBackground />
+      {/* Ambient light — subtle, not decorative grid */}
+      <div style={{
+        position: "absolute",
+        top: 0, left: 0, right: 0,
+        height: 500,
+        background: "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(130,119,247,0.12) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} aria-hidden="true" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-5 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left: Copy */}
-          <div>
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center gap-2 glass-accent rounded-full px-4 py-1.5 mb-8"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse" />
-              <span className="text-accent-300 text-xs font-medium tracking-tight">
-                Now available on Android
-              </span>
-            </motion.div>
-
-            {/* Headline */}
-            <motion.h1
-              id="hero-heading"
-              initial={{ opacity: 0, y: 20 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.15 }}
-              className="text-5xl sm:text-6xl lg:text-[64px] font-bold tracking-tight leading-[1.06] text-balance mb-6"
-            >
-              Never miss{" "}
-              <span className="gradient-text">another</span>
-              <br />
-              bill again.
-            </motion.h1>
-
-            {/* Subheading */}
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.22 }}
-              className="text-lg text-white/50 leading-relaxed max-w-lg mb-10 text-balance"
-            >
-              Bill Reminder tracks every recurring payment — subscriptions, utilities, EMIs — and sends smart reminders before they're due. Offline-first, beautifully organised.
-            </motion.p>
-
-            {/* CTA buttons */}
+      <div className="container">
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr",
+          gap: 48,
+          alignItems: "center",
+        }} className="hero-grid">
+          {/* ── Left: Copy ── */}
+          <div style={{ maxWidth: 560 }}>
             <motion.div
               initial={{ opacity: 0, y: 16 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-wrap items-center gap-4"
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
-              <a
-                href="/#download"
-                className="btn-primary text-base px-7 py-3.5 gap-2.5"
+              {/* Status badge — singular, earns its place */}
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 12px 5px 8px",
+                background: "var(--brand-faint)",
+                border: "1px solid var(--brand-border)",
+                borderRadius: 99,
+                marginBottom: 28,
+              }}>
+                <div style={{
+                  width: 18, height: 18, borderRadius: 5,
+                  background: "var(--brand)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M5 1C3.34 1 2 2.27 2 3.83V7h6V3.83C8 2.27 6.66 1 5 1Z" fill="white"/>
+                    <rect x="1.5" y="6.75" width="7" height="0.9" rx="0.45" fill="white"/>
+                    <circle cx="5" cy="8.5" r="0.75" fill="white"/>
+                  </svg>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--brand)" }}>
+                  Open source · MIT License
+                </span>
+              </div>
+
+              <h1
+                id="hero-heading"
+                style={{
+                  fontSize: "clamp(2.6rem, 5.5vw, 4.5rem)",
+                  fontWeight: 800,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1.05,
+                  color: "var(--ink)",
+                  textWrap: "balance" as any,
+                  marginBottom: 20,
+                }}
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download App
-              </a>
-              <Link to="/sign-in" className="btn-secondary text-base px-7 py-3.5">
-                Sign In
-                <svg className="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </motion.div>
+                Never miss another<br />
+                <span style={{ color: "var(--brand)" }}>bill again.</span>
+              </h1>
 
-            {/* Social proof */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : {}}
-              transition={{ duration: 0.6, delay: 0.45 }}
-              className="mt-12 flex items-center gap-6"
-            >
-              <div className="flex -space-x-2">
-                {["#4338CA", "#7C3AED", "#2563EB", "#059669"].map((color, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold"
-                    style={{ borderColor: "#080810", background: color }}
-                  >
-                    {String.fromCharCode(65 + i)}
+              <p style={{
+                fontSize: "clamp(15px, 2vw, 17px)",
+                color: "var(--ink-2)",
+                lineHeight: 1.7,
+                maxWidth: "60ch",
+                marginBottom: 36,
+              }}>
+                Bill Reminder helps you stay ahead of recurring payments with intelligent reminders, offline support, cloud sync, and a clean experience designed to eliminate late fees and forgotten bills.
+              </p>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <a
+                  href="https://github.com/suryadeepbanerjee/Bill-Reminder/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ padding: "12px 24px", fontSize: 15 }}
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                  Download App
+                </a>
+                <Link to="/sign-in" className="btn-outline" style={{ padding: "11px 24px", fontSize: 15 }}>
+                  Sign In
+                </Link>
+              </div>
+
+              {/* Metrics — real, honest numbers */}
+              <div style={{ display: "flex", gap: 28, marginTop: 44, flexWrap: "wrap" }}>
+                {[
+                  { value: "Free",     label: "No subscription fee" },
+                  { value: "Offline",  label: "Works without internet" },
+                  { value: "Private",  label: "Your data, your rules" },
+                ].map(m => (
+                  <div key={m.value}>
+                    <p style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.02em", marginBottom: 3 }}>{m.value}</p>
+                    <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{m.label}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-sm text-white/40">
-                <span className="text-white/70 font-medium">Open source</span> · MIT Licensed
-              </p>
             </motion.div>
           </div>
 
-          {/* Right: Phone mockup */}
-          <div className="flex justify-center lg:justify-end">
+          {/* ── Right: Phone ── */}
+          <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
+            {/* Glow behind phone */}
+            <div style={{
+              position: "absolute",
+              inset: -40,
+              background: "radial-gradient(ellipse at center, rgba(130,119,247,0.15) 0%, transparent 65%)",
+              borderRadius: "50%",
+              pointerEvents: "none",
+            }} aria-hidden="true" />
             <PhoneMockup />
           </div>
         </div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.6 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center pt-1.5"
-          >
-            <div className="w-1 h-2 bg-white/40 rounded-full" />
-          </motion.div>
-        </motion.div>
       </div>
+
+      <style>{`
+        @media (min-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
     </section>
   );
 }

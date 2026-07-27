@@ -1,91 +1,120 @@
 import { Link } from "react-router-dom";
-import Logo from "../ui/Logo";
-
-const APP_VERSION = "1.0.0";
 
 export default function Footer() {
+  const year = new Date().getFullYear();
+
+  const linkStyle = {
+    color: "var(--ink-3)",
+    textDecoration: "none",
+    fontSize: 13,
+    transition: "color 150ms",
+  } as const;
+
   return (
-    <footer className="border-t border-subtle mt-24 pb-12">
-      <div className="max-w-6xl mx-auto px-5 pt-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+    <footer style={{
+      borderTop: "1px solid var(--border)",
+      padding: "48px 0 32px",
+    }}>
+      <div className="container">
+        {/* Top row */}
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 32,
+          justifyContent: "space-between",
+          marginBottom: 40,
+        }}>
           {/* Brand */}
-          <div className="md:col-span-2">
-            <Link to="/" className="flex items-center gap-2.5 mb-4 group">
-              <Logo size={28} />
-              <span className="font-semibold text-white/90 text-[15px] tracking-tight">
-                Bill Reminder
-              </span>
-            </Link>
-            <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              A premium recurring bill and subscription tracker. Stay on top of every payment with smart reminders and beautiful organisation.
-            </p>
-            <div className="flex items-center gap-3 mt-6">
-              <a
-                href="https://github.com/suryadeepbanerjee/Bill-Reminder"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost px-3 py-2 text-xs gap-1.5"
-                aria-label="GitHub repository"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+          <div style={{ flex: "1 1 220px", maxWidth: 280 }}>
+            <Link to="/" style={{ textDecoration: "none", color: "var(--ink)", fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
+                  <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="white"/>
+                  <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="white"/>
+                  <circle cx="9" cy="13.5" r="1.2" fill="white"/>
                 </svg>
-                GitHub
-              </a>
-            </div>
+              </div>
+              Bill Reminder
+            </Link>
+            <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.65, maxWidth: 220 }}>
+              Track recurring bills. Get reminders. Never pay a late fee again.
+            </p>
           </div>
 
-          {/* Product links */}
-          <div>
-            <h3 className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-4">Product</h3>
-            <ul className="space-y-3">
-              {[
-                { label: "Features", href: "/#features" },
-                { label: "How It Works", href: "/#how-it-works" },
-                { label: "Download", href: "/#download" },
-                { label: "Changelog", href: "/#download" },
-              ].map((l) => (
-                <li key={l.label}>
-                  <a href={l.href} className="text-sm text-white/40 hover:text-white/80 transition-colors">
+          {/* Links */}
+          <div style={{ display: "flex", gap: 48, flexWrap: "wrap" }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>Product</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { label: "Features", href: "/#features" },
+                  { label: "How it Works", href: "/#how-it-works" },
+                  { label: "Download", href: "/#download" },
+                  { label: "FAQ", href: "/#faq" },
+                ].map(l => (
+                  <a key={l.label} href={l.href} style={linkStyle}
+                    onMouseEnter={e => (e.currentTarget.style.color = "var(--ink)")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-3)")}
+                  >
                     {l.label}
                   </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+                ))}
+              </div>
+            </div>
 
-          {/* Legal links */}
-          <div>
-            <h3 className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-4">Legal</h3>
-            <ul className="space-y-3">
-              {[
-                { label: "Privacy Policy", href: "/privacy" },
-                { label: "Terms of Service", href: "/terms" },
-                { label: "Security", href: "/privacy#security" },
-              ].map((l) => (
-                <li key={l.label}>
-                  <Link to={l.href} className="text-sm text-white/40 hover:text-white/80 transition-colors">
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>Legal</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <Link to="/privacy" style={linkStyle}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--ink)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-3)")}
+                >Privacy</Link>
+                <Link to="/terms" style={linkStyle}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--ink)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-3)")}
+                >Terms</Link>
+              </div>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>Links</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <a href="https://github.com/suryadeepbanerjee/Bill-Reminder" target="_blank" rel="noopener noreferrer" style={linkStyle}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--ink)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-3)")}
+                >GitHub</a>
+                <Link to="/sign-in" style={linkStyle}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--ink)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-3)")}
+                >Sign In</Link>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="h-px bg-white/[0.06] mb-8" />
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/25">
-            © {new Date().getFullYear()} Bill Reminder. All rights reserved.
+        <div className="divider" />
+        <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <p style={{ fontSize: 12, color: "var(--ink-4)" }}>
+            © {year} Bill Reminder — Built with care in India
           </p>
-          <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-xs text-white/30 font-mono">
-              v{APP_VERSION}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--ink-4)", background: "var(--surface-2)", padding: "2px 8px", borderRadius: 6, border: "1px solid var(--border)" }}>
+              MIT License
             </span>
-            <span className="text-xs text-white/20">
-              Built with ♥ in India
-            </span>
+            <a
+              href="https://github.com/suryadeepbanerjee/Bill-Reminder"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--ink-4)", transition: "color 150ms" }}
+              aria-label="GitHub"
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--ink)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-4)")}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+              </svg>
+            </a>
           </div>
         </div>
       </div>
