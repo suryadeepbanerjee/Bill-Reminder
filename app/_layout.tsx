@@ -1,0 +1,73 @@
+import { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthStore } from "../stores/auth-store";
+import { supabase } from "../lib/supabase/client";
+import { Colors } from "../lib/theme";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 0, staleTime: 30000 },
+  },
+});
+
+function LoadingScreen() {
+  return (
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={Colors.accent[500]} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+export default function RootLayout() {
+  const { setSession, setLoading, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <LoadingScreen />
+        <StatusBar style="auto" />
+      </QueryClientProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="bill/[id]" />
+        {/* Add Bill — full-screen modal over tab bar, per spec */}
+        <Stack.Screen
+          name="add-bill"
+          options={{
+            presentation:  "modal",
+            headerShown:   false,
+            gestureEnabled: true,
+          }}
+        />
+      </Stack>
+      <StatusBar style="auto" />
+    </QueryClientProvider>
+  );
+}

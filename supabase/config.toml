@@ -1,0 +1,9 @@
+{
+  "projectId": "your-project-ref",
+  "extensions": {
+    "vector": {
+      "enabled": false
+    }
+  },
+  "functions": {}
+}

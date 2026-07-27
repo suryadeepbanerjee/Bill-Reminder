@@ -1,0 +1,27 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchProfile, updateProfile } from "../lib/supabase/profile";
+import { useAuthStore } from "../stores/auth-store";
+
+export function useProfile() {
+  const { user } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn:  () => fetchProfile(user!.id),
+    enabled:  Boolean(user?.id),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  const { user }    = useAuthStore();
+
+  return useMutation({
+    mutationFn: (input: { display_name?: string }) =>
+      updateProfile(user!.id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+    },
+  });
+}
