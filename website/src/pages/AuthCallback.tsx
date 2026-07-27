@@ -53,22 +53,30 @@ async function processCallback(): Promise<void> {
     return redirectError("invalid", errDesc);
   }
 
-  // ── Hash fragment — legacy implicit flow ─────────────────────────────────
+  // ── Hash fragment — implicit flow (mobile PKCE disabled) ────────────────
   if (hash.includes("access_token")) {
-    if (hash.includes("type=recovery")) {
-      // Password reset — redirect to reset-password page (not success)
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) return redirectError("expired");
-      // For password reset we redirect to the reset-password form, not success.html
+    // Parse tokens directly from the hash — don't rely on async getSession()
+    // side-effect parsing which can return null before the hash is consumed.
+    const hashParams = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+    const accessToken  = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token") ?? "";
+    const type         = hashParams.get("type") ?? "";
+
+    if (!accessToken) return redirectError("expired");
+
+    const { error: setErr } = await supabase.auth.setSession({
+      access_token:  accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (setErr) return redirectError("expired");
+
+    if (type === "recovery") {
       window.location.replace("/reset-password");
       return;
     }
-    if (hash.includes("type=email_change")) {
-      return redirectSuccess();
-    }
-    // Magic link or email verification
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) return redirectError("expired");
+
+    // signup, email_change, magic_link — all go to success
     return redirectSuccess();
   }
 

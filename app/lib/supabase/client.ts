@@ -17,6 +17,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 		autoRefreshToken:   true,
 		persistSession:     true,
 		detectSessionInUrl: false,
+		// Must be "implicit" — not "pkce" (the default).
+		//
+		// Email verification links are clicked in a browser, which redirects
+		// to our website's /auth/callback. PKCE stores a code_verifier in
+		// the mobile app's SecureStore; the website cannot access it, so
+		// exchangeCodeForSession() always fails ("expired / already used").
+		//
+		// With "implicit", Supabase redirects with #access_token=... in the
+		// URL hash instead, which AuthCallback.tsx handles without needing
+		// any verifier.
+		flowType: "implicit",
 	},
 });
 
