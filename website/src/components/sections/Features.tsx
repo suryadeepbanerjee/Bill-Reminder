@@ -1,3 +1,4 @@
+// Features.tsx
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
@@ -87,57 +88,52 @@ export default function Features() {
 	const inView = useInView(ref, { once: true, margin: "-80px" });
 
 	return (
-		<section id="features" ref={ref} className="section" style={{ position: "relative" }} aria-labelledby="features-heading">
-			{/* Subtle side ambient — not a decorative grid */}
-			<div
-				className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none bg-[radial-gradient(ellipse_at_top_right,var(--color-border)_0%,transparent_70%)]"
-				aria-hidden="true"
-			/>
-
-			<div className="container">
+		<section id="features" ref={ref} className="section" aria-labelledby="features-heading">
+			<div className="container max-w-5xl mx-auto px-6 md:px-10">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={inView ? { opacity: 1, y: 0 } : {}}
 					transition={{ duration: 0.55 }}
-					className="mb-14 text-center"
+					className="mb-16 text-center"
 				>
 					<h2
 						id="features-heading"
-						className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5 mx-auto"
-						style={{ textWrap: "balance" as any }}
+						className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-4"
+						style={{ textWrap: "balance" }}
 					>
 						One purpose. Done right.
 					</h2>
-					<p className="text-base text-secondary max-w-[52ch] leading-[1.65] mx-auto">
+					<p className="text-base text-secondary max-w-[48ch] leading-[1.65] mx-auto">
 						No bloat, no subscription tiers, no dark patterns. Bill Reminder does exactly one thing — and it does it exceptionally well.
 					</p>
 				</motion.div>
 
-				{/* Feature list — not identical card grid; uses size variation */}
-				<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 justify-items-center">
-					{features.map((f, i) => (
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
+					{features.map((feature, index) => (
 						<motion.div
-							key={f.title}
-							initial={{ opacity: 0, y: 20 }}
+							key={feature.title}
+							initial={{ opacity: 0, y: 12 }}
 							animate={inView ? { opacity: 1, y: 0 } : {}}
-							transition={{ duration: 0.45, delay: i * 0.06 }}
-							className={`group w-full max-w-[420px] rounded-2xl border border-border bg-surface p-8 transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg flex flex-col items-center justify-center text-center ${i === 0 ? "feature-hero" : ""}`}
+							transition={{ duration: 0.4, delay: index * 0.05 }}
+							className={`
+                group flex items-start gap-4 py-5
+                ${index < features.length - 1 ? "border-b border-border/40" : ""}
+                ${index % 2 === 0 ? "md:border-r md:border-border/40 md:pr-8" : "md:pl-8"}
+                ${index >= features.length - 2 ? "md:border-b-0" : ""}
+                hover:bg-surface/30 -mx-4 px-4 rounded-lg transition-colors duration-300
+              `}
 						>
-							<div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-input text-accent transition-colors duration-300 group-hover:border-accent/40">
-								{f.icon}
+							<div className="shrink-0 w-8 h-8 rounded-lg border border-border/60 bg-surface flex items-center justify-center text-accent transition-colors duration-300 group-hover:border-accent/40">
+								{feature.icon}
 							</div>
-							<h3 className="mb-3 text-lg font-semibold tracking-tight text-primary">{f.title}</h3>
-							<p className="max-w-[34ch] text-center text-[15px] leading-7 text-secondary">{f.body}</p>
+							<div className="flex-1 min-w-0">
+								<h3 className="text-base font-semibold tracking-tight text-primary mb-1">{feature.title}</h3>
+								<p className="text-sm text-secondary leading-relaxed max-w-[48ch]">{feature.body}</p>
+							</div>
 						</motion.div>
 					))}
 				</div>
 			</div>
-
-			<style>{`
-        @media (min-width: 900px) {
-          .feature-hero { grid-column: span 2; }
-        }
-      `}</style>
 		</section>
 	);
 }
