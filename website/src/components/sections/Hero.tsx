@@ -209,26 +209,43 @@ export default function Hero() {
       dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]
       rounded-b-xl"
 		>
-			{/* Grid BG */}
+			{/* Ledger grid — tight to the content, not full-bleed */}
 			<div
-				className="absolute -z-10 inset-0 opacity-80 h-[600px] w-full
+				className="absolute -z-10 inset-0 opacity-[0.5] h-[560px] w-full
         bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)]
-        dark:bg-[linear-gradient(to_right,#333_1px,transparent_1px),linear-gradient(to_bottom,#333_1px,transparent_1px)]
-        bg-[size:6rem_5rem]
-        [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"
+        dark:bg-[linear-gradient(to_right,#242830_1px,transparent_1px),linear-gradient(to_bottom,#242830_1px,transparent_1px)]
+        bg-[size:6rem_3.2rem]
+        [mask-image:radial-gradient(ellipse_60%_45%_at_65%_15%,#000_60%,transparent_100%)]"
 				aria-hidden="true"
 			/>
 
-			{/* Radial Accent — exactly like hero-1: positioned at bottom center */}
+			{/* Grain — breaks up the flat gradient so it doesn't read as templated */}
 			<div
-				className="absolute left-1/2 top-[calc(100%-90px)] lg:top-[calc(100%-150px)]
-        h-[500px] w-[700px] md:h-[500px] md:w-[1100px] lg:h-[750px] lg:w-[140%]
-        -translate-x-1/2 rounded-[100%] border-[#B48CDE] bg-white dark:bg-black
-        bg-[radial-gradient(closest-side,#fff_82%,#000000)]
-        dark:bg-[radial-gradient(closest-side,#000_82%,#ffffff)]
-        animate-fade-up pointer-events-none"
+				className="absolute -z-10 inset-0 opacity-[0.035] dark:opacity-[0.06] pointer-events-none mix-blend-overlay"
+				style={{
+					backgroundImage:
+						"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+				}}
 				aria-hidden="true"
 			/>
+
+			{/* Gold spotlight — anchored behind the phone, not a blob behind the whole page */}
+			<div
+				className="hidden lg:block absolute -z-10 right-[4%] top-[6%] h-[560px] w-[560px]
+        rounded-full pointer-events-none
+        bg-[radial-gradient(circle,rgba(186,150,24,0.16)_0%,transparent_70%)]
+        dark:bg-[radial-gradient(circle,rgba(186,150,24,0.14)_0%,transparent_70%)]"
+				aria-hidden="true"
+			/>
+
+			{/* Due-date horizon — the one signature element, echoes the Timeline card */}
+			<div
+				className="absolute -z-10 left-0 right-0 top-[62%] h-px pointer-events-none
+        bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent"
+				aria-hidden="true"
+			>
+				<div className="absolute left-1/2 -translate-x-1/2 -top-[3px] w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_12px_2px_rgba(186,150,24,0.5)]" />
+			</div>
 
 			{/* Bottom fade to blend into next section */}
 			<div
