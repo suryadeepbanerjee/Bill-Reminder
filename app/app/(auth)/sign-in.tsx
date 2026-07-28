@@ -4,7 +4,7 @@ import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase, webRedirectUri } from "../../lib/supabase/client";
+import { supabase } from "../../lib/supabase/client";
 import { signInSchema, SignInFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -14,13 +14,19 @@ import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { Divider } from "../../components/ui/Divider";
 import { Colors } from "../../lib/theme";
 
+const OTP_RESEND_COOLDOWN = 60;
+
 export default function SignInScreen() {
   const [error, setError]           = useState<string | null>(null);
   const [isLoading, setIsLoading]   = useState(false);
   const [magicSent, setMagicSent]   = useState(false);
   const [magicEmail, setMagicEmail] = useState("");
-  const [nextLoading, setNextLoading] = useState(false);
-  const [notVerified, setNotVerified] = useState(false);
+
+  // OTP code state
+  const [otpCode, setOtpCode]           = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [otpError, setOtpError]         = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const {
     control,
@@ -36,39 +42,117 @@ export default function SignInScreen() {
   const emailValue = watch("email");
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
 
-  // ── Auto-navigate when deep link fires while waiting ─────────────────────
-  // callback.tsx calls supabase.auth.setSession() when the app is opened via
-  // the deep link from success.html. That triggers onAuthStateChange in
-  // _layout.tsx → auth store updated → (auth)/_layout.tsx redirects automatically.
-  //
-  // This AppState listener is a belt-and-suspenders check: if the user
-  // returns to the app via the app switcher AFTER the deep link has already
-  // fired and set the session, we catch it here.
+  // ── Auto-navigate if deep link fires while waiting ───────────────────────
+  // If the user happens to have tapped the magic link in browser and the OS
+  // opened the app via deep link → callback.tsx sets the session → this
+  // AppState listener catches the session and navigates to dashboard.
   useEffect(() => {
     if (!magicSent) return;
-    const sub = AppState.addEventListener('change', async (state) => {
-      if (state === 'active') {
+    const sub = AppState.addEventListener("change", async (state) => {
+      if (state === "active") {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) router.replace('/(tabs)/dashboard');
+        if (session) router.replace("/(tabs)/dashboard");
       }
     });
     return () => sub.remove();
   }, [magicSent]);
-  // ── Check session when user taps Next ────────────────────────────────────
-  const handleNext = async () => {
-    setNotVerified(false);
-    setNextLoading(true);
+
+  // ── Handle OTP code verification (PRIMARY path on mobile) ────────────────
+  // supabase.auth.verifyOtp() creates the session directly on the mobile
+  // Supabase client — no browser, no deep link needed.
+  const handleVerify = async () => {
+    const code = otpCode.trim();
+    if (!code) {
+      setOtpError("Please enter the 6-digit code from your email.");
+      return;
+    }
+    if (code.length !== 6 || !/^\d+$/.test(code)) {
+      setOtpError("The code must be exactly 6 digits.");
+      return;
+    }
+    setOtpError(null);
+    setVerifyLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.replace("/(tabs)/dashboard");
-      } else {
-        setNotVerified(true);
+      const { error: verifyErr } = await supabase.auth.verifyOtp({
+        email: magicEmail,
+        token: code,
+        type:  "email",
+      });
+      if (verifyErr) {
+        const msg = verifyErr.message.toLowerCase();
+        if (msg.includes("expired") || msg.includes("invalid") || msg.includes("otp")) {
+          setOtpError("Code is incorrect or has expired. Request a new one below.");
+          return;
+        }
+        setOtpError(verifyErr.message);
+        return;
       }
+      // Session created on mobile directly — no deep link needed.
+      router.replace("/(tabs)/dashboard");
     } catch {
-      setNotVerified(true);
+      setOtpError("Could not verify the code. Please try again.");
     } finally {
-      setNextLoading(false);
+      setVerifyLoading(false);
+    }
+  };
+
+  // ── Send / resend OTP ────────────────────────────────────────────────────
+  // No emailRedirectTo → Supabase sends a 6-digit OTP code in the email
+  // instead of (or alongside) a magic link. This is the correct native
+  // mobile flow per Supabase docs.
+  const sendOtp = async (email: string): Promise<boolean> => {
+    const { error: otpErr } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    if (otpErr) {
+      setError(otpErr.message);
+      return false;
+    }
+    return true;
+  };
+
+  const startCooldown = () => {
+    setResendCooldown(OTP_RESEND_COOLDOWN);
+    const timer = setInterval(() => {
+      setResendCooldown((c) => {
+        if (c <= 1) { clearInterval(timer); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  };
+
+  const handleMagicLink = async () => {
+    if (!emailValid) {
+      setError("Please enter a valid email address to receive a sign-in code.");
+      return;
+    }
+    setError(null);
+    setIsLoading(true);
+    try {
+      const ok = await sendOtp(emailValue);
+      if (!ok) return;
+      setMagicEmail(emailValue);
+      setMagicSent(true);
+      startCooldown();
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setOtpError(null);
+    setOtpCode("");
+    setIsLoading(true);
+    try {
+      await sendOtp(magicEmail);
+      startCooldown();
+    } catch {
+      setOtpError("Could not resend the code. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,81 +176,83 @@ export default function SignInScreen() {
     }
   };
 
-  const handleMagicLink = async () => {
-    // Email is not disabled — show error inline instead of blocking
-    if (!emailValid) {
-      setError("Please enter a valid email address to receive a magic link.");
-      return;
-    }
-    setError(null);
-    setIsLoading(true);
-    try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
-        email:   emailValue,
-        options: { emailRedirectTo: webRedirectUri },
-      });
-      if (authError) {
-        setError(authError.message);
-        return;
-      }
-      setMagicEmail(emailValue);
-      setMagicSent(true);
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ── Waiting — user taps Next to proceed ──────────────────────────────────
+  // ── OTP code entry state ──────────────────────────────────────────────────
   if (magicSent) {
     return (
       <AuthFormContainer
-        title="Check your email"
-        subtitle={`We sent a magic link to ${magicEmail}. Tap it in your email, then come back and press Next.`}
+        title="Enter your code"
+        subtitle={`We sent a 6-digit sign-in code to ${magicEmail}. Open your email and enter it below.`}
       >
         {/* Mail icon */}
         <View className="items-center py-6 mb-2">
           <View className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950 items-center justify-center">
-            <Ionicons name="mail-open-outline" size={36} color={Colors.accent[500]} />
+            <Ionicons name="key-outline" size={36} color={Colors.accent[500]} />
           </View>
         </View>
 
         <View className="gap-4">
-          {/* Not verified feedback */}
-          {notVerified && (
-            <AlertBadge
-              message="Go back to your browser and tap 'Back to App' on the verification page — the app will sign you in automatically."
-              variant="error"
-            />
-          )}
+          {otpError && <AlertBadge message={otpError} variant="error" />}
 
-          {/* PRIMARY: Next — checks session on tap */}
-          <Button
-            title="Next"
-            variant="accent"
-            fullWidth
-            onPress={handleNext}
-            loading={nextLoading}
-            disabled={nextLoading}
+          {/* Code input */}
+          <TextInput
+            label="6-digit code"
+            placeholder="123456"
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+            value={otpCode}
+            onChangeText={(t) => {
+              setOtpCode(t.replace(/\D/g, ""));
+              setOtpError(null);
+            }}
+            returnKeyType="done"
+            onSubmitEditing={handleVerify}
           />
 
-          {/* SECONDARY: Try a different email */}
+          {/* PRIMARY: Verify */}
+          <Button
+            title={verifyLoading ? "Verifying…" : "Verify & sign in"}
+            variant="accent"
+            fullWidth
+            onPress={handleVerify}
+            loading={verifyLoading}
+            disabled={verifyLoading || otpCode.length !== 6}
+          />
+
+          {/* Resend */}
+          <Button
+            title={
+              resendCooldown > 0
+                ? `Resend code in ${resendCooldown}s`
+                : isLoading
+                ? "Sending…"
+                : "Resend code"
+            }
+            variant="secondary"
+            fullWidth
+            onPress={handleResend}
+            disabled={resendCooldown > 0 || isLoading || verifyLoading}
+            loading={isLoading}
+          />
+
+          {/* Try different email */}
           <Button
             title="Try a different email"
-            variant="secondary"
+            variant="ghost"
             fullWidth
             onPress={() => {
               setMagicSent(false);
               setMagicEmail("");
-              setNotVerified(false);
+              setOtpCode("");
+              setOtpError(null);
+              setResendCooldown(0);
             }}
           />
         </View>
 
         <View className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card">
           <Text className="text-caption text-neutral-500 dark:text-neutral-400 text-center leading-5">
-            Can't find the email? Check your spam folder. The link expires in 24 hours.
+            Can't find the email? Check your spam folder. The code expires in 10 minutes.
           </Text>
         </View>
       </AuthFormContainer>
@@ -221,7 +307,7 @@ export default function SignInScreen() {
           )}
         />
 
-        {/* Forgot password — right-aligned, below password */}
+        {/* Forgot password */}
         <View className="items-end -mt-1">
           <Link href="/(auth)/forgot-password" asChild>
             <Text className="text-caption text-accent-500 font-medium">
@@ -244,9 +330,9 @@ export default function SignInScreen() {
           <Divider className="flex-1" />
         </View>
 
-        {/* Magic link — always enabled; shows error if email missing */}
+        {/* Send sign-in code — always tappable, shows error if email missing */}
         <Button
-          title="Send magic link"
+          title="Send sign-in code"
           variant="secondary"
           onPress={handleMagicLink}
           disabled={isLoading}
