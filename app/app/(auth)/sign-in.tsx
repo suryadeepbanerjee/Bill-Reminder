@@ -3,7 +3,9 @@ import { Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FontAwesome } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase/client";
+import { signInWithGoogle } from "../../lib/auth/google";
 import { signInSchema, SignInFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -13,8 +15,11 @@ import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { Divider } from "../../components/ui/Divider";
 
 export default function SignInScreen() {
-  const [error, setError]         = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [isLoading, setIsLoading]   = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const anyLoading = isLoading || googleLoading;
 
   const {
     control,
@@ -43,6 +48,25 @@ export default function SignInScreen() {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result.status === "cancelled") return; // silent — user closed browser
+      if (result.status === "error") {
+        setError(result.message);
+        return;
+      }
+      // status === "success" → onAuthStateChange fires → _layout guard navigates
+      router.replace("/(tabs)/dashboard");
+    } catch {
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -106,6 +130,7 @@ export default function SignInScreen() {
           variant="accent"
           onPress={handleSubmit(onSubmit)}
           loading={isLoading}
+          disabled={anyLoading}
           fullWidth
         />
 
@@ -115,12 +140,23 @@ export default function SignInScreen() {
           <Divider className="flex-1" />
         </View>
 
-        {/* OTP code sign-in — no browser, no magic link, code goes to email */}
+        {/* Google OAuth */}
+        <Button
+          title="Continue with Google"
+          variant="secondary"
+          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
+          onPress={handleGoogle}
+          loading={googleLoading}
+          disabled={anyLoading}
+          fullWidth
+        />
+
+        {/* OTP code sign-in */}
         <Button
           title="Sign in with code"
-          variant="secondary"
+          variant="ghost"
           onPress={() => router.push("/(auth)/sign-in-otp")}
-          disabled={isLoading}
+          disabled={anyLoading}
           fullWidth
         />
       </View>

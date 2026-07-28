@@ -89,6 +89,13 @@ async function processCallback(): Promise<void> {
       return;
     }
 
+    // OAuth providers (Google, GitHub, …) — no 'type' in hash.
+    // Session is already set on the web client; just go home.
+    if (!hashType) {
+      window.location.replace("/");
+      return;
+    }
+
     // signup, email_change, magic_link → success + store tokens for deep link
     return redirectSuccess(accessToken, refreshToken);
   }
