@@ -1,6 +1,5 @@
 import { Platform } from "react-native";
 import * as WebBrowser from "expo-web-browser";
-import { GoogleSignin, isErrorWithCode, statusCodes } from "@react-native-google-signin/google-signin";
 import { supabase, webRedirectUri } from "../supabase/client";
 
 export type GoogleSignInResult =
@@ -8,12 +7,27 @@ export type GoogleSignInResult =
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
-// Configure Google Sign-In for Android
-if (Platform.OS === "android") {
-  GoogleSignin.configure({
-    webClientId: "625188477021-pfrvkjmjpfvrv4f9q2h3qo7j1cvlalcc.apps.googleusercontent.com",
-    offlineAccess: true, // required for some features
-  });
+// Safely require the native module so it doesn't crash Metro or Expo Router
+// if the developer hasn't rebuilt the native Android app yet.
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+let isErrorWithCode: any = () => false;
+
+try {
+  const GoogleModule = require("@react-native-google-signin/google-signin");
+  GoogleSignin = GoogleModule.GoogleSignin;
+  statusCodes = GoogleModule.statusCodes;
+  isErrorWithCode = GoogleModule.isErrorWithCode;
+
+  // Configure Google Sign-In for Android
+  if (Platform.OS === "android" && GoogleSignin) {
+    GoogleSignin.configure({
+      webClientId: "625188477021-pfrvkjmjpfvrv4f9q2h3qo7j1cvlalcc.apps.googleusercontent.com",
+      offlineAccess: true, // required for some features
+    });
+  }
+} catch (error) {
+  console.warn("Google Sign-In native module not found. Native Google auth will be unavailable until you rebuild the app.", error);
 }
 
 /**
@@ -31,6 +45,10 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
  * NATIVE ANDROID GOOGLE SIGN-IN
  */
 async function signInWithGoogleAndroid(): Promise<GoogleSignInResult> {
+  if (!GoogleSignin) {
+    return { status: "error", message: "Google Sign-In native module is missing. Please rebuild the app." };
+  }
+
   try {
     await GoogleSignin.hasPlayServices();
     const userInfo = await GoogleSignin.signIn();
@@ -130,7 +148,7 @@ async function signInWithGoogleIos(): Promise<GoogleSignInResult> {
  * Call this when the user logs out so they can choose a different account next time.
  */
 export async function signOutGoogle(): Promise<void> {
-  if (Platform.OS === "android") {
+  if (Platform.OS === "android" && GoogleSignin) {
     try {
       await GoogleSignin.signOut();
     } catch (error) {
