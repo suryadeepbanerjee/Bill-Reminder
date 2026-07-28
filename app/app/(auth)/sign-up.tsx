@@ -4,6 +4,7 @@ import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase, webRedirectUri } from "../../lib/supabase/client";
+import { tempAuth } from "../../lib/tempAuth";
 import { signUpSchema, SignUpFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -77,6 +78,9 @@ export default function SignUpScreen() {
         return;
       }
 
+      // Store credentials in memory so verify-email can attempt sign-in
+      // to detect confirmed status (tempAuth is never persisted to disk).
+      tempAuth.store(data.email, data.password);
       router.push({ pathname: "/(auth)/verify-email", params: { email: data.email } });
     } catch {
       setError("An unexpected error occurred. Please try again.");
