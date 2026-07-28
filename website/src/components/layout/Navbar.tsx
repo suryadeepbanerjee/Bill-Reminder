@@ -31,12 +31,12 @@ export default function Navbar() {
     <>
       <header
         role="banner"
-        className={`fixed top-0 left-0 right-0 z-[100] transition-[padding] duration-250 ease-out ${scrolled ? 'py-2' : 'py-4'}`}
+        className={`fixed top-0 left-0 right-0 z-[100] transition-[padding] duration-250 ease-out ${scrolled ? 'py-3' : 'py-6'}`}
       >
-        <div className={`mx-auto px-5 flex items-center justify-between transition-all duration-250 ease-out ${scrolled ? 'max-w-[calc(100%-32px)] bg-canvas/90 backdrop-blur-md rounded-2xl border border-border shadow-resting' : 'max-w-[1360px] bg-transparent'}`}>
+        <div className={`mx-auto px-6 flex items-center justify-between transition-all duration-250 ease-out ${scrolled ? 'max-w-[calc(100%-48px)] py-3 bg-canvas/90 backdrop-blur-md rounded-2xl border border-border shadow-resting' : 'max-w-[1360px] bg-transparent'}`}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 no-underline text-primary font-semibold text-[15px] tracking-tight">
-            <Logo size={30} />
+          <Link to="/" className="flex items-center gap-3 no-underline text-primary font-semibold text-[17px] tracking-tight">
+            <Logo />
             Bill Reminder
           </Link>
 

@@ -114,18 +114,20 @@ export default function HowItWorks() {
               transition={{ duration: 0.5, delay: i * 0.1 }}
               className="p-7 bg-surface border border-border rounded-card shadow-resting"
             >
-              <div className="flex gap-4 items-start">
-                <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 font-mono text-[13px] font-bold text-accent">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 font-mono text-[13px] font-bold text-accent mb-4">
                   {String(i + 1).padStart(2, "0")}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-base font-bold text-primary tracking-tight mb-2">
+                <div className="flex-1 w-full">
+                  <h3 className="text-base font-bold text-primary tracking-tight mb-2 mx-auto">
                     {step.title}
                   </h3>
-                  <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[42ch]">
+                  <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[42ch] mx-auto">
                     {step.body}
                   </p>
-                  {step.detail}
+                  <div className="text-left w-full">
+                    {step.detail}
+                  </div>
                 </div>
               </div>
             </motion.div>

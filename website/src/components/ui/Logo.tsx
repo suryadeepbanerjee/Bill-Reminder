@@ -8,10 +8,7 @@ export default function Logo({ size = 36, className = "" }: LogoProps) {
     <img
       src="/logo.png"
       alt="Bill Reminder Logo"
-      width={size}
-      height={size}
-      className={className}
-      style={{ objectFit: 'contain' }}
+      className={`h-[48px] w-auto object-contain ${className}`}
     />
   );
 }

@@ -90,15 +90,15 @@ export default function Features() {
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.45, delay: i * 0.06 }}
-              className={`p-7 border border-border bg-transparent transition-colors duration-200 hover:bg-surface ${i === 0 ? "feature-hero" : ""}`}
+              className={`p-7 border border-border bg-transparent transition-colors duration-200 flex flex-col items-center text-center hover:bg-surface ${i === 0 ? "feature-hero" : ""}`}
             >
-              <div className="w-9 h-9 rounded-lg bg-input border border-border flex items-center justify-center text-accent mb-4">
+              <div className="w-9 h-9 rounded-lg bg-input border border-border flex items-center justify-center text-accent mb-4 mx-auto">
                 {f.icon}
               </div>
-              <h3 className="text-[15px] font-semibold text-primary tracking-tight mb-2">
+              <h3 className="text-[15px] font-semibold text-primary tracking-tight mb-2 mx-auto">
                 {f.title}
               </h3>
-              <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[32ch]">
+              <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[32ch] mx-auto">
                 {f.body}
               </p>
             </motion.div>
