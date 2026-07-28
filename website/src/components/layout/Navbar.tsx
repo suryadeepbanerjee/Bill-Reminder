@@ -7,8 +7,8 @@ import { Button } from "../ui/Button";
 const NAV_LINKS = [
 	{ label: "Features", href: "/#features" },
 	{ label: "How it Works", href: "/#how-it-works" },
-	{ label: "Download", href: "/#download" },
 	{ label: "FAQ", href: "/#faq" },
+	{ label: "Download", href: "/#download" },
 ];
 
 export default function Navbar() {
