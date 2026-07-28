@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "../ui/Logo";
@@ -7,14 +7,15 @@ import { Button } from "../ui/Button";
 const NAV_LINKS = [
 	{ label: "Features", href: "/#features" },
 	{ label: "How it Works", href: "/#how-it-works" },
-	{ label: "FAQ", href: "/#faq" },
 	{ label: "Download", href: "/#download" },
+	{ label: "FAQ", href: "/#faq" },
 ];
 
 export default function Navbar() {
 	const [scrolled, setScrolled] = useState(false);
 	const [open, setOpen] = useState(false);
 	const { pathname } = useLocation();
+	const drawerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		const onScroll = () => setScrolled(window.scrollY > 32);
@@ -26,6 +27,8 @@ export default function Navbar() {
 	useEffect(() => setOpen(false), [pathname]);
 
 	const isAuth = ["/sign-in", "/sign-in-code", "/sign-up", "/forgot-password", "/reset-password"].includes(pathname);
+
+	const closeDrawer = () => setOpen(false);
 
 	return (
 		<>
@@ -118,35 +121,53 @@ export default function Navbar() {
 				</div>
 			</header>
 
-			{/* Mobile drawer (unchanged) */}
+			{/* Backdrop overlay for mobile drawer */}
 			<AnimatePresence>
 				{open && (
 					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						transition={{ duration: 0.2 }}
+						className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden"
+						onClick={closeDrawer}
+					/>
+				)}
+			</AnimatePresence>
+
+			{/* Mobile drawer */}
+			<AnimatePresence>
+				{open && (
+					<motion.div
+						ref={drawerRef}
 						initial={{ opacity: 0, y: -8 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.18 }}
 						className="fixed top-[72px] left-4 right-4 bg-surface border border-border rounded-card p-3 z-[99] shadow-raised md:hidden"
+						onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
 					>
-						{NAV_LINKS.map((l) => (
-							<a
-								key={l.label}
-								href={l.href}
-								onClick={() => setOpen(false)}
-								className="block px-3.5 py-2.5 rounded-lg text-secondary text-sm font-medium hover:text-primary hover:bg-white/5 transition-colors no-underline"
-							>
-								{l.label}
-							</a>
-						))}
-						<div className="h-px bg-border my-2" />
-						<Link to="/sign-in" onClick={() => setOpen(false)}>
-							<Button variant="secondary" className="w-full mb-2">
-								Sign in
-							</Button>
-						</Link>
-						<Link to="/sign-up" onClick={() => setOpen(false)}>
-							<Button className="w-full">Get started</Button>
-						</Link>
+						<div className="flex flex-col items-center gap-1">
+							{NAV_LINKS.map((l) => (
+								<a
+									key={l.label}
+									href={l.href}
+									onClick={closeDrawer}
+									className="w-full text-center px-3.5 py-2.5 rounded-lg text-secondary text-sm font-medium hover:text-primary hover:bg-white/5 transition-colors no-underline"
+								>
+									{l.label}
+								</a>
+							))}
+							<div className="h-px bg-border my-2 w-full" />
+							<Link to="/sign-in" onClick={closeDrawer} className="w-full">
+								<Button variant="secondary" className="w-full justify-center">
+									Sign in
+								</Button>
+							</Link>
+							<Link to="/sign-up" onClick={closeDrawer} className="w-full">
+								<Button className="w-full justify-center">Get started</Button>
+							</Link>
+						</div>
 					</motion.div>
 				)}
 			</AnimatePresence>
