@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Text, View, AppState } from "react-native";
+import { useState } from "react";
+import { Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,10 +15,12 @@ import { Divider } from "../../components/ui/Divider";
 import { Colors } from "../../lib/theme";
 
 export default function SignInScreen() {
-  const [error, setError]         = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [magicSent, setMagicSent] = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [isLoading, setIsLoading]   = useState(false);
+  const [magicSent, setMagicSent]   = useState(false);
   const [magicEmail, setMagicEmail] = useState("");
+  const [nextLoading, setNextLoading] = useState(false);
+  const [notVerified, setNotVerified] = useState(false);
 
   const {
     control,
@@ -34,40 +36,23 @@ export default function SignInScreen() {
   const emailValue = watch("email");
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
 
-  // ── Session polling while waiting for magic link ─────────────────────────
-  // When the user clicks the magic link in their browser:
-  //   browser → website /auth/callback → success.html (auto-opens deep link)
-  //   → app/callback.tsx → supabase.setSession() → onAuthStateChange fires
-  //   → auth store updated → (auth)/_layout.tsx sees session → redirects to dashboard
-  //
-  // This polling is a safety net for the case where the user returns to the
-  // app via the app switcher instead of via the deep link.
-  useEffect(() => {
-    if (!magicSent) return;
-
-    const checkSession = async () => {
+  // ── Check session when user taps Next ────────────────────────────────────
+  const handleNext = async () => {
+    setNotVerified(false);
+    setNextLoading(true);
+    try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         router.replace("/(tabs)/dashboard");
+      } else {
+        setNotVerified(true);
       }
-    };
-
-    // Check immediately (in case they were fast)
-    checkSession();
-
-    // Check every 2 seconds while waiting
-    const interval = setInterval(checkSession, 2000);
-
-    // Check whenever app comes back to foreground
-    const appStateSub = AppState.addEventListener("change", (state) => {
-      if (state === "active") checkSession();
-    });
-
-    return () => {
-      clearInterval(interval);
-      appStateSub.remove();
-    };
-  }, [magicSent]);
+    } catch {
+      setNotVerified(true);
+    } finally {
+      setNextLoading(false);
+    }
+  };
 
   const onSubmit = async (data: SignInFormData) => {
     setError(null);
@@ -115,14 +100,14 @@ export default function SignInScreen() {
     }
   };
 
-  // ── Waiting for magic link — auto-redirect state ─────────────────────────
+  // ── Waiting — user taps Next to proceed ──────────────────────────────────
   if (magicSent) {
     return (
       <AuthFormContainer
         title="Check your email"
-        subtitle={`We sent a magic link to ${magicEmail}. Tap it — the app will open and sign you in automatically.`}
+        subtitle={`We sent a magic link to ${magicEmail}. Tap it in your email, then come back and press Next.`}
       >
-        {/* Animated mail icon */}
+        {/* Mail icon */}
         <View className="items-center py-6 mb-2">
           <View className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950 items-center justify-center">
             <Ionicons name="mail-open-outline" size={36} color={Colors.accent[500]} />
@@ -130,15 +115,25 @@ export default function SignInScreen() {
         </View>
 
         <View className="gap-4">
-          {/* Waiting indicator */}
-          <View className="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card flex-row items-center gap-3">
-            <Ionicons name="time-outline" size={18} color={Colors.accent[500]} />
-            <Text className="text-caption text-neutral-600 dark:text-neutral-300 flex-1 leading-5">
-              Waiting for confirmation… Once you tap the link, you'll be signed in automatically — no extra steps.
-            </Text>
-          </View>
+          {/* Not verified feedback */}
+          {notVerified && (
+            <AlertBadge
+              message="Please verify your email first — tap the link in your inbox, then press Next."
+              variant="error"
+            />
+          )}
 
-          {/* Use different email */}
+          {/* PRIMARY: Next — checks session on tap */}
+          <Button
+            title="Next"
+            variant="accent"
+            fullWidth
+            onPress={handleNext}
+            loading={nextLoading}
+            disabled={nextLoading}
+          />
+
+          {/* SECONDARY: Try a different email */}
           <Button
             title="Try a different email"
             variant="secondary"
@@ -146,6 +141,7 @@ export default function SignInScreen() {
             onPress={() => {
               setMagicSent(false);
               setMagicEmail("");
+              setNotVerified(false);
             }}
           />
         </View>
