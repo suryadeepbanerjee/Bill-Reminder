@@ -218,9 +218,10 @@ export default function Hero() {
 		<section
 			aria-labelledby="hero-heading"
 			className="relative mx-auto w-full pt-[100px] pb-16 px-6 md:px-8
-      min-h-[calc(100vh-40px)] overflow-hidden rounded-b-xl
+      min-h-[calc(100vh-40px)] overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_50%,#e8e8e8_88%)]
-      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]"
+      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]
+      rounded-b-xl"
 		>
 			{/* Grid BG */}
 			<div
@@ -232,7 +233,7 @@ export default function Hero() {
 				aria-hidden="true"
 			/>
 
-			{/* Radial Accent (large glow at bottom) */}
+			{/* Radial Accent — centered large glow */}
 			<div
 				className="absolute left-1/2 top-[calc(100%-90px)] lg:top-[calc(100%-150px)]
         h-[500px] w-[700px] md:h-[500px] md:w-[1100px] lg:h-[750px] lg:w-[140%]
@@ -243,9 +244,10 @@ export default function Hero() {
 				aria-hidden="true"
 			/>
 
-			{/* Original ambient light (kept for extra glow but can be removed) */}
+			{/* Bottom fade to blend into next section */}
 			<div
-				className="absolute top-0 left-0 right-0 h-[500px] pointer-events-none bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,var(--color-border)_0%,transparent_70%)]"
+				className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none
+        bg-gradient-to-t from-canvas via-canvas/80 to-transparent"
 				aria-hidden="true"
 			/>
 
@@ -332,7 +334,7 @@ export default function Hero() {
 
 					{/* ── Right: Phone ── */}
 					<div className="flex justify-center relative mt-20 lg:mt-0 flex-shrink-0">
-						{/* Glow behind phone (original) */}
+						{/* Glow behind phone (kept for extra depth) */}
 						<div
 							className="absolute inset-[-40px] bg-[radial-gradient(ellipse_at_center,var(--color-border)_0%,transparent_65%)] rounded-full pointer-events-none"
 							aria-hidden="true"
