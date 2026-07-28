@@ -34,11 +34,11 @@ export default function Navbar() {
 				className={`fixed top-0 left-0 right-0 z-[100] transition-[padding] duration-250 ease-out ${scrolled ? "py-2" : "py-4"}`}
 			>
 				<div
-					className={`mx-auto px-6 flex items-center justify-between transition-all duration-250 ease-out ${scrolled ? "max-w-[calc(100%-48px)] py-2.5 bg-canvas/90 backdrop-blur-md rounded-2xl border border-border shadow-resting" : "max-w-[1360px] bg-transparent"}`}
+					className={`mx-auto px-6 flex items-center transition-all duration-250 ease-out ${scrolled ? "max-w-[calc(100%-48px)] py-2.5 bg-canvas/90 backdrop-blur-md rounded-2xl border border-border shadow-resting" : "max-w-[1360px] bg-transparent"}`}
 				>
 					{isAuth ? (
 						// Auth pages: simple flex layout (logo left, actions right)
-						<>
+						<div className="w-full flex items-center justify-between">
 							<Link to="/" className="flex items-center gap-3 no-underline">
 								<Logo />
 							</Link>
@@ -52,18 +52,18 @@ export default function Navbar() {
 									<Button size="sm">Get started</Button>
 								</Link>
 							</div>
-						</>
+						</div>
 					) : (
-						// Main pages: three‑column grid for perfect centering
-						<div className="w-full grid grid-cols-[1fr_auto_1fr] items-center">
+						// Main pages: mobile = flex (logo + hamburger), desktop = three‑column grid for perfect centering
+						<div className="w-full flex items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr] md:justify-items-center">
 							{/* Left: Logo */}
-							<div className="justify-self-start">
+							<div className="md:justify-self-start">
 								<Link to="/" className="flex items-center gap-3 no-underline">
 									<Logo />
 								</Link>
 							</div>
 
-							{/* Center: Navigation links */}
+							{/* Center: Navigation links (hidden on mobile) */}
 							<nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center justify-center gap-1">
 								{NAV_LINKS.map((l) => (
 									<a
@@ -84,8 +84,8 @@ export default function Navbar() {
 								</a>
 							</nav>
 
-							{/* Right: Action buttons + hamburger (visible on mobile) */}
-							<div className="justify-self-end flex items-center gap-2">
+							{/* Right: Action buttons (desktop) + hamburger (mobile) */}
+							<div className="md:justify-self-end flex items-center gap-2">
 								<div className="hidden md:flex items-center gap-2">
 									<Link to="/sign-in">
 										<Button variant="secondary" size="sm">
