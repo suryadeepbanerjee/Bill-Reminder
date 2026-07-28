@@ -88,7 +88,12 @@ export default function Features() {
 	const inView = useInView(ref, { once: true, margin: "-80px" });
 
 	return (
-		<section id="features" ref={ref} className="section" aria-labelledby="features-heading">
+		<section
+			id="features"
+			ref={ref}
+			className="section bg-[#131418]" // Dark background matching the design
+			aria-labelledby="features-heading"
+		>
 			<div className="container max-w-5xl mx-auto px-6 md:px-10">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
@@ -117,13 +122,13 @@ export default function Features() {
 							transition={{ duration: 0.4, delay: index * 0.05 }}
 							className={`
                 group flex items-start gap-4 py-5
-                ${index < features.length - 1 ? "border-b border-border/40" : ""}
-                ${index % 2 === 0 ? "md:border-r md:border-border/40 md:pr-8" : "md:pl-8"}
+                ${index < features.length - 1 ? "border-b border-white/5" : ""}
+                ${index % 2 === 0 ? "md:border-r md:border-white/5 md:pr-8" : "md:pl-8"}
                 ${index >= features.length - 2 ? "md:border-b-0" : ""}
-                hover:bg-surface/30 -mx-4 px-4 rounded-lg transition-colors duration-300
+                hover:bg-white/5 -mx-4 px-4 rounded-lg transition-colors duration-300
               `}
 						>
-							<div className="shrink-0 w-8 h-8 rounded-lg border border-border/60 bg-surface flex items-center justify-center text-accent transition-colors duration-300 group-hover:border-accent/40">
+							<div className="shrink-0 w-8 h-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-accent transition-colors duration-300 group-hover:border-accent/40">
 								{feature.icon}
 							</div>
 							<div className="flex-1 min-w-0">
