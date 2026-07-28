@@ -88,12 +88,7 @@ export default function Features() {
 	const inView = useInView(ref, { once: true, margin: "-80px" });
 
 	return (
-		<section
-			id="features"
-			ref={ref}
-			className="section bg-[#131418]" // Dark background matching the design
-			aria-labelledby="features-heading"
-		>
+		<section id="features" ref={ref} className="section bg-[#0a0a0c]" aria-labelledby="features-heading">
 			<div className="container max-w-5xl mx-auto px-6 md:px-10">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}

@@ -96,15 +96,11 @@ const steps = [
 	},
 ];
 
-// Enhanced phone mockup
 function PhoneMockup({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="relative w-full max-w-[300px] aspect-[9/19] mx-auto">
-			{/* Outer frame with bezel */}
 			<div className="absolute inset-0 rounded-[3.5rem] bg-black/90 shadow-2xl overflow-hidden">
-				{/* Inner screen */}
 				<div className="absolute inset-[4px] rounded-[3.2rem] bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] overflow-hidden">
-					{/* Status bar */}
 					<div className="flex justify-between items-center px-7 pt-4 pb-2 text-[11px] text-white/60">
 						<span className="font-semibold">9:41</span>
 						<div className="flex items-center gap-2">
@@ -113,9 +109,7 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 							<span className="text-xs">🔋</span>
 						</div>
 					</div>
-					{/* Notch */}
 					<div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-black rounded-b-2xl" />
-					{/* Content area */}
 					<div className="px-5 pt-3 pb-6 h-full overflow-y-auto scrollbar-hide">{children}</div>
 				</div>
 			</div>
@@ -157,22 +151,19 @@ export default function HowItWorks() {
 								transition={{ duration: 0.6, delay: index * 0.1 }}
 								className="flex flex-col md:flex-row items-center gap-10 md:gap-16"
 							>
-								{/* Text side */}
 								<div className={`flex-1 md:flex-[0.55] space-y-4 ${isEven ? "md:order-1" : "md:order-2"}`}>
 									<div className="relative flex items-start">
-										{/* Step number as large background with proper positioning */}
 										<span
-											className="text-8xl md:text-9xl font-bold text-accent/5 select-none leading-none absolute -top-8 -left-4 md:-left-8"
+											className="text-8xl md:text-9xl font-bold text-accent/5 select-none leading-none absolute -top-12 -left-6 md:-left-8"
 											aria-hidden="true"
 										>
 											{String(index + 1).padStart(2, "0")}
 										</span>
-										<h3 className="text-2xl md:text-3xl font-bold tracking-tight text-primary relative z-10 pl-2 md:pl-6">
+										<h3 className="text-2xl md:text-3xl font-bold tracking-tight text-primary relative z-10 pl-8 md:pl-12">
 											{step.title}
 										</h3>
 									</div>
 									<p className="text-base text-secondary leading-relaxed max-w-[40ch]">{step.body}</p>
-									{/* CTA bullet list */}
 									<ul className="space-y-1.5 text-sm text-secondary">
 										{index === 0 && (
 											<>
@@ -213,7 +204,6 @@ export default function HowItWorks() {
 									</ul>
 								</div>
 
-								{/* Mockup side */}
 								<div className={`flex-1 md:flex-[0.45] flex justify-center ${isEven ? "md:order-2" : "md:order-1"}`}>
 									<PhoneMockup>{step.detail}</PhoneMockup>
 								</div>
