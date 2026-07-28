@@ -128,7 +128,7 @@ export default function HowItWorks() {
 	const inView = useInView(ref, { once: true, margin: "-80px" });
 
 	return (
-		<section id="how-it-works" ref={ref} className="section bg-canvas border-y border-border" aria-labelledby="how-it-works-heading">
+		<section id="how-it-works" ref={ref} className="section bg-[#131418] border-y border-white/5" aria-labelledby="how-it-works-heading">
 			<div className="container max-w-5xl mx-auto px-6 md:px-10">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
