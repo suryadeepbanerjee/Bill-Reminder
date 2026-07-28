@@ -6,9 +6,9 @@ interface LogoProps {
 export default function Logo({ size = 36, className = "" }: LogoProps) {
   return (
     <img
-      src="/logo.png"
+      src="/logo.png?v=2"
       alt="Bill Reminder Logo"
-      className={`h-[48px] w-auto object-contain ${className}`}
+      className={`h-[40px] w-auto object-contain ${className}`}
     />
   );
 }
