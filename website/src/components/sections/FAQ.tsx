@@ -34,18 +34,19 @@ export default function FAQ() {
 
   return (
     <section id="faq" ref={ref} className="section bg-canvas" aria-labelledby="faq-heading">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr] gap-12">
-          {/* Left: heading */}
+      <div className="container mx-auto px-6 max-w-[800px]">
+        <div className="flex flex-col items-center">
+          {/* Heading */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
+            className="mb-14 text-center"
           >
-            <h2 id="faq-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5" style={{ textWrap: "balance" as any }}>
+            <h2 id="faq-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5 mx-auto" style={{ textWrap: "balance" as any }}>
               Frequently asked questions
             </h2>
-            <p className="text-[15px] text-secondary max-w-[36ch] leading-[1.65]">
+            <p className="text-[15px] text-secondary max-w-[36ch] mx-auto leading-[1.65]">
               Still have questions?{" "}
               <a href="https://github.com/suryadeepbanerjee/Bill-Reminder/issues" target="_blank" rel="noopener noreferrer" className="text-accent no-underline hover:underline">
                 Open an issue on GitHub.
@@ -53,8 +54,8 @@ export default function FAQ() {
             </p>
           </motion.div>
 
-          {/* Right: Q&A */}
-          <div>
+          {/* Q&A */}
+          <div className="w-full text-left">
             {faqs.map((faq, i) => (
               <motion.div
                 key={faq.q}
@@ -66,7 +67,7 @@ export default function FAQ() {
                 <h3 className="text-[15px] font-semibold text-primary tracking-tight mb-2">
                   {faq.q}
                 </h3>
-                <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[58ch]">
+                <p className="text-[13.5px] text-secondary leading-[1.65]">
                   {faq.a}
                 </p>
               </motion.div>

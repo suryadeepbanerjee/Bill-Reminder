@@ -95,12 +95,12 @@ export default function HowItWorks() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.55 }}
-          className="mb-14"
+          className="mb-14 text-center"
         >
-          <h2 id="how-it-works-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5" style={{ textWrap: "balance" as any }}>
+          <h2 id="how-it-works-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5 mx-auto" style={{ textWrap: "balance" as any }}>
             Up and running in under a minute.
           </h2>
-          <p className="text-base text-secondary max-w-[48ch] leading-[1.65]">
+          <p className="text-base text-secondary max-w-[48ch] leading-[1.65] mx-auto">
             Three steps. No manual required.
           </p>
         </motion.div>

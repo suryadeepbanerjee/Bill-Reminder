@@ -9,20 +9,20 @@ export default function Download() {
   return (
     <section id="download" ref={ref} className="section bg-surface border-t border-border" aria-labelledby="download-heading">
       <div className="container mx-auto px-6">
-        <div className="max-w-[560px]">
+        <div className="max-w-[600px] mx-auto text-center py-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.55 }}
           >
-            <h2 id="download-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5" style={{ textWrap: "balance" as any }}>
+            <h2 id="download-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5 mx-auto" style={{ textWrap: "balance" as any }}>
               Start tracking today. It's free.
             </h2>
-            <p className="text-base text-secondary leading-[1.65] mb-8">
+            <p className="text-base text-secondary leading-[1.65] mb-10 mx-auto">
               Download the Android APK directly from GitHub Releases. No app store, no registration required to run the app.
             </p>
 
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-4 flex-wrap justify-center">
               <a
                 href="https://github.com/suryadeepbanerjee/Bill-Reminder/releases/latest"
                 target="_blank"

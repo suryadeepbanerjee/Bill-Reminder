@@ -72,12 +72,12 @@ export default function Features() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.55 }}
-          style={{ marginBottom: 56 }}
+          className="mb-14 text-center"
         >
-          <h2 id="features-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5" style={{ textWrap: "balance" as any }}>
+          <h2 id="features-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5 mx-auto" style={{ textWrap: "balance" as any }}>
             One purpose. Done right.
           </h2>
-          <p className="text-base text-secondary max-w-[52ch] leading-[1.65]">
+          <p className="text-base text-secondary max-w-[52ch] leading-[1.65] mx-auto">
             No bloat, no subscription tiers, no dark patterns. Bill Reminder does exactly one thing — and it does it exceptionally well.
           </p>
         </motion.div>
