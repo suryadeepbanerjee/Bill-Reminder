@@ -321,6 +321,23 @@
       } catch (e) { /* malformed JSON — fall back to manual sign-in */ }
 
       appBtn.setAttribute('href', deepLink);
+
+      // ── Auto-open the app (no tap required) ──────────────────────────────
+      // Fire the deep link via a hidden iframe — this is non-blocking so the
+      // success page stays visible as a fallback if the app isn't installed.
+      // On mobile, the OS intercepts the custom scheme and opens the app.
+      if (deepLink !== 'bill-reminder://signin') {
+        try {
+          var iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = deepLink;
+          document.body.appendChild(iframe);
+          // Remove iframe after a moment to keep DOM clean
+          setTimeout(function () {
+            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+          }, 2000);
+        } catch (e) { /* ignore — manual button is always the fallback */ }
+      }
     })();
 
     // ── Deep-link open-app fallback ─────────────────────────────────────────────

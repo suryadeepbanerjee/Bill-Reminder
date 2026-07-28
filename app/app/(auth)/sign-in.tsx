@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Text, View } from "react-native";
-import { Link } from "expo-router";
-import { router } from "expo-router";
+import { useState, useEffect, useRef } from "react";
+import { Text, View, AppState } from "react-native";
+import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { signInSchema, SignInFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
@@ -12,11 +12,13 @@ import { PasswordField } from "../../components/ui/PasswordField";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { Divider } from "../../components/ui/Divider";
+import { Colors } from "../../lib/theme";
 
 export default function SignInScreen() {
   const [error, setError]         = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
+  const [magicEmail, setMagicEmail] = useState("");
 
   const {
     control,
@@ -31,6 +33,41 @@ export default function SignInScreen() {
 
   const emailValue = watch("email");
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+
+  // ── Session polling while waiting for magic link ─────────────────────────
+  // When the user clicks the magic link in their browser:
+  //   browser → website /auth/callback → success.html (auto-opens deep link)
+  //   → app/callback.tsx → supabase.setSession() → onAuthStateChange fires
+  //   → auth store updated → (auth)/_layout.tsx sees session → redirects to dashboard
+  //
+  // This polling is a safety net for the case where the user returns to the
+  // app via the app switcher instead of via the deep link.
+  useEffect(() => {
+    if (!magicSent) return;
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace("/(tabs)/dashboard");
+      }
+    };
+
+    // Check immediately (in case they were fast)
+    checkSession();
+
+    // Check every 2 seconds while waiting
+    const interval = setInterval(checkSession, 2000);
+
+    // Check whenever app comes back to foreground
+    const appStateSub = AppState.addEventListener("change", (state) => {
+      if (state === "active") checkSession();
+    });
+
+    return () => {
+      clearInterval(interval);
+      appStateSub.remove();
+    };
+  }, [magicSent]);
 
   const onSubmit = async (data: SignInFormData) => {
     setError(null);
@@ -53,8 +90,9 @@ export default function SignInScreen() {
   };
 
   const handleMagicLink = async () => {
+    // Email is not disabled — show error inline instead of blocking
     if (!emailValid) {
-      setError("Enter a valid email address first.");
+      setError("Please enter a valid email address to receive a magic link.");
       return;
     }
     setError(null);
@@ -68,6 +106,7 @@ export default function SignInScreen() {
         setError(authError.message);
         return;
       }
+      setMagicEmail(emailValue);
       setMagicSent(true);
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -76,23 +115,51 @@ export default function SignInScreen() {
     }
   };
 
+  // ── Waiting for magic link — auto-redirect state ─────────────────────────
   if (magicSent) {
     return (
       <AuthFormContainer
         title="Check your email"
-        subtitle={`We sent a magic link to ${emailValue}. Tap it to sign in instantly.`}
+        subtitle={`We sent a magic link to ${magicEmail}. Tap it — the app will open and sign you in automatically.`}
       >
-        <View className="gap-3 mt-2">
+        {/* Animated mail icon */}
+        <View className="items-center py-6 mb-2">
+          <View className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950 items-center justify-center">
+            <Ionicons name="mail-open-outline" size={36} color={Colors.accent[500]} />
+          </View>
+        </View>
+
+        <View className="gap-4">
+          {/* Waiting indicator */}
+          <View className="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card flex-row items-center gap-3">
+            <Ionicons name="time-outline" size={18} color={Colors.accent[500]} />
+            <Text className="text-caption text-neutral-600 dark:text-neutral-300 flex-1 leading-5">
+              Waiting for confirmation… Once you tap the link, you'll be signed in automatically — no extra steps.
+            </Text>
+          </View>
+
+          {/* Use different email */}
           <Button
-            title="Back to sign in"
+            title="Try a different email"
             variant="secondary"
-            onPress={() => setMagicSent(false)}
+            fullWidth
+            onPress={() => {
+              setMagicSent(false);
+              setMagicEmail("");
+            }}
           />
+        </View>
+
+        <View className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card">
+          <Text className="text-caption text-neutral-500 dark:text-neutral-400 text-center leading-5">
+            Can't find the email? Check your spam folder. The link expires in 24 hours.
+          </Text>
         </View>
       </AuthFormContainer>
     );
   }
 
+  // ── Sign in form ──────────────────────────────────────────────────────────
   return (
     <AuthFormContainer
       title="Welcome back"
@@ -163,11 +230,12 @@ export default function SignInScreen() {
           <Divider className="flex-1" />
         </View>
 
+        {/* Magic link — always enabled; shows error if email missing */}
         <Button
           title="Send magic link"
           variant="secondary"
           onPress={handleMagicLink}
-          disabled={isLoading || !emailValid}
+          disabled={isLoading}
           fullWidth
         />
       </View>
