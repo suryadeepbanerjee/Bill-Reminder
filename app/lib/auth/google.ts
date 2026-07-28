@@ -1,4 +1,6 @@
+import { Platform } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import { GoogleSignin, isErrorWithCode, statusCodes } from "@react-native-google-signin/google-signin";
 import { supabase, webRedirectUri } from "../supabase/client";
 
 export type GoogleSignInResult =
@@ -6,45 +8,94 @@ export type GoogleSignInResult =
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
+// Configure Google Sign-In for Android
+if (Platform.OS === "android") {
+  GoogleSignin.configure({
+    webClientId: "625188477021-pfrvkjmjpfvrv4f9q2h3qo7j1cvlalcc.apps.googleusercontent.com",
+    offlineAccess: true, // required for some features
+  });
+}
+
 /**
- * Google OAuth via Supabase + Expo WebBrowser.
- *
- * Flow:
- *   1. supabase.auth.signInWithOAuth (skipBrowserRedirect: true) → gets URL
- *   2. WebBrowser.openAuthSessionAsync watches for bill-reminder:// redirect
- *   3. Google → Supabase → billreminder.suryadeepbanerjee.in/auth/callback
- *   4. AuthCallback.tsx validates tokens → success.html fires deep link
- *   5. openAuthSessionAsync captures bill-reminder://callback?access_token=...
- *   6. Parse tokens → supabase.auth.setSession → onAuthStateChange fires
- *   7. _layout.tsx auth guard → dashboard
- *
- * Fallback: if openAuthSessionAsync doesn't capture the redirect (some Android
- * versions), the deep link fires independently → callback.tsx handles it.
+ * Android: Fully native Google Sign-In via @react-native-google-signin/google-signin
+ * iOS: Browser-based OAuth via Expo WebBrowser (legacy flow until iOS native is implemented)
  */
 export async function signInWithGoogle(): Promise<GoogleSignInResult> {
-  // Step 1: Get the Google OAuth URL — do NOT open browser automatically
+  if (Platform.OS === "android") {
+    return signInWithGoogleAndroid();
+  }
+  return signInWithGoogleIos();
+}
+
+/**
+ * NATIVE ANDROID GOOGLE SIGN-IN
+ */
+async function signInWithGoogleAndroid(): Promise<GoogleSignInResult> {
+  try {
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
+    const idToken = userInfo.data?.idToken;
+
+    if (!idToken) {
+      return { status: "error", message: "No ID token found from Google Sign-In." };
+    }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: "google",
+      token: idToken,
+    });
+
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    if (!data.session) {
+      return { status: "error", message: "Failed to create Supabase session." };
+    }
+
+    return { status: "success" };
+  } catch (error: any) {
+    if (isErrorWithCode(error)) {
+      switch (error.code) {
+        case statusCodes.SIGN_IN_CANCELLED:
+          return { status: "cancelled" };
+        case statusCodes.IN_PROGRESS:
+          return { status: "error", message: "Sign-in is already in progress." };
+        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          return { status: "error", message: "Google Play Services are required but not available." };
+        default:
+          return { status: "error", message: "An unexpected Google Sign-In error occurred." };
+      }
+    } else {
+      return { status: "error", message: error.message || "An unexpected error occurred." };
+    }
+  }
+}
+
+/**
+ * BROWSER-BASED IOS GOOGLE SIGN-IN (LEGACY)
+ */
+async function signInWithGoogleIos(): Promise<GoogleSignInResult> {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo:          webRedirectUri, // → /auth/callback → success.html → deep link
+      redirectTo: webRedirectUri,
       skipBrowserRedirect: true,
     },
   });
 
   if (error || !data.url) {
     return {
-      status:  "error",
+      status: "error",
       message: error?.message ?? "Could not start Google sign-in. Please try again.",
     };
   }
 
-  // Step 2: Open OAuth URL in system browser; watch for bill-reminder:// redirect
   const result = await WebBrowser.openAuthSessionAsync(
     data.url,
     "bill-reminder://",
   );
 
-  // User dismissed / cancelled the browser
   if (result.type === "cancel" || result.type === "dismiss") {
     return { status: "cancelled" };
   }
@@ -53,24 +104,17 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     return { status: "error", message: "Sign-in did not complete." };
   }
 
-  // Step 3: Parse tokens from the captured deep-link URL
-  // Shape: bill-reminder://callback?access_token=... (forwarded by success.html)
-  // Or: bill-reminder://callback#access_token=... (if caught directly on implicit redirect)
-  const tokenPart    = result.url.split("?")[1] || result.url.split("#")[1] || "";
-  const params       = new URLSearchParams(tokenPart);
-  const accessToken  = params.get("access_token");
+  const tokenPart = result.url.split("?")[1] || result.url.split("#")[1] || "";
+  const params = new URLSearchParams(tokenPart);
+  const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token") ?? "";
 
   if (!accessToken) {
-    // Tokens not present in the URL — this can happen on Android when the
-    // deep link fires independently and callback.tsx handles the session.
-    // onAuthStateChange in _layout.tsx will pick up the session change.
     return { status: "success" };
   }
 
-  // Step 4: Set session on the mobile Supabase client (stores in SecureStore)
   const { error: sessionError } = await supabase.auth.setSession({
-    access_token:  accessToken,
+    access_token: accessToken,
     refresh_token: refreshToken,
   });
 
@@ -78,6 +122,19 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     return { status: "error", message: sessionError.message };
   }
 
-  // Session is set — onAuthStateChange fires → _layout.tsx auth guard navigates
   return { status: "success" };
+}
+
+/**
+ * Sign out from Native Google Sign-In (Android only)
+ * Call this when the user logs out so they can choose a different account next time.
+ */
+export async function signOutGoogle(): Promise<void> {
+  if (Platform.OS === "android") {
+    try {
+      await GoogleSignin.signOut();
+    } catch (error) {
+      console.warn("Failed to sign out from Google:", error);
+    }
+  }
 }

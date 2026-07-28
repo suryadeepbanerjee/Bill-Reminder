@@ -17,7 +17,7 @@ import { Modal }          from "../../../components/ui/Modal";
 import { AlertBadge }     from "../../../components/ui/AlertBadge";
 import { Colors }         from "../../../lib/theme";
 import { supabase }       from "../../../lib/supabase/client";
-
+import { signOutGoogle }  from "../../../lib/auth/google";
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
 function Avatar({ name, size = 56 }: { name: string; size?: number }) {
@@ -210,9 +210,12 @@ export default function SettingsScreen() {
           text:    "Sign out",
           style:   "destructive",
           onPress: async () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await supabase.auth.signOut();
-            router.replace("/(auth)/sign-in");
+            try {
+              await signOutGoogle();
+              await supabase.auth.signOut();
+            } catch (error) {
+              console.error("Error signing out:", error);
+            }
           },
         },
       ]

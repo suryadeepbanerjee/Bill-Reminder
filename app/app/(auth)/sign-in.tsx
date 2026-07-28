@@ -62,7 +62,6 @@ export default function SignInScreen() {
         return;
       }
       // status === "success" → onAuthStateChange fires → _layout guard navigates
-      router.replace("/(tabs)/dashboard");
     } catch {
       setError("Google sign-in failed. Please try again.");
     } finally {
@@ -77,6 +76,23 @@ export default function SignInScreen() {
     >
       <View className="gap-4">
         {error && <AlertBadge message={error} variant="error" />}
+
+        {/* Google OAuth */}
+        <Button
+          title="Continue with Google"
+          variant="secondary"
+          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
+          onPress={handleGoogle}
+          loading={googleLoading}
+          disabled={anyLoading}
+          fullWidth
+        />
+
+        <View className="flex-row items-center gap-3 my-1">
+          <Divider className="flex-1" />
+          <Text className="text-caption text-neutral-400">or</Text>
+          <Divider className="flex-1" />
+        </View>
 
         <Controller
           control={control}
@@ -130,23 +146,6 @@ export default function SignInScreen() {
           variant="accent"
           onPress={handleSubmit(onSubmit)}
           loading={isLoading}
-          disabled={anyLoading}
-          fullWidth
-        />
-
-        <View className="flex-row items-center gap-3 my-1">
-          <Divider className="flex-1" />
-          <Text className="text-caption text-neutral-400">or</Text>
-          <Divider className="flex-1" />
-        </View>
-
-        {/* Google OAuth */}
-        <Button
-          title="Continue with Google"
-          variant="secondary"
-          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
-          onPress={handleGoogle}
-          loading={googleLoading}
           disabled={anyLoading}
           fullWidth
         />

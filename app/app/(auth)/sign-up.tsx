@@ -3,7 +3,9 @@ import { Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FontAwesome } from "@expo/vector-icons";
 import { supabase, webRedirectUri } from "../../lib/supabase/client";
+import { signInWithGoogle } from "../../lib/auth/google";
 import { tempAuth } from "../../lib/tempAuth";
 import { signUpSchema, SignUpFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
@@ -11,6 +13,7 @@ import { TextInput } from "../../components/ui/TextInput";
 import { PasswordField } from "../../components/ui/PasswordField";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
+import { Divider } from "../../components/ui/Divider";
 
 /** Simple password strength indicator — 0..4 */
 function passwordStrength(pw: string): number {
@@ -34,6 +37,9 @@ const strengthColor = [
 export default function SignUpScreen() {
   const [error, setError]         = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const anyLoading = isLoading || googleLoading;
 
   const {
     control,
@@ -89,6 +95,24 @@ export default function SignUpScreen() {
     }
   };
 
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result.status === "cancelled") return; // silent — user closed browser or account picker
+      if (result.status === "error") {
+        setError(result.message);
+        return;
+      }
+      // status === "success" → onAuthStateChange fires → _layout guard navigates
+    } catch {
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
 
   return (
     <AuthFormContainer
@@ -111,6 +135,23 @@ export default function SignUpScreen() {
             )}
           </View>
         )}
+
+        {/* Google OAuth */}
+        <Button
+          title="Continue with Google"
+          variant="secondary"
+          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
+          onPress={handleGoogle}
+          loading={googleLoading}
+          disabled={anyLoading}
+          fullWidth
+        />
+
+        <View className="flex-row items-center gap-3 my-1">
+          <Divider className="flex-1" />
+          <Text className="text-caption text-neutral-400">or</Text>
+          <Divider className="flex-1" />
+        </View>
 
         <Controller
           control={control}
@@ -198,6 +239,7 @@ export default function SignUpScreen() {
           variant="accent"
           onPress={handleSubmit(onSubmit)}
           loading={isLoading}
+          disabled={anyLoading}
           fullWidth
         />
       </View>
