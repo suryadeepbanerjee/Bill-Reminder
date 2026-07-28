@@ -286,21 +286,46 @@
   <script>
     // ── Gate check ──────────────────────────────────────────────────────────────
     // success.html must only render after a genuine auth flow sets the gate token.
-    // If someone directly navigates here (or refreshes), they get the 404 page.
+    // If someone navigates here directly (or refreshes), they get the 404 page.
     (function () {
       var token = sessionStorage.getItem('br_auth_verified');
       if (!token) {
-        // Not arriving from a valid auth flow — redirect to 404
         window.location.replace('/404');
         return;
       }
-      // Consume the token immediately so a refresh also fails
+      // Consume the gate token immediately so a refresh also fails.
       sessionStorage.removeItem('br_auth_verified');
     })();
 
-    // ── Deep-link fallback ──────────────────────────────────────────────────────
-    // If the app isn't installed, the custom scheme silently fails.
-    // After a short delay, nudge the user to the web sign-in instead.
+    // ── Auto-signin deep link ───────────────────────────────────────────────────
+    // AuthCallback.tsx stores session tokens in br_auth_tokens before redirecting
+    // here. We read them and build a deep link so the mobile app can restore the
+    // session automatically — no manual sign-in required.
+    (function () {
+      var appBtn = document.getElementById('open-app-btn');
+      if (!appBtn) return;
+
+      var deepLink = 'bill-reminder://signin'; // fallback: app opens, user signs in manually
+
+      try {
+        var raw = sessionStorage.getItem('br_auth_tokens');
+        if (raw) {
+          sessionStorage.removeItem('br_auth_tokens'); // consume immediately
+          var tokens = JSON.parse(raw);
+          if (tokens.access_token) {
+            deepLink = 'bill-reminder://callback'
+              + '?access_token=' + encodeURIComponent(tokens.access_token)
+              + '&refresh_token=' + encodeURIComponent(tokens.refresh_token || '');
+          }
+        }
+      } catch (e) { /* malformed JSON — fall back to manual sign-in */ }
+
+      appBtn.setAttribute('href', deepLink);
+    })();
+
+    // ── Deep-link open-app fallback ─────────────────────────────────────────────
+    // If the app isn't installed the custom scheme silently fails.
+    // After a short delay, redirect to the web sign-in page instead.
     (function () {
       var openAppBtn = document.getElementById('open-app-btn');
       if (!openAppBtn) return;
@@ -317,6 +342,7 @@
       });
     })();
   </script>
+
 
 </body>
 </html>

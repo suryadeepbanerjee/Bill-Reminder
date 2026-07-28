@@ -4,15 +4,18 @@ import { supabase } from "../lib/supabase";
 /*
  * AuthCallback — handles every Supabase auth redirect.
  *
- * This component NEVER renders visible UI. Its sole job is to:
- *   1. Validate the incoming token / code
- *   2. Exchange the code for a session (PKCE flow)
- *   3. Set a short-lived sessionStorage gate token
- *   4. Redirect immediately to /success.html (success) or /auth/error (failure)
+ * Job:
+ *   1. Detect the incoming token type (hash fragment or PKCE code)
+ *   2. Exchange / validate it
+ *   3. Store access + refresh tokens in sessionStorage so success.html
+ *      can build a deep link that auto-signs the user into the app
+ *   4. Set br_auth_verified gate token
+ *   5. Redirect to /success.html  OR  /auth/error
  *
- * Supabase sends two kinds of links:
- *   • PKCE (default): /auth/callback?code=xxx&type=yyy
- *   • Legacy implicit:  /auth/callback#access_token=...&type=yyy
+ * Token types Supabase sends:
+ *   • Implicit flow  →  /auth/callback#access_token=...&type=...
+ *   • PKCE flow      →  /auth/callback?code=...&type=...
+ *   • Error forward  →  /auth/callback?error=...&error_description=...
  */
 
 type Reason = "expired" | "invalid" | "already_verified" | "error";
@@ -24,11 +27,20 @@ function redirectError(reason: Reason, detail?: string): void {
   window.location.replace(url.toString());
 }
 
-function redirectSuccess(): void {
-  // Gate token — success.html will check for this before rendering.
-  // Using sessionStorage so it's cleared when the tab is closed.
-  // It is also cleared immediately by success.html after reading to prevent refresh bypass.
+function redirectSuccess(accessToken?: string, refreshToken?: string): void {
+  // Gate token — success.html checks this before rendering.
+  // Cleared immediately by success.html after reading (prevent refresh bypass).
   sessionStorage.setItem("br_auth_verified", "1");
+
+  // Store session tokens so success.html can build the auto-signin deep link.
+  // Cleared immediately by success.html after reading.
+  if (accessToken) {
+    sessionStorage.setItem(
+      "br_auth_tokens",
+      JSON.stringify({ access_token: accessToken, refresh_token: refreshToken ?? "" })
+    );
+  }
+
   window.location.replace("/success.html");
 }
 
@@ -47,20 +59,19 @@ async function processCallback(): Promise<void> {
       return redirectError("expired");
     }
     if (d.includes("already confirmed") || d.includes("already verified")) {
-      // Already verified is still a "success" outcome — user can sign in
+      // Already verified is a success outcome — user can sign in
       return redirectSuccess();
     }
     return redirectError("invalid", errDesc);
   }
 
-  // ── Hash fragment — implicit flow (mobile PKCE disabled) ────────────────
+  // ── Hash fragment — implicit flow ────────────────────────────────────────
+  // Mobile app uses flowType:"implicit" so verification emails redirect here.
   if (hash.includes("access_token")) {
-    // Parse tokens directly from the hash — don't rely on async getSession()
-    // side-effect parsing which can return null before the hash is consumed.
-    const hashParams = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+    const hashParams   = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
     const accessToken  = hashParams.get("access_token");
     const refreshToken = hashParams.get("refresh_token") ?? "";
-    const type         = hashParams.get("type") ?? "";
+    const hashType     = hashParams.get("type") ?? "";
 
     if (!accessToken) return redirectError("expired");
 
@@ -71,13 +82,15 @@ async function processCallback(): Promise<void> {
 
     if (setErr) return redirectError("expired");
 
-    if (type === "recovery") {
+    if (hashType === "recovery") {
+      // Password reset — go to the reset-password form (no auto-signin needed)
+      sessionStorage.setItem("br_auth_verified", "1");
       window.location.replace("/reset-password");
       return;
     }
 
-    // signup, email_change, magic_link — all go to success
-    return redirectSuccess();
+    // signup, email_change, magic_link → success + store tokens for deep link
+    return redirectSuccess(accessToken, refreshToken);
   }
 
   // ── PKCE code exchange ────────────────────────────────────────────────────
@@ -93,15 +106,13 @@ async function processCallback(): Promise<void> {
     if (!data.session) return redirectError("error");
 
     if (type === "recovery") {
-      // Password reset — go to the password reset form
+      sessionStorage.setItem("br_auth_verified", "1");
       window.location.replace("/reset-password");
       return;
     }
-    if (type === "email_change") {
-      return redirectSuccess();
-    }
-    // Signup, magic link, any other verification
-    return redirectSuccess();
+
+    // signup, email_change, magic_link → success + store tokens for deep link
+    return redirectSuccess(data.session.access_token, data.session.refresh_token);
   }
 
   // ── No meaningful params ─────────────────────────────────────────────────
@@ -110,13 +121,11 @@ async function processCallback(): Promise<void> {
 
 export default function AuthCallback() {
   useEffect(() => {
-    // Kick off immediately — no await needed in useEffect body itself
     processCallback().catch(() => {
       redirectError("error");
     });
   }, []);
 
-  // Return null — this component intentionally renders nothing.
-  // The redirect happens before the user ever sees anything.
+  // Renders nothing — redirect happens before user sees anything.
   return null;
 }

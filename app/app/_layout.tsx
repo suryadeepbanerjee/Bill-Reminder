@@ -71,6 +71,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="bill/[id]" />
+        {/* Deep-link callback — handles bill-reminder://callback after email verification */}
+        <Stack.Screen name="callback" />
         {/* Add Bill — full-screen modal over tab bar */}
         <Stack.Screen
           name="add-bill"

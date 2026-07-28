@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase, redirectUri } from "../../lib/supabase/client";
+import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { signInSchema, SignInFormData } from "../../schemas/auth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -62,7 +62,7 @@ export default function SignInScreen() {
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email:   emailValue,
-        options: { emailRedirectTo: redirectUri },
+        options: { emailRedirectTo: webRedirectUri },
       });
       if (authError) {
         setError(authError.message);

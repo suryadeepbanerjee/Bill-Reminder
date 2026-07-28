@@ -20,16 +20,18 @@ export default function VerifyEmailScreen() {
 
   const handleResend = async () => {
     setError(null);
+    setResendSent(false);
     setResendLoading(true);
+
     try {
-      // Resolve email — route param first, then active session as fallback
+      // Resolve email: route param (always set after sign-up) OR active session
       let email = paramEmail?.trim();
       if (!email) {
         const { data: { session } } = await supabase.auth.getSession();
         email = session?.user?.email;
       }
       if (!email) {
-        setError("Couldn't find your email address. Please sign up again.");
+        setError("We couldn't find your email address. Please sign up again.");
         return;
       }
 
@@ -40,14 +42,17 @@ export default function VerifyEmailScreen() {
       });
 
       if (resendError) {
-        if (resendError.message.toLowerCase().includes("rate limit")) {
+        const msg = resendError.message.toLowerCase();
+        // Rate limit — friendly message, preserve existing behaviour
+        if (msg.includes("rate limit") || msg.includes("too many")) {
           setError("Too many attempts. Please wait a moment before trying again.");
-        } else {
-          setError(resendError.message);
+          return;
         }
+        setError(resendError.message);
         return;
       }
 
+      // Success — start cooldown timer
       setResendSent(true);
       setCooldown(RESEND_COOLDOWN_SECONDS);
       const timer = setInterval(() => {
@@ -56,6 +61,7 @@ export default function VerifyEmailScreen() {
           return c - 1;
         });
       }, 1000);
+
     } catch {
       setError("Could not resend the email. Please try again.");
     } finally {
@@ -63,12 +69,13 @@ export default function VerifyEmailScreen() {
     }
   };
 
+  const subtitle = paramEmail
+    ? `We sent a verification link to ${paramEmail}. Open it to activate your account.`
+    : "We sent a verification link to your email. Open it to activate your account.";
+
   return (
-    <AuthFormContainer
-      title="Verify your email"
-      subtitle="We've sent a verification link to your email address. Open it to activate your account."
-    >
-      {/* Icon */}
+    <AuthFormContainer title="Check your email" subtitle={subtitle}>
+      {/* Envelope icon */}
       <View className="items-center py-6 mb-2">
         <View className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950 items-center justify-center">
           <Ionicons name="mail-open-outline" size={36} color={Colors.accent[500]} />
@@ -76,42 +83,18 @@ export default function VerifyEmailScreen() {
       </View>
 
       <View className="gap-4">
+        {/* Error */}
         {error && <AlertBadge message={error} variant="error" />}
 
+        {/* Resend success — note about sign-in for already-verified case */}
         {resendSent && (
           <AlertBadge
-            message="Email sent — check your inbox and spam folder. Already verified? Use the Sign in button below."
+            message="New link sent — check your inbox and spam folder. If you've already verified, sign in below."
             variant="success"
           />
         )}
 
-        {/* Already verified prompt — always visible, prominent */}
-        <View className="p-4 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-900 rounded-card flex-row items-start gap-3">
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={18}
-            color="#10b981"
-            style={{ marginTop: 1 }}
-          />
-          <View className="flex-1">
-            <Text className="text-label text-emerald-700 dark:text-emerald-300 font-semibold mb-0.5">
-              Already verified your email?
-            </Text>
-            <Text className="text-caption text-emerald-600 dark:text-emerald-400">
-              Tap Sign in below — you're ready to go.
-            </Text>
-          </View>
-        </View>
-
-        {/* Primary: Sign in */}
-        <Button
-          title="Sign in"
-          variant="accent"
-          fullWidth
-          onPress={() => router.replace("/(auth)/sign-in")}
-        />
-
-        {/* Secondary: Resend with cooldown */}
+        {/* PRIMARY: Resend */}
         <Button
           title={
             cooldown > 0
@@ -120,18 +103,35 @@ export default function VerifyEmailScreen() {
               ? "Sending…"
               : "Resend verification email"
           }
-          variant="secondary"
+          variant="accent"
           fullWidth
           onPress={handleResend}
           disabled={cooldown > 0 || resendLoading}
           loading={resendLoading}
         />
+
+        {/* SECONDARY: Back to sign in */}
+        <Button
+          title="Back to sign in"
+          variant="secondary"
+          fullWidth
+          onPress={() => router.replace("/(auth)/sign-in")}
+        />
       </View>
 
-      {/* Hint */}
-      <View className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card">
+      {/* Hint footer */}
+      <View className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card gap-2">
         <Text className="text-caption text-neutral-500 dark:text-neutral-400 text-center leading-5">
           Can't find the email? Check your spam folder. The link expires in 24 hours.
+        </Text>
+        <Text className="text-caption text-neutral-400 dark:text-neutral-500 text-center leading-5">
+          Already verified?{" "}
+          <Text
+            className="text-accent-500 font-semibold"
+            onPress={() => router.replace("/(auth)/sign-in")}
+          >
+            Sign in →
+          </Text>
         </Text>
       </View>
     </AuthFormContainer>
