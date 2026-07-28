@@ -1,39 +1,23 @@
 /** @type {import('tailwindcss').Config} */
+import sharedTheme from "../tailwind.theme.js";
+
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
-      colors: {
-        accent: {
-          50:  "#EEF2FF",
-          100: "#E0E7FF",
-          200: "#C7D2FE",
-          300: "#A5B4FC",
-          400: "#818CF8",
-          500: "#5B5BD6",
-          600: "#4F46E5",
-          700: "#4338CA",
-          800: "#3730A3",
-          900: "#312E81",
-          950: "#1E1B4B",
-        },
-        surface: {
-          0: "#080810",
-          1: "#0D0D1A",
-          2: "#111120",
-          3: "#161628",
-        },
-      },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
-      },
+      colors: sharedTheme.colors,
+      spacing: sharedTheme.spacing,
+      borderRadius: sharedTheme.borderRadius,
+      boxShadow: sharedTheme.boxShadow,
+      fontFamily: sharedTheme.fontFamily,
+      
+      // Website-specific extensions like keyframes for hero
       animation: {
         "gradient-shift": "gradient-shift 8s ease infinite",
-        "float": "float 6s ease-in-out infinite",
+        "float": "float 6s cubic-bezier(0.16,1,0.3,1) infinite",
         "glow-pulse": "glow-pulse 4s ease-in-out infinite",
-        "fade-in": "fade-in 0.5s ease-out forwards",
-        "slide-up": "slide-up 0.6s ease-out forwards",
+        "fade-in": "fade-in 0.3s cubic-bezier(0.16,1,0.3,1) forwards",
+        "slide-up": "slide-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards",
       },
       keyframes: {
         "gradient-shift": {
@@ -53,14 +37,20 @@ export default {
           to: { opacity: "1" },
         },
         "slide-up": {
-          from: { opacity: "0", transform: "translateY(24px)" },
+          from: { opacity: "0", transform: "translateY(16px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       backgroundImage: {
-        "grid-pattern": `linear-gradient(rgba(91,91,214,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(91,91,214,0.04) 1px, transparent 1px)`,
-        "radial-glow": "radial-gradient(ellipse at center, rgba(91,91,214,0.15) 0%, transparent 70%)",
+        "grid-pattern": `linear-gradient(rgba(186,150,24,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(186,150,24,0.04) 1px, transparent 1px)`,
+        "radial-glow": "radial-gradient(ellipse at center, rgba(186,150,24,0.15) 0%, transparent 70%)",
+      },
+      transitionDuration: {
+        DEFAULT: "150ms",
+      },
+      transitionTimingFunction: {
+        DEFAULT:  "cubic-bezier(0.16,1,0.3,1)",
       },
     },
   },

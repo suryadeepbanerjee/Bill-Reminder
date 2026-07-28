@@ -2,28 +2,15 @@ import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Pressable } fro
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../../lib/theme";
 
 interface AuthFormContainerProps {
   title:        string;
   subtitle:     string;
   children:     React.ReactNode;
   showBack?:    boolean;
-  /** Optional content rendered below the form but inside the card scroll area */
   footer?:      React.ReactNode;
 }
 
-/**
- * Premium auth screen layout wrapper.
- *
- * Renders:
- * - Safe area (top + bottom)
- * - KeyboardAvoidingView
- * - ScrollView (handles small screens gracefully)
- * - App logomark + wordmark
- * - Large title + subtitle
- * - Form content slot
- */
 export function AuthFormContainer({
   title,
   subtitle,
@@ -32,7 +19,7 @@ export function AuthFormContainer({
   footer,
 }: AuthFormContainerProps) {
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -53,39 +40,34 @@ export function AuthFormContainer({
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
               >
-                <Ionicons name="chevron-back" size={20} color={Colors.neutral[500]} />
-                <Text className="text-body text-neutral-500 dark:text-neutral-400">Back</Text>
+                <Ionicons name="chevron-back" size={20} className="text-secondary" />
+                <Text className="text-body text-secondary">Back</Text>
               </Pressable>
             )}
 
             {/* Logo mark */}
             <View className="items-center mb-10">
               <View
-                className="items-center justify-center mb-3"
+                className="items-center justify-center mb-4 bg-accent shadow-resting"
                 style={{
-                  width:           52,
-                  height:          52,
-                  borderRadius:    14,
-                  backgroundColor: Colors.accent[500],
+                  width:           56,
+                  height:          56,
+                  borderRadius:    16,
                 }}
               >
-                {/* Bell icon */}
-                <Ionicons name="notifications" size={24} color="#fff" />
+                <Ionicons name="notifications" size={26} className="text-accent-text" />
               </View>
-              <Text className="text-caption text-neutral-400 dark:text-neutral-500 font-semibold tracking-wide">
+              <Text className="text-caption text-secondary font-semibold tracking-[0.2em]">
                 BILL REMINDER
               </Text>
             </View>
 
             {/* Title block */}
-            <View className="mb-7">
-              <Text
-                className="text-neutral-900 dark:text-neutral-50 font-bold mb-2"
-                style={{ fontSize: 28, letterSpacing: -0.5, lineHeight: 34 }}
-              >
+            <View className="mb-8">
+              <Text className="text-[32px] leading-[40px] font-bold tracking-tight text-primary mb-2 text-center">
                 {title}
               </Text>
-              <Text className="text-body text-neutral-500 dark:text-neutral-400 leading-6">
+              <Text className="text-body text-secondary leading-6 text-center">
                 {subtitle}
               </Text>
             </View>

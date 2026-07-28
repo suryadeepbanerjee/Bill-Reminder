@@ -24,8 +24,8 @@ export function ListItem({
   disabled    = false,
 }: ListItemProps) {
   const titleClass = destructive
-    ? "text-red-600 dark:text-red-400"
-    : "text-body text-neutral-900 dark:text-neutral-100";
+    ? "text-error"
+    : "text-body text-primary";
 
   const handlePress = () => {
     if (disabled) return;
@@ -35,18 +35,18 @@ export function ListItem({
 
   const inner = (
     <View className="flex-row items-center gap-3 px-4 py-3">
-      {leading && <View>{leading}</View>}
+      {leading && <View className="opacity-70">{leading}</View>}
       <View className="flex-1">
         <Text className={`${titleClass} font-medium`} numberOfLines={1}>
           {title}
         </Text>
         {subtitle && (
-          <Text className="text-caption text-neutral-500 dark:text-neutral-400 mt-0.5">
+          <Text className="text-caption text-secondary mt-0.5">
             {subtitle}
           </Text>
         )}
       </View>
-      {trailing && <View>{trailing}</View>}
+      {trailing && <View className="opacity-70">{trailing}</View>}
     </View>
   );
 
@@ -60,7 +60,7 @@ export function ListItem({
           accessibilityState={{ disabled }}
           style={({ pressed }) => ({
             opacity:         disabled ? 0.4 : pressed ? 0.7 : 1,
-            backgroundColor: pressed ? "rgba(0,0,0,0.03)" : "transparent",
+            backgroundColor: pressed ? "rgba(150,150,150,0.1)" : "transparent",
           })}
         >
           {inner}

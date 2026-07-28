@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import AuthLayout from "../components/layout/AuthLayout";
+import { Button } from "../components/ui/Button";
+import { TextInput } from "../components/ui/TextInput";
 
 /** Google 'G' icon — official brand colours */
 function GoogleIcon() {
@@ -18,8 +20,8 @@ function GoogleIcon() {
 
 function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label htmlFor={id} style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--ink-2)", marginBottom: 6 }}>
+    <div className="mb-4">
+      <label htmlFor={id} className="block text-[13px] font-medium text-secondary mb-1.5">
         {label}
       </label>
       {children}
@@ -35,11 +37,10 @@ function ErrorAlert({ message }: { message: string }) {
         animate={{ opacity: 1, y: 0, height: "auto" }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="alert alert-error"
-        style={{ marginBottom: 16 }}
+        className="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-[13.5px] leading-relaxed mb-4"
         role="alert"
       >
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="shrink-0 mt-0.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <span>{message}</span>
@@ -84,12 +85,10 @@ export default function SignIn() {
     setError(null);
     setGoogleLoading(true);
     try {
-      // Browser handles the full redirect: Google → Supabase → /auth/callback → /
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
-      // Page navigates away — no further action needed
     } catch {
       setError("Could not start Google sign-in. Please try again.");
       setGoogleLoading(false);
@@ -101,24 +100,36 @@ export default function SignIn() {
       <form onSubmit={handleSubmit} noValidate>
         {error && <ErrorAlert message={error} />}
 
-        <Field label="Email" id="si-email">
-          <input
-            id="si-email" type="email" autoComplete="email" required
-            value={email} onChange={e => setEmail(e.target.value)}
-            className="auth-input" placeholder="your@email.com"
+        <div className="mb-4">
+          <TextInput
+            label="Email"
+            id="si-email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
           />
-        </Field>
+        </div>
 
-        <Field label="Password" id="si-password">
-          <div style={{ position: "relative" }}>
-            <input
-              id="si-password" type={showPw ? "text" : "password"} autoComplete="current-password" required
-              value={password} onChange={e => setPassword(e.target.value)}
-              className="auth-input" placeholder="Your password"
-              style={{ paddingRight: 40 }}
+        <div className="mb-1">
+          <div className="relative">
+            <TextInput
+              label="Password"
+              id="si-password"
+              type={showPw ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+              className="pr-10"
             />
-            <button type="button" onClick={() => setShowPw(v => !v)}
-              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 2 }}
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-[26px] bg-transparent border-none cursor-pointer text-secondary/70 hover:text-secondary p-0.5"
               aria-label={showPw ? "Hide password" : "Show password"}
             >
               {showPw ? (
@@ -133,52 +144,51 @@ export default function SignIn() {
               )}
             </button>
           </div>
-          <div style={{ textAlign: "right", marginTop: 6 }}>
-            <Link to="/forgot-password" style={{ fontSize: 12, color: "var(--brand)", textDecoration: "none" }}>
+          <div className="text-right mt-1.5">
+            <Link to="/forgot-password" className="text-xs text-accent no-underline hover:underline">
               Forgot password?
             </Link>
           </div>
-        </Field>
+        </div>
 
-        <button type="submit" disabled={anyLoading} className="btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 4 }}>
-          {loading && <div className="spinner" />}
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
+        <Button type="submit" disabled={anyLoading} className="w-full justify-center mt-4 h-11" loading={loading}>
+          Sign in
+        </Button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-          <div className="divider" style={{ flex: 1 }} />
-          <span style={{ fontSize: 12, color: "var(--ink-3)" }}>or</span>
-          <div className="divider" style={{ flex: 1 }} />
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px bg-border flex-1" />
+          <span className="text-xs text-secondary/70">or</span>
+          <div className="h-px bg-border flex-1" />
         </div>
 
         {/* Google OAuth */}
-        <button
+        <Button
           type="button"
           disabled={anyLoading}
           onClick={handleGoogle}
-          className="btn-outline"
-          style={{ width: "100%", justifyContent: "center", gap: 10 }}
+          variant="secondary"
+          className="w-full justify-center gap-2.5 h-11"
+          loading={googleLoading}
+          icon={!googleLoading && <GoogleIcon />}
         >
-          {googleLoading ? <div className="spinner" style={{ borderTopColor: "#EA4335" }} /> : <GoogleIcon />}
           {googleLoading ? "Redirecting…" : "Continue with Google"}
-        </button>
+        </Button>
 
         {/* OTP code — separate page */}
-        <Link
-          to="/sign-in-code"
-          className="btn-ghost"
-          style={{ width: "100%", justifyContent: "center", display: "flex", gap: 8 }}
-        >
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-          </svg>
-          Sign in with code
+        <Link to="/sign-in-code" className="mt-3 no-underline">
+          <Button variant="ghost" className="w-full justify-center flex gap-2 h-11" icon={
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+          }>
+            Sign in with code
+          </Button>
         </Link>
       </form>
 
-      <p style={{ textAlign: "center", fontSize: 13, color: "var(--ink-3)", marginTop: 24 }}>
+      <p className="text-center text-[13px] text-secondary mt-6">
         Don't have an account?{" "}
-        <Link to="/sign-up" style={{ color: "var(--brand)", textDecoration: "none", fontWeight: 500 }}>Sign up</Link>
+        <Link to="/sign-up" className="text-accent no-underline font-medium hover:underline">Sign up</Link>
       </p>
     </AuthLayout>
   );

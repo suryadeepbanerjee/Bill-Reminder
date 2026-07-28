@@ -33,26 +33,21 @@ export default function FAQ() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section id="faq" ref={ref} className="section" aria-labelledby="faq-heading">
-      <div className="container">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 48 }} className="faq-grid">
+    <section id="faq" ref={ref} className="section bg-canvas" aria-labelledby="faq-heading">
+      <div className="container mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr] gap-12">
           {/* Left: heading */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
           >
-            <h2 id="faq-heading" style={{
-              fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
-              fontWeight: 800, letterSpacing: "-0.025em", color: "var(--ink)",
-              textWrap: "balance" as any, marginBottom: 14,
-            }}>
+            <h2 id="faq-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5" style={{ textWrap: "balance" as any }}>
               Frequently asked questions
             </h2>
-            <p style={{ fontSize: 15, color: "var(--ink-2)", maxWidth: "36ch", lineHeight: 1.65 }}>
+            <p className="text-[15px] text-secondary max-w-[36ch] leading-[1.65]">
               Still have questions?{" "}
-              <a href="https://github.com/suryadeepbanerjee/Bill-Reminder/issues" target="_blank" rel="noopener noreferrer"
-                style={{ color: "var(--brand)", textDecoration: "none" }}>
+              <a href="https://github.com/suryadeepbanerjee/Bill-Reminder/issues" target="_blank" rel="noopener noreferrer" className="text-accent no-underline hover:underline">
                 Open an issue on GitHub.
               </a>
             </p>
@@ -66,18 +61,12 @@ export default function FAQ() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.4, delay: i * 0.07 }}
-                style={{
-                  paddingBottom: 24, marginBottom: 24,
-                  borderBottom: i < faqs.length - 1 ? "1px solid var(--border)" : "none",
-                }}
+                className={`pb-6 mb-6 ${i < faqs.length - 1 ? "border-b border-border" : ""}`}
               >
-                <h3 style={{
-                  fontSize: 15, fontWeight: 600, color: "var(--ink)",
-                  letterSpacing: "-0.01em", marginBottom: 8,
-                }}>
+                <h3 className="text-[15px] font-semibold text-primary tracking-tight mb-2">
                   {faq.q}
                 </h3>
-                <p style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.65, maxWidth: "58ch" }}>
+                <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[58ch]">
                   {faq.a}
                 </p>
               </motion.div>
@@ -85,12 +74,6 @@ export default function FAQ() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (min-width: 820px) {
-          .faq-grid { grid-template-columns: 1fr 1.8fr !important; }
-        }
-      `}</style>
     </section>
   );
 }

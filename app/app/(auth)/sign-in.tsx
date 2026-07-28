@@ -77,22 +77,7 @@ export default function SignInScreen() {
       <View className="gap-4">
         {error && <AlertBadge message={error} variant="error" />}
 
-        {/* Google OAuth */}
-        <Button
-          title="Continue with Google"
-          variant="secondary"
-          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
-          onPress={handleGoogle}
-          loading={googleLoading}
-          disabled={anyLoading}
-          fullWidth
-        />
 
-        <View className="flex-row items-center gap-3 my-1">
-          <Divider className="flex-1" />
-          <Text className="text-caption text-neutral-400">or</Text>
-          <Divider className="flex-1" />
-        </View>
 
         <Controller
           control={control}
@@ -135,7 +120,7 @@ export default function SignInScreen() {
 
         <View className="items-end -mt-1">
           <Link href="/(auth)/forgot-password" asChild>
-            <Text className="text-caption text-accent-500 font-medium">
+            <Text className="text-caption text-accent font-medium">
               Forgot password?
             </Text>
           </Link>
@@ -158,12 +143,29 @@ export default function SignInScreen() {
           disabled={anyLoading}
           fullWidth
         />
+
+        <View className="flex-row items-center gap-3 my-1">
+          <Divider className="flex-1" />
+          <Text className="text-caption text-secondary">or</Text>
+          <Divider className="flex-1" />
+        </View>
+
+        {/* Google OAuth */}
+        <Button
+          title="Continue with Google"
+          variant="secondary"
+          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
+          onPress={handleGoogle}
+          loading={googleLoading}
+          disabled={anyLoading}
+          fullWidth
+        />
       </View>
 
       <View className="flex-row justify-center mt-8 gap-1">
-        <Text className="text-body text-neutral-500">Don't have an account?</Text>
+        <Text className="text-body text-secondary">Don't have an account?</Text>
         <Link href="/(auth)/sign-up" asChild>
-          <Text className="text-body text-neutral-900 dark:text-neutral-100 font-semibold">
+          <Text className="text-body text-primary font-semibold">
             Sign up
           </Text>
         </Link>

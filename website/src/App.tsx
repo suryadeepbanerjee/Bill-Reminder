@@ -11,6 +11,7 @@ import AuthError from "./pages/AuthError";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -21,21 +22,23 @@ function ScrollToTop() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/sign-in" element={<SignIn />} />
-        <Route path="/sign-in-code" element={<SignInCode />} />
-        <Route path="/sign-up" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/auth/error" element={<AuthError />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<Terms />} />
-        {/* 404 — must be last */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <ThemeProvider defaultTheme="system" storageKey="bill-reminder-theme">
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-in-code" element={<SignInCode />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/error" element={<AuthError />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<Terms />} />
+          {/* 404 — must be last */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

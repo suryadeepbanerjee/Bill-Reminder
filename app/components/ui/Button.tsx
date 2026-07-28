@@ -1,6 +1,5 @@
 import { Pressable, Text, ActivityIndicator, PressableProps, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Colors } from "../../lib/theme";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "accent";
 type ButtonSize    = "sm" | "md" | "lg";
@@ -17,29 +16,29 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
 
 const variants: Record<ButtonVariant, { container: string; text: string; indicator: string }> = {
   primary: {
-    container: "bg-neutral-900 dark:bg-neutral-100 rounded-input items-center justify-center flex-row",
-    text:      "text-white dark:text-neutral-900 font-semibold",
-    indicator: Colors.white,
+    container: "bg-primary rounded-input items-center justify-center flex-row shadow-resting",
+    text:      "text-canvas font-semibold",
+    indicator: "var(--color-canvas)",
   },
   accent: {
-    container: "bg-accent-500 rounded-input items-center justify-center flex-row",
-    text:      "text-white font-semibold",
-    indicator: Colors.white,
+    container: "bg-accent rounded-input items-center justify-center flex-row shadow-fab",
+    text:      "text-accent-text font-semibold",
+    indicator: "var(--color-accent-text)",
   },
   secondary: {
-    container: "bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-input items-center justify-center flex-row",
-    text:      "text-neutral-700 dark:text-neutral-200 font-medium",
-    indicator: Colors.neutral[700],
+    container: "bg-surface border border-border rounded-input items-center justify-center flex-row shadow-resting",
+    text:      "text-primary font-medium",
+    indicator: "var(--color-primary)",
   },
   ghost: {
-    container: "items-center justify-center flex-row",
-    text:      "text-neutral-600 dark:text-neutral-400 font-medium",
-    indicator: Colors.neutral[600],
+    container: "bg-transparent items-center justify-center flex-row",
+    text:      "text-secondary font-medium",
+    indicator: "var(--color-secondary)",
   },
   destructive: {
-    container: "bg-red-600 rounded-input items-center justify-center flex-row",
-    text:      "text-white font-semibold",
-    indicator: Colors.white,
+    container: "bg-error/10 border border-error/20 rounded-input items-center justify-center flex-row",
+    text:      "text-error font-medium",
+    indicator: "var(--color-error)",
   },
 };
 

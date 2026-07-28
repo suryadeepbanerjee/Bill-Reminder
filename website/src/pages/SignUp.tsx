@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import AuthLayout from "../components/layout/AuthLayout";
+import { Button } from "../components/ui/Button";
+import { TextInput } from "../components/ui/TextInput";
 
 /** Google 'G' icon — official brand colours */
 function GoogleIcon() {
@@ -26,23 +28,21 @@ function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
 }
 
 const STRENGTH = [
-  { label: "",        color: "var(--border)" },
-  { label: "Weak",   color: "#f87171" },
-  { label: "Fair",   color: "#fbbf24" },
-  { label: "Good",   color: "#38bdf8" },
-  { label: "Strong", color: "#34d399" },
+  { label: "",        color: "bg-border" },
+  { label: "Weak",   color: "bg-[#f87171]" },
+  { label: "Fair",   color: "bg-[#fbbf24]" },
+  { label: "Good",   color: "bg-[#38bdf8]" },
+  { label: "Strong", color: "bg-success" },
 ] as const;
 
-function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <label htmlFor={id} style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--ink-2)", marginBottom: 6 }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
+const STRENGTH_TEXT = [
+  { label: "",        color: "text-border" },
+  { label: "Weak",   color: "text-[#f87171]" },
+  { label: "Fair",   color: "text-[#fbbf24]" },
+  { label: "Good",   color: "text-[#38bdf8]" },
+  { label: "Strong", color: "text-success" },
+] as const;
+
 
 export default function SignUp() {
   const [name, setName]         = useState("");
@@ -58,6 +58,7 @@ export default function SignUp() {
 
   const strength = passwordStrength(password);
   const meta     = STRENGTH[strength];
+  const metaText = STRENGTH_TEXT[strength];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,35 +121,30 @@ export default function SignUp() {
   if (sent) {
     return (
       <AuthLayout title="Check your inbox" subtitle={`We sent a verification link to ${email}`}>
-        <div style={{ textAlign: "center", padding: "8px 0" }}>
+        <div className="text-center py-2">
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 280, damping: 20 }}
-            style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: "var(--brand-faint)", border: "1px solid var(--brand-border)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 16px", color: "var(--brand)",
-            }}
+            className="w-[52px] h-[52px] rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 text-accent"
           >
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
           </motion.div>
-          <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.65, marginBottom: 8 }}>
+          <p className="text-sm text-secondary leading-[1.65] mb-2">
             Open the email and tap the verification link to activate your account.
           </p>
-          <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 24 }}>
+          <p className="text-xs text-secondary/70 mb-6">
             Can't find it? Check your spam folder. The link expires in 24 hours.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Link to="/sign-in" className="btn-primary" style={{ justifyContent: "center" }}>
-              Go to Sign In
+          <div className="flex flex-col gap-2.5">
+            <Link to="/sign-in" className="no-underline">
+              <Button className="w-full justify-center">Go to Sign In</Button>
             </Link>
-            <button onClick={() => { setSent(false); setEmail(""); }} className="btn-outline" style={{ width: "100%", justifyContent: "center" }}>
+            <Button variant="secondary" onClick={() => { setSent(false); setEmail(""); }} className="w-full justify-center">
               Use a different email
-            </button>
+            </Button>
           </div>
         </div>
       </AuthLayout>
@@ -165,23 +161,22 @@ export default function SignUp() {
               initial={{ opacity: 0, y: -8, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0 }}
-              className="alert alert-error"
-              style={{ marginBottom: 16 }}
+              className="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-[13.5px] leading-relaxed mb-4"
               role="alert"
             >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="shrink-0 mt-0.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <div>
                 <span>{error.msg}</span>
                 {/* Contextual actions for duplicate account */}
                 {error.isDuplicate && (
-                  <div style={{ marginTop: 10, display: "flex", gap: 12 }}>
-                    <Link to="/sign-in" className="btn-primary" style={{ padding: "6px 14px", fontSize: 13 }}>
-                      Sign In
+                  <div className="mt-2.5 flex gap-3">
+                    <Link to="/sign-in">
+                      <Button size="sm">Sign In</Button>
                     </Link>
-                    <Link to="/forgot-password" className="btn-outline" style={{ padding: "5px 14px", fontSize: 13 }}>
-                      Forgot Password?
+                    <Link to="/forgot-password">
+                      <Button variant="secondary" size="sm">Forgot Password?</Button>
                     </Link>
                   </div>
                 )}
@@ -191,35 +186,52 @@ export default function SignUp() {
         </AnimatePresence>
 
         {/* Name */}
-        <Field label="Your name" id="su-name">
-          <input
-            id="su-name" type="text" autoComplete="name" required
-            value={name} onChange={e => setName(e.target.value)}
-            className="auth-input" placeholder="How should we call you?"
+        <div className="mb-4">
+          <TextInput
+            label="Your name"
+            id="su-name"
+            type="text"
+            autoComplete="name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="How should we call you?"
             maxLength={50}
           />
-        </Field>
+        </div>
 
         {/* Email */}
-        <Field label="Email" id="su-email">
-          <input
-            id="su-email" type="email" autoComplete="email" required
-            value={email} onChange={e => setEmail(e.target.value)}
-            className="auth-input" placeholder="your@email.com"
+        <div className="mb-4">
+          <TextInput
+            label="Email"
+            id="su-email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
           />
-        </Field>
+        </div>
 
         {/* Password */}
-        <Field label="Password" id="su-password">
-          <div style={{ position: "relative" }}>
-            <input
-              id="su-password" type={showPw ? "text" : "password"} autoComplete="new-password" required
-              value={password} onChange={e => setPassword(e.target.value)}
-              className="auth-input" placeholder="Minimum 12 characters"
-              style={{ paddingRight: 40 }}
+        <div className="mb-4">
+          <div className="relative">
+            <TextInput
+              label="Password"
+              id="su-password"
+              type={showPw ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 12 characters"
+              className="pr-10"
             />
-            <button type="button" onClick={() => setShowPw(v => !v)}
-              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 2 }}
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-[26px] bg-transparent border-none cursor-pointer text-secondary/70 hover:text-secondary p-0.5"
               aria-label={showPw ? "Hide password" : "Show password"}
             >
               {showPw ? (
@@ -236,58 +248,54 @@ export default function SignUp() {
           </div>
           {/* Strength meter */}
           {password.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+            <div className="mt-2">
+              <div className="flex gap-1 mb-1">
                 {[1,2,3,4].map(i => (
-                  <div key={i} style={{
-                    flex: 1, height: 3, borderRadius: 99,
-                    background: i <= strength ? meta.color : "var(--border)",
-                    transition: "background 200ms",
-                  }} />
+                  <div key={i} className={`flex-1 h-[3px] rounded-full transition-colors duration-200 ${i <= strength ? meta.color : "bg-border"}`} />
                 ))}
               </div>
               {strength > 0 && (
-                <p style={{ fontSize: 11, color: meta.color }}>{meta.label}</p>
+                <p className={`text-[11px] ${metaText.color}`}>{meta.label}</p>
               )}
             </div>
           )}
-        </Field>
+        </div>
 
         {/* Terms */}
-        <p style={{ fontSize: 12, color: "var(--ink-3)", lineHeight: 1.6, marginBottom: 20 }}>
+        <p className="text-xs text-secondary leading-[1.6] mb-5">
           By creating an account you agree to our{" "}
-          <Link to="/terms" style={{ color: "var(--ink-2)", textDecoration: "underline", textUnderlineOffset: 3 }}>Terms</Link>
+          <Link to="/terms" className="text-secondary no-underline hover:text-primary underline underline-offset-2">Terms</Link>
           {" "}and{" "}
-          <Link to="/privacy" style={{ color: "var(--ink-2)", textDecoration: "underline", textUnderlineOffset: 3 }}>Privacy Policy</Link>.
+          <Link to="/privacy" className="text-secondary no-underline hover:text-primary underline underline-offset-2">Privacy Policy</Link>.
         </p>
 
-        <button type="submit" disabled={anyLoading} className="btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-          {loading && <div className="spinner" />}
-          {loading ? "Creating account…" : "Create account"}
-        </button>
+        <Button type="submit" disabled={anyLoading} className="w-full justify-center h-11" loading={loading}>
+          Create account
+        </Button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-          <div className="divider" style={{ flex: 1 }} />
-          <span style={{ fontSize: 12, color: "var(--ink-3)" }}>or</span>
-          <div className="divider" style={{ flex: 1 }} />
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px bg-border flex-1" />
+          <span className="text-xs text-secondary/70">or</span>
+          <div className="h-px bg-border flex-1" />
         </div>
 
         {/* Google OAuth */}
-        <button
+        <Button
           type="button"
           disabled={anyLoading}
           onClick={handleGoogle}
-          className="btn-outline"
-          style={{ width: "100%", justifyContent: "center", gap: 10 }}
+          variant="secondary"
+          className="w-full justify-center gap-2.5 h-11"
+          loading={googleLoading}
+          icon={!googleLoading && <GoogleIcon />}
         >
-          {googleLoading ? <div className="spinner" style={{ borderTopColor: "#EA4335" }} /> : <GoogleIcon />}
           {googleLoading ? "Redirecting…" : "Continue with Google"}
-        </button>
+        </Button>
       </form>
 
-      <p style={{ textAlign: "center", fontSize: 13, color: "var(--ink-3)", marginTop: 24 }}>
+      <p className="text-center text-[13px] text-secondary mt-6">
         Already have an account?{" "}
-        <Link to="/sign-in" style={{ color: "var(--brand)", textDecoration: "none", fontWeight: 500 }}>Sign in</Link>
+        <Link to="/sign-in" className="text-accent no-underline font-medium hover:underline">Sign in</Link>
       </p>
     </AuthLayout>
   );

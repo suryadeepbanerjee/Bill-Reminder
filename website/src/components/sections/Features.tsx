@@ -65,12 +65,7 @@ export default function Features() {
   return (
     <section id="features" ref={ref} className="section" style={{ position: "relative" }} aria-labelledby="features-heading">
       {/* Subtle side ambient — not a decorative grid */}
-      <div style={{
-        position: "absolute", top: 0, right: 0,
-        width: 400, height: 400,
-        background: "radial-gradient(ellipse at top right, rgba(255,255,255,0.05) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} aria-hidden="true" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none bg-[radial-gradient(ellipse_at_top_right,var(--color-border)_0%,transparent_70%)]" aria-hidden="true" />
 
       <div className="container">
         <motion.div
@@ -79,62 +74,31 @@ export default function Features() {
           transition={{ duration: 0.55 }}
           style={{ marginBottom: 56 }}
         >
-          <h2 id="features-heading" style={{
-            fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
-            fontWeight: 800,
-            letterSpacing: "-0.025em",
-            color: "var(--ink)",
-            textWrap: "balance" as any,
-            marginBottom: 14,
-          }}>
+          <h2 id="features-heading" className="text-[clamp(1.8rem,3.5vw,2.6rem)] font-extrabold tracking-tight text-primary mb-3.5" style={{ textWrap: "balance" as any }}>
             One purpose. Done right.
           </h2>
-          <p style={{ fontSize: 16, color: "var(--ink-2)", maxWidth: "52ch", lineHeight: 1.65 }}>
+          <p className="text-base text-secondary max-w-[52ch] leading-[1.65]">
             No bloat, no subscription tiers, no dark patterns. Bill Reminder does exactly one thing — and it does it exceptionally well.
           </p>
         </motion.div>
 
         {/* Feature list — not identical card grid; uses size variation */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 2,
-        }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-0.5">
           {features.map((f, i) => (
             <motion.div
               key={f.title}
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.45, delay: i * 0.06 }}
-              style={{
-                padding: "28px 28px",
-                border: "1px solid var(--border)",
-                borderRadius: 0,
-                background: "transparent",
-                transition: "background 180ms",
-                // First item spans 2 cols on large screen for size variation
-              }}
-              className={i === 0 ? "feature-hero" : ""}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-1)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              className={`p-7 border border-border bg-transparent transition-colors duration-200 hover:bg-surface ${i === 0 ? "feature-hero" : ""}`}
             >
-              <div style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: "var(--surface-2)",
-                border: "1px solid var(--border)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "var(--brand)",
-                marginBottom: 16,
-              }}>
+              <div className="w-9 h-9 rounded-lg bg-input border border-border flex items-center justify-center text-accent mb-4">
                 {f.icon}
               </div>
-              <h3 style={{
-                fontSize: 15, fontWeight: 600, color: "var(--ink)",
-                letterSpacing: "-0.015em", marginBottom: 8,
-              }}>
+              <h3 className="text-[15px] font-semibold text-primary tracking-tight mb-2">
                 {f.title}
               </h3>
-              <p style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.65, maxWidth: "32ch" }}>
+              <p className="text-[13.5px] text-secondary leading-[1.65] max-w-[32ch]">
                 {f.body}
               </p>
             </motion.div>

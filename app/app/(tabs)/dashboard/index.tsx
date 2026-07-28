@@ -21,7 +21,6 @@ import { EmptyState }                from "../../../components/ui/EmptyState";
 import { SectionHeader }             from "../../../components/ui/SectionHeader";
 import { FAB }                       from "../../../components/ui/FAB";
 import { Toast }                     from "../../../components/ui/Toast";
-import { Colors }                    from "../../../lib/theme";
 import { formatCurrency }            from "../../../lib/utils";
 import type { DashboardOccurrence }  from "../../../lib/supabase/types";
 
@@ -50,26 +49,19 @@ function SummaryPill({ label, count, icon, iconColor, bg, onPress }: SummaryPill
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 rounded-card p-3"
-      style={({ pressed }) => ({ backgroundColor: bg, opacity: pressed ? 0.82 : 1 })}
+      className={`flex-1 rounded-card p-3 ${bg}`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
       accessibilityRole={onPress ? "button" : "none"}
       accessibilityLabel={`${count} ${label}`}
     >
       <View className="flex-row items-center gap-1.5 mb-2">
-        <Ionicons name={icon} size={14} color={iconColor} />
-        <Text style={{ color: iconColor, fontSize: 11, fontWeight: "600", letterSpacing: 0.2 }}>
+        <Ionicons name={icon} size={14} className={iconColor} />
+        <Text className={`text-[11px] font-semibold tracking-wide ${iconColor}`}>
           {label.toUpperCase()}
         </Text>
       </View>
       <Text
-        style={{
-          color:       iconColor,
-          fontSize:    28,
-          fontWeight:  "700",
-          letterSpacing: -0.5,
-          lineHeight:  32,
-          fontVariant: ["tabular-nums"],
-        }}
+        className={`text-[28px] font-bold tracking-tight leading-8 font-mono tabular-nums ${iconColor}`}
       >
         {count}
       </Text>
@@ -81,26 +73,25 @@ function SummaryPill({ label, count, icon, iconColor, bg, onPress }: SummaryPill
 
 function TotalBanner({ amount }: { amount: number }) {
   return (
-    <View className="bg-neutral-900 dark:bg-neutral-100 rounded-card p-4 flex-row items-center justify-between">
+    <View className="bg-primary rounded-card p-5 flex-row items-center justify-between shadow-resting">
       <View>
-        <Text className="text-caption text-neutral-400 dark:text-neutral-600 mb-0.5">
+        <Text className="text-caption text-canvas/70 mb-1 font-medium">
           Total owed now
         </Text>
         <Text
-          className="text-amount-lg text-white dark:text-neutral-900 font-bold"
-          style={{ fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}
+          className="text-[28px] leading-[34px] font-bold tracking-tight text-canvas font-mono tabular-nums"
         >
           {formatCurrency(amount)}
         </Text>
       </View>
       <Pressable
         onPress={() => router.push("/(tabs)/bills")}
-        className="bg-white dark:bg-neutral-800 rounded-input px-4 py-2.5"
+        className="bg-canvas rounded-input px-4 py-2.5 shadow-resting"
         style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
         accessibilityRole="button"
         accessibilityLabel="View all bills"
       >
-        <Text className="text-label text-neutral-900 dark:text-neutral-100 font-semibold">
+        <Text className="text-label text-primary font-semibold">
           View all
         </Text>
       </Pressable>
@@ -226,16 +217,16 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={Colors.neutral[400]}
+            tintColor="#A3A3A3"
           />
         }
       >
         {/* ── Header ───────────────────────────────────────────────────── */}
-        <View className="px-4 pt-6 pb-5">
-          <Text className="text-caption text-neutral-400 dark:text-neutral-500 mb-1">
+        <View className="px-5 pt-6 pb-6">
+          <Text className="text-caption text-secondary mb-1">
             {greeting}{firstName ? `, ${firstName}` : ""}
           </Text>
-          <Text className="text-display text-neutral-900 dark:text-neutral-50">
+          <Text className="text-[32px] leading-[40px] font-bold tracking-tight text-primary">
             Your bills
           </Text>
         </View>
@@ -252,29 +243,29 @@ export default function DashboardScreen() {
         {data && (
           <View className="px-4 gap-5">
             {/* ── Summary pills ──────────────────────────────────────── */}
-            <View className="flex-row gap-2.5">
+            <View className="flex-row gap-3">
               <SummaryPill
                 label="Overdue"
                 count={data.overdue.length}
                 icon="warning-outline"
-                iconColor={Colors.amber[600]}
-                bg={Colors.amber[50]}
+                iconColor="text-warning"
+                bg="bg-warning/10 border border-warning/20"
                 onPress={() => router.push("/(tabs)/bills")}
               />
               <SummaryPill
                 label="Today"
                 count={data.today.length}
                 icon="today-outline"
-                iconColor={Colors.accent[500]}
-                bg={Colors.accent[50]}
+                iconColor="text-accent"
+                bg="bg-accent/10 border border-accent/20"
                 onPress={() => router.push("/(tabs)/bills")}
               />
               <SummaryPill
                 label="Upcoming"
                 count={data.upcoming.length}
                 icon="time-outline"
-                iconColor={Colors.neutral[600]}
-                bg={Colors.neutral[100]}
+                iconColor="text-secondary"
+                bg="bg-surface border border-border"
               />
             </View>
 

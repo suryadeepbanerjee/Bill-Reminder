@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import AuthLayout from "../components/layout/AuthLayout";
+import { Button } from "../components/ui/Button";
+import { TextInput } from "../components/ui/TextInput";
 
 function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   let s = 0;
@@ -14,11 +16,19 @@ function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
 }
 
 const STRENGTH = [
-  { label: "",        color: "var(--border)" },
-  { label: "Weak",   color: "#f87171" },
-  { label: "Fair",   color: "#fbbf24" },
-  { label: "Good",   color: "#38bdf8" },
-  { label: "Strong", color: "#34d399" },
+  { label: "",        color: "bg-border" },
+  { label: "Weak",   color: "bg-[#f87171]" },
+  { label: "Fair",   color: "bg-[#fbbf24]" },
+  { label: "Good",   color: "bg-[#38bdf8]" },
+  { label: "Strong", color: "bg-success" },
+] as const;
+
+const STRENGTH_TEXT = [
+  { label: "",        color: "text-border" },
+  { label: "Weak",   color: "text-[#f87171]" },
+  { label: "Fair",   color: "text-[#fbbf24]" },
+  { label: "Good",   color: "text-[#38bdf8]" },
+  { label: "Strong", color: "text-success" },
 ] as const;
 
 export default function ResetPassword() {
@@ -34,6 +44,7 @@ export default function ResetPassword() {
 
   const strength = passwordStrength(password);
   const meta     = STRENGTH[strength];
+  const metaText = STRENGTH_TEXT[strength];
 
   // Verify there's an active session from the reset link
   useEffect(() => {
@@ -69,8 +80,8 @@ export default function ResetPassword() {
   if (checking) {
     return (
       <AuthLayout title="Verifying link…" subtitle="Please wait a moment">
-        <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
-          <div className="spinner" style={{ width: 24, height: 24, borderWidth: 2 }} />
+        <div className="flex justify-center py-6">
+          <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
         </div>
       </AuthLayout>
     );
@@ -80,26 +91,21 @@ export default function ResetPassword() {
   if (noSession) {
     return (
       <AuthLayout title="Link expired" subtitle="This password reset link is no longer valid">
-        <div style={{ textAlign: "center", padding: "8px 0" }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 14,
-            background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.22)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-          }}>
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#fbbf24" strokeWidth={2}>
+        <div className="text-center py-2">
+          <div className="w-[52px] h-[52px] rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4 text-amber-500">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.65, marginBottom: 24 }}>
+          <p className="text-sm text-secondary leading-[1.65] mb-6">
             Reset links expire after 1 hour and can only be used once. Request a new one below.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Link to="/forgot-password" className="btn-primary" style={{ justifyContent: "center" }}>
-              Request new link
+          <div className="flex flex-col gap-2.5">
+            <Link to="/forgot-password" className="no-underline block">
+              <Button className="w-full justify-center">Request new link</Button>
             </Link>
-            <Link to="/sign-in" className="btn-outline" style={{ justifyContent: "center" }}>
-              Back to Sign In
+            <Link to="/sign-in" className="no-underline block">
+              <Button variant="secondary" className="w-full justify-center">Back to Sign In</Button>
             </Link>
           </div>
         </div>
@@ -111,27 +117,22 @@ export default function ResetPassword() {
   if (done) {
     return (
       <AuthLayout title="Password changed" subtitle="Your password has been updated successfully">
-        <div style={{ textAlign: "center", padding: "8px 0" }}>
+        <div className="text-center py-2">
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 280, damping: 20 }}
-            style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.22)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
+            className="w-[52px] h-[52px] rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4 text-success"
           >
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#34d399" strokeWidth={2}>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
             </svg>
           </motion.div>
-          <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.65, marginBottom: 24 }}>
+          <p className="text-sm text-secondary leading-[1.65] mb-6">
             Your password has been changed. Redirecting to sign in…
           </p>
-          <Link to="/sign-in" className="btn-primary" style={{ justifyContent: "center" }}>
-            Sign in now
+          <Link to="/sign-in" className="no-underline block">
+            <Button className="w-full justify-center">Sign in now</Button>
           </Link>
         </div>
       </AuthLayout>
@@ -142,8 +143,8 @@ export default function ResetPassword() {
     <AuthLayout title="Set new password" subtitle="Choose a strong password for your account">
       <form onSubmit={handleSubmit} noValidate>
         {error && (
-          <div className="alert alert-error" style={{ marginBottom: 16 }} role="alert">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-[13.5px] leading-relaxed mb-4" role="alert">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="shrink-0 mt-0.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             {error}
@@ -151,19 +152,24 @@ export default function ResetPassword() {
         )}
 
         {/* New password */}
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="rp-pw" style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--ink-2)", marginBottom: 6 }}>
-            New password
-          </label>
-          <div style={{ position: "relative" }}>
-            <input
-              id="rp-pw" type={showPw ? "text" : "password"} autoComplete="new-password" required autoFocus
-              value={password} onChange={e => setPassword(e.target.value)}
-              className="auth-input" placeholder="Minimum 12 characters"
-              style={{ paddingRight: 40 }}
+        <div className="mb-4">
+          <div className="relative">
+            <TextInput
+              label="New password"
+              id="rp-pw"
+              type={showPw ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 12 characters"
+              className="pr-10"
             />
-            <button type="button" onClick={() => setShowPw(v => !v)}
-              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 2 }}
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-[26px] bg-transparent border-none cursor-pointer text-secondary/70 hover:text-secondary p-0.5"
               aria-label={showPw ? "Hide" : "Show"}
             >
               {showPw ? (
@@ -179,42 +185,39 @@ export default function ResetPassword() {
             </button>
           </div>
           {password.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+            <div className="mt-2">
+              <div className="flex gap-1 mb-1">
                 {[1,2,3,4].map(i => (
-                  <div key={i} style={{
-                    flex: 1, height: 3, borderRadius: 99,
-                    background: i <= strength ? meta.color : "var(--border)",
-                    transition: "background 200ms",
-                  }} />
+                  <div key={i} className={`flex-1 h-[3px] rounded-full transition-colors duration-200 ${i <= strength ? meta.color : "bg-border"}`} />
                 ))}
               </div>
-              {strength > 0 && <p style={{ fontSize: 11, color: meta.color }}>{meta.label}</p>}
+              {strength > 0 && <p className={`text-[11px] ${metaText.color}`}>{meta.label}</p>}
             </div>
           )}
         </div>
 
         {/* Confirm */}
-        <div style={{ marginBottom: 24 }}>
-          <label htmlFor="rp-confirm" style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--ink-2)", marginBottom: 6 }}>
-            Confirm password
-          </label>
-          <div style={{ position: "relative" }}>
-            <input
-              id="rp-confirm" type={showPw ? "text" : "password"} autoComplete="new-password" required
-              value={confirm} onChange={e => setConfirm(e.target.value)}
-              className={`auth-input ${confirm.length > 0 && confirm !== password ? "error" : ""}`}
+        <div className="mb-6">
+          <div className="relative">
+            <TextInput
+              label="Confirm password"
+              id="rp-confirm"
+              type={showPw ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
               placeholder="Repeat your password"
-              style={{ paddingRight: 40 }}
+              className={`pr-10 ${confirm.length > 0 && confirm !== password ? "border-error focus:ring-error/20" : ""}`}
             />
             {confirm.length > 0 && (
-              <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}>
+              <div className="absolute right-3 top-[28px]">
                 {confirm === password ? (
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#34d399" strokeWidth={2.5}>
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-success">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
                   </svg>
                 ) : (
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#f87171" strokeWidth={2.5}>
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-error">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
                 )}
@@ -223,15 +226,14 @@ export default function ResetPassword() {
           </div>
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading || password.length < 12 || password !== confirm}
-          className="btn-primary"
-          style={{ width: "100%", justifyContent: "center" }}
+          loading={loading}
+          className="w-full justify-center h-11"
         >
-          {loading && <div className="spinner" />}
-          {loading ? "Updating…" : "Update password"}
-        </button>
+          Update password
+        </Button>
       </form>
     </AuthLayout>
   );

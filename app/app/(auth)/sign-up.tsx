@@ -126,32 +126,17 @@ export default function SignUpScreen() {
             {error.includes("already exists") && (
               <View className="flex-row gap-3 px-1">
                 <Link href="/(auth)/sign-in" asChild>
-                  <Text className="text-caption text-accent-500 font-semibold">Sign in →</Text>
+                  <Text className="text-caption text-accent font-semibold">Sign in →</Text>
                 </Link>
                 <Link href="/(auth)/forgot-password" asChild>
-                  <Text className="text-caption text-neutral-400">Forgot password?</Text>
+                  <Text className="text-caption text-secondary">Forgot password?</Text>
                 </Link>
               </View>
             )}
           </View>
         )}
 
-        {/* Google OAuth */}
-        <Button
-          title="Continue with Google"
-          variant="secondary"
-          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
-          onPress={handleGoogle}
-          loading={googleLoading}
-          disabled={anyLoading}
-          fullWidth
-        />
 
-        <View className="flex-row items-center gap-3 my-1">
-          <Divider className="flex-1" />
-          <Text className="text-caption text-neutral-400">or</Text>
-          <Divider className="flex-1" />
-        </View>
 
         <Controller
           control={control}
@@ -218,13 +203,13 @@ export default function SignUpScreen() {
                       <View
                         key={i}
                         className={`flex-1 h-1 rounded-full ${
-                          i <= strength ? strengthColor[strength] : "bg-neutral-200"
+                          i <= strength ? strengthColor[strength] : "bg-border"
                         }`}
                       />
                     ))}
                   </View>
                   {strength > 0 && (
-                    <Text className="text-caption text-neutral-500">
+                    <Text className="text-caption text-secondary">
                       {strengthLabel[strength]}
                     </Text>
                   )}
@@ -242,13 +227,30 @@ export default function SignUpScreen() {
           disabled={anyLoading}
           fullWidth
         />
+
+        <View className="flex-row items-center gap-3 my-1">
+          <Divider className="flex-1" />
+          <Text className="text-caption text-secondary">or</Text>
+          <Divider className="flex-1" />
+        </View>
+
+        {/* Google OAuth */}
+        <Button
+          title="Continue with Google"
+          variant="secondary"
+          icon={<FontAwesome name="google" size={16} color="#EA4335" />}
+          onPress={handleGoogle}
+          loading={googleLoading}
+          disabled={anyLoading}
+          fullWidth
+        />
       </View>
 
       {/* Footer */}
       <View className="flex-row justify-center mt-8 gap-1">
-        <Text className="text-body text-neutral-500">Already have an account?</Text>
+        <Text className="text-body text-secondary">Already have an account?</Text>
         <Link href="/(auth)/sign-in" asChild>
-          <Text className="text-body text-neutral-900 dark:text-neutral-100 font-semibold">
+          <Text className="text-body text-primary font-semibold">
             Sign in
           </Text>
         </Link>

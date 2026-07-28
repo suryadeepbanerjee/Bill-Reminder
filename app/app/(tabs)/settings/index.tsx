@@ -15,9 +15,9 @@ import { Button }         from "../../../components/ui/Button";
 import { TextInput }      from "../../../components/ui/TextInput";
 import { Modal }          from "../../../components/ui/Modal";
 import { AlertBadge }     from "../../../components/ui/AlertBadge";
-import { Colors }         from "../../../lib/theme";
 import { supabase }       from "../../../lib/supabase/client";
 import { signOutGoogle }  from "../../../lib/auth/google";
+
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
 function Avatar({ name, size = 56 }: { name: string; size?: number }) {
@@ -28,16 +28,14 @@ function Avatar({ name, size = 56 }: { name: string; size?: number }) {
     .join("");
   return (
     <View
+      className="bg-accent items-center justify-center"
       style={{
         width:           size,
         height:          size,
         borderRadius:    size / 2,
-        backgroundColor: Colors.accent[500],
-        alignItems:      "center",
-        justifyContent:  "center",
       }}
     >
-      <Text style={{ color: "#fff", fontWeight: "700", fontSize: size * 0.36 }}>
+      <Text style={{ fontWeight: "700", fontSize: size * 0.36 }} className="text-accent-text">
         {initials || "?"}
       </Text>
     </View>
@@ -48,7 +46,7 @@ function Avatar({ name, size = 56 }: { name: string; size?: number }) {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text className="text-caption text-neutral-500 dark:text-neutral-400 font-medium uppercase tracking-widest px-4 mb-2 mt-2">
+    <Text className="text-caption text-secondary font-medium uppercase tracking-widest px-4 mb-2 mt-2">
       {title}
     </Text>
   );
@@ -82,7 +80,7 @@ function ThemeSelector() {
 
   return (
     <View className="px-4 py-3">
-      <Text className="text-caption text-neutral-500 dark:text-neutral-400 mb-3">
+      <Text className="text-caption text-secondary mb-3">
         Appearance
       </Text>
       <View className="flex-row gap-2">
@@ -97,8 +95,8 @@ function ThemeSelector() {
               }}
               className={`flex-1 rounded-input py-3 items-center gap-1.5 ${
                 isActive
-                  ? "bg-neutral-900 dark:bg-neutral-100"
-                  : "bg-neutral-100 dark:bg-neutral-800"
+                  ? "bg-canvas"
+                  : "bg-surface border border-border"
               }`}
               style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
               accessibilityRole="radio"
@@ -108,16 +106,13 @@ function ThemeSelector() {
               <Ionicons
                 name={opt.icon}
                 size={18}
-                color={isActive
-                  ? (mode === "dark" ? Colors.neutral[900] : Colors.white)
-                  : Colors.neutral[500]
-                }
+                className={isActive ? "text-primary" : "text-secondary"}
               />
               <Text
                 className={`text-caption font-medium ${
                   isActive
-                    ? "text-white dark:text-neutral-900"
-                    : "text-neutral-500 dark:text-neutral-400"
+                    ? "text-primary"
+                    : "text-secondary"
                 }`}
               >
                 {opt.label}
@@ -162,7 +157,7 @@ function EditNameModal({
   return (
     <Modal visible={visible} onClose={onClose} variant="bottom">
       <View className="px-4 pt-4 pb-6 gap-4">
-        <Text className="text-title text-neutral-900 dark:text-neutral-50 font-semibold">
+        <Text className="text-title text-primary font-semibold">
           Edit name
         </Text>
         {error && <AlertBadge message={error} variant="error" />}
@@ -247,14 +242,14 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 48, gap: 16, paddingTop: 8 }}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Page title ─────────────────────────────────────────────── */}
-        <Text className="text-display text-neutral-900 dark:text-neutral-50 px-4 pt-4 pb-2">
+        <Text className="text-[32px] leading-[40px] font-bold tracking-tight text-primary px-4 pt-4 pb-2">
           Settings
         </Text>
 
@@ -270,16 +265,16 @@ export default function SettingsScreen() {
             >
               <Avatar name={displayName} />
               <View className="flex-1">
-                <Text className="text-label text-neutral-900 dark:text-neutral-100 font-semibold">
+                <Text className="text-label text-primary font-semibold">
                   {displayName}
                 </Text>
                 {householdData?.household.name && (
-                  <Text className="text-caption text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  <Text className="text-caption text-secondary mt-0.5">
                     {householdData.household.name}
                   </Text>
                 )}
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.neutral[400]} />
+              <Ionicons name="chevron-forward" size={16} className="text-secondary" />
             </Pressable>
           </Surface>
         </View>
@@ -294,15 +289,15 @@ export default function SettingsScreen() {
           <ListItem
             title="Push notifications"
             subtitle="Reminders for due and overdue bills"
-            leading={<Ionicons name="notifications-outline" size={20} color={Colors.neutral[500]} />}
-            trailing={<Ionicons name="chevron-forward" size={16} color={Colors.neutral[400]} />}
+            leading={<Ionicons name="notifications-outline" size={20} className="text-secondary" />}
+            trailing={<Ionicons name="chevron-forward" size={16} className="text-secondary" />}
             showDivider
           />
           <ListItem
             title="Email notifications"
             subtitle="Important milestones via email"
-            leading={<Ionicons name="mail-outline" size={20} color={Colors.neutral[500]} />}
-            trailing={<Ionicons name="chevron-forward" size={16} color={Colors.neutral[400]} />}
+            leading={<Ionicons name="mail-outline" size={20} className="text-secondary" />}
+            trailing={<Ionicons name="chevron-forward" size={16} className="text-secondary" />}
           />
         </Section>
 
@@ -311,16 +306,16 @@ export default function SettingsScreen() {
           <ListItem
             title="Export data"
             subtitle="Share a JSON snapshot of your bills"
-            leading={<Ionicons name="share-outline" size={20} color={Colors.neutral[500]} />}
-            trailing={<Ionicons name="chevron-forward" size={16} color={Colors.neutral[400]} />}
+            leading={<Ionicons name="share-outline" size={20} className="text-secondary" />}
+            trailing={<Ionicons name="chevron-forward" size={16} className="text-secondary" />}
             onPress={handleExport}
             showDivider
           />
           <ListItem
             title="Bills tracked"
-            leading={<Ionicons name="receipt-outline" size={20} color={Colors.neutral[500]} />}
+            leading={<Ionicons name="receipt-outline" size={20} className="text-secondary" />}
             trailing={
-              <Text className="text-label text-neutral-500 dark:text-neutral-400 font-semibold">
+              <Text className="text-label text-secondary font-semibold font-mono tabular-nums">
                 {bills.length}
               </Text>
             }
@@ -331,30 +326,30 @@ export default function SettingsScreen() {
         <Section title="About">
           <ListItem
             title="Version"
-            leading={<Ionicons name="information-circle-outline" size={20} color={Colors.neutral[500]} />}
+            leading={<Ionicons name="information-circle-outline" size={20} className="text-secondary" />}
             trailing={
-              <Text className="text-caption text-neutral-400">{version}</Text>
+              <Text className="text-caption text-secondary font-mono tabular-nums">{version}</Text>
             }
             showDivider
           />
           <ListItem
             title="GitHub"
             subtitle="View source code"
-            leading={<Ionicons name="logo-github" size={20} color={Colors.neutral[500]} />}
-            trailing={<Ionicons name="open-outline" size={16} color={Colors.neutral[400]} />}
+            leading={<Ionicons name="logo-github" size={20} className="text-secondary" />}
+            trailing={<Ionicons name="open-outline" size={16} className="text-secondary" />}
             onPress={() => Linking.openURL("https://github.com/suryadeepbanerjee/Bill-Reminder")}
             showDivider
           />
           <ListItem
             title="Privacy policy"
-            leading={<Ionicons name="shield-outline" size={20} color={Colors.neutral[500]} />}
-            trailing={<Ionicons name="chevron-forward" size={16} color={Colors.neutral[400]} />}
+            leading={<Ionicons name="shield-outline" size={20} className="text-secondary" />}
+            trailing={<Ionicons name="chevron-forward" size={16} className="text-secondary" />}
             showDivider
           />
           <ListItem
             title="Terms of service"
-            leading={<Ionicons name="document-text-outline" size={20} color={Colors.neutral[500]} />}
-            trailing={<Ionicons name="chevron-forward" size={16} color={Colors.neutral[400]} />}
+            leading={<Ionicons name="document-text-outline" size={20} className="text-secondary" />}
+            trailing={<Ionicons name="chevron-forward" size={16} className="text-secondary" />}
           />
         </Section>
 

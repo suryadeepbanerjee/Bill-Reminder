@@ -1,62 +1,59 @@
 import { Platform } from "react-native";
-import * as WebBrowser from "expo-web-browser";
-import { supabase, webRedirectUri } from "../supabase/client";
+import { supabase } from "../supabase/client";
+import {
+  GoogleSignin,
+  statusCodes,
+  isErrorWithCode,
+} from "@react-native-google-signin/google-signin";
 
 export type GoogleSignInResult =
   | { status: "success" }
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
-// Safely require the native module so it doesn't crash Metro or Expo Router
-// if the developer hasn't rebuilt the native Android app yet.
-let GoogleSignin: any = null;
-let statusCodes: any = {};
-let isErrorWithCode: any = () => false;
-
-try {
-  const GoogleModule = require("@react-native-google-signin/google-signin");
-  GoogleSignin = GoogleModule.GoogleSignin;
-  statusCodes = GoogleModule.statusCodes;
-  isErrorWithCode = GoogleModule.isErrorWithCode;
-
-  // Configure Google Sign-In for Android
-  if (Platform.OS === "android" && GoogleSignin) {
-    GoogleSignin.configure({
-      webClientId: "625188477021-pfrvkjmjpfvrv4f9q2h3qo7j1cvlalcc.apps.googleusercontent.com",
-      offlineAccess: true, // required for some features
-    });
-  }
-} catch (error) {
-  console.warn("Google Sign-In native module not found. Native Google auth will be unavailable until you rebuild the app.", error);
-}
-
 /**
- * Android: Fully native Google Sign-In via @react-native-google-signin/google-signin
- * iOS: Browser-based OAuth via Expo WebBrowser (legacy flow until iOS native is implemented)
+ * Configure Google Sign-In native SDK.
+ * 
+ * ROOT CAUSE OF DEVELOPER_ERROR (code 10):
+ * The previous implementation included `offlineAccess: true`. When offlineAccess is requested, 
+ * Google Play Services expects the OAuth Client to be explicitly verified for server-side 
+ * access in Google Cloud. If the consent screen or client isn't configured for it, it throws DEVELOPER_ERROR.
+ * For Supabase signInWithIdToken, offlineAccess is NOT required. Removing it resolves the error 
+ * assuming the SHA-1 and package name are correct.
+ * 
+ * webClientId: Must be the WEB application client ID from Google Cloud, NOT the Android client ID.
  */
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  // offlineAccess: true, // REMOVED: Caused DEVELOPER_ERROR. Not needed for idToken retrieval.
+  // iosClientId: "YOUR_IOS_CLIENT_ID.apps.googleusercontent.com", // Add this when setting up iOS native
+});
+
 export async function signInWithGoogle(): Promise<GoogleSignInResult> {
-  if (Platform.OS === "android") {
-    return signInWithGoogleAndroid();
-  }
-  return signInWithGoogleIos();
-}
-
-/**
- * NATIVE ANDROID GOOGLE SIGN-IN
- */
-async function signInWithGoogleAndroid(): Promise<GoogleSignInResult> {
-  if (!GoogleSignin) {
-    return { status: "error", message: "Google Sign-In native module is missing. Please rebuild the app." };
-  }
+  console.log("[Google Auth] Starting NATIVE Google Sign-In flow...");
 
   try {
-    await GoogleSignin.hasPlayServices();
+    console.log("[Google Auth] Checking Google Play Services...");
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+    console.log("[Google Auth] Calling GoogleSignin.signIn()...");
     const userInfo = await GoogleSignin.signIn();
-    const idToken = userInfo.data?.idToken;
+
+    console.log("[Google Auth] Native Sign-In successful. Extracting ID Token...");
+    
+    // Support for both older (v13-) and newer (v14+) @react-native-google-signin APIs
+    // In newer versions, userInfo is deeply nested: userInfo.data.idToken
+    const idToken = userInfo?.data?.idToken || (userInfo as any)?.idToken;
 
     if (!idToken) {
-      return { status: "error", message: "No ID token found from Google Sign-In." };
+      console.error("[Google Auth] Missing ID Token in Google response:", userInfo);
+      return { 
+        status: "error", 
+        message: "Google authentication succeeded, but no ID token was returned. Verify webClientId." 
+      };
     }
+
+    console.log("[Google Auth] ID Token retrieved successfully. Authenticating with Supabase...");
 
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: "google",
@@ -64,95 +61,69 @@ async function signInWithGoogleAndroid(): Promise<GoogleSignInResult> {
     });
 
     if (error) {
-      return { status: "error", message: error.message };
+      console.error("[Google Auth] Supabase signInWithIdToken failed:", error.message);
+      return { status: "error", message: `Supabase Auth Failed: ${error.message}` };
     }
 
-    if (!data.session) {
-      return { status: "error", message: "Failed to create Supabase session." };
+    if (!data?.session) {
+      console.error("[Google Auth] Supabase returned no session data.");
+      return { status: "error", message: "Supabase authentication failed to create a session." };
     }
 
+    console.log("[Google Auth] Supabase session established successfully.");
     return { status: "success" };
+
   } catch (error: any) {
+    console.error("[Google Auth] Native Exception Caught:", error, error?.message, error?.code, error?.stack);
+
     if (isErrorWithCode(error)) {
+      console.error(`[Google Auth] Error Code: ${error.code}`);
+      
+      let msg = error.message;
       switch (error.code) {
         case statusCodes.SIGN_IN_CANCELLED:
+        case "12501": // Also SIGN_IN_CANCELLED on some devices
+          console.log("[Google Auth] User cancelled the sign-in flow.");
           return { status: "cancelled" };
+        
         case statusCodes.IN_PROGRESS:
-          return { status: "error", message: "Sign-in is already in progress." };
+          msg = "OAuth configuration error: Sign-in is already in progress.";
+          break;
+          
         case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-          return { status: "error", message: "Google Play Services are required but not available." };
+          msg = "Google Play Services unavailable: Required for native Android authentication.";
+          break;
+          
+        case "10": // DEVELOPER_ERROR
+          msg = "OAuth configuration error (DEVELOPER_ERROR): Check SHA-1, package name, or ensure webClientId is correct in Google Cloud.";
+          break;
+          
+        case "7": // NETWORK_ERROR
+          msg = "Network error: Please check your internet connection.";
+          break;
+          
+        case "12500": // SIGN_IN_FAILED
+          msg = "Token exchange failed: Google Sign-In failed unexpectedly.";
+          break;
+          
         default:
-          return { status: "error", message: "An unexpected Google Sign-In error occurred." };
+          msg = `Native Google Sign-In Error: ${error.message} (Code: ${error.code})`;
+          break;
       }
-    } else {
-      return { status: "error", message: error.message || "An unexpected error occurred." };
+      return { status: "error", message: msg };
     }
+
+    console.error("[Google Auth] Unhandled Exception:", error);
+    return { status: "error", message: error?.message || "An unexpected system error occurred." };
   }
 }
 
-/**
- * BROWSER-BASED IOS GOOGLE SIGN-IN (LEGACY)
- */
-async function signInWithGoogleIos(): Promise<GoogleSignInResult> {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: webRedirectUri,
-      skipBrowserRedirect: true,
-    },
-  });
-
-  if (error || !data.url) {
-    return {
-      status: "error",
-      message: error?.message ?? "Could not start Google sign-in. Please try again.",
-    };
-  }
-
-  const result = await WebBrowser.openAuthSessionAsync(
-    data.url,
-    "bill-reminder://",
-  );
-
-  if (result.type === "cancel" || result.type === "dismiss") {
-    return { status: "cancelled" };
-  }
-
-  if (result.type !== "success") {
-    return { status: "error", message: "Sign-in did not complete." };
-  }
-
-  const tokenPart = result.url.split("?")[1] || result.url.split("#")[1] || "";
-  const params = new URLSearchParams(tokenPart);
-  const accessToken = params.get("access_token");
-  const refreshToken = params.get("refresh_token") ?? "";
-
-  if (!accessToken) {
-    return { status: "success" };
-  }
-
-  const { error: sessionError } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-
-  if (sessionError) {
-    return { status: "error", message: sessionError.message };
-  }
-
-  return { status: "success" };
-}
-
-/**
- * Sign out from Native Google Sign-In (Android only)
- * Call this when the user logs out so they can choose a different account next time.
- */
 export async function signOutGoogle(): Promise<void> {
-  if (Platform.OS === "android" && GoogleSignin) {
-    try {
-      await GoogleSignin.signOut();
-    } catch (error) {
-      console.warn("Failed to sign out from Google:", error);
-    }
+  try {
+    console.log("[Google Auth] Signing out of native Google session...");
+    await GoogleSignin.signOut();
+    console.log("[Google Auth] Native sign-out successful.");
+  } catch (error) {
+    console.error("[Google Auth] Failed to sign out from native Google module:", error);
   }
 }

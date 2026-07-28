@@ -173,7 +173,7 @@ export default function BillsScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor={Colors.neutral[400]}
+              tintColor="#A3A3A3"
             />
           }
           showsVerticalScrollIndicator={false}

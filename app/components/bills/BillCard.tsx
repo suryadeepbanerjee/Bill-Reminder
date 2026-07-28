@@ -9,7 +9,6 @@ import {
   formatRelativeDate,
   formatOverdueLabel,
 } from "../../lib/utils";
-import { Colors } from "../../lib/theme";
 
 interface BillCardProps {
   bill:        Bill & { categories: { name: string; icon: string; color: string } };
@@ -47,7 +46,7 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`${bill.title}, ${displayAmount ? formatCurrency(displayAmount) : "no amount"}`}
-      className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-card mb-2 overflow-hidden"
+      className="bg-surface border border-border rounded-card mb-3 overflow-hidden shadow-resting"
       style={({ pressed }) => ({
         opacity:   pressed ? 0.86 : 1,
         transform: [{ scale: pressed ? 0.99 : 1 }],
@@ -60,14 +59,14 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
         {/* Bill info */}
         <View className="flex-1 min-w-0">
           <Text
-            className="text-label text-neutral-900 dark:text-neutral-50 font-semibold"
+            className="text-label text-primary font-semibold"
             numberOfLines={1}
           >
             {bill.title}
           </Text>
           {bill.provider_name ? (
             <Text
-              className="text-caption text-neutral-500 dark:text-neutral-400 mt-0.5"
+              className="text-caption text-secondary mt-0.5"
               numberOfLines={1}
             >
               {bill.provider_name}
@@ -88,16 +87,15 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
         <View className="items-end gap-1">
           {displayAmount != null ? (
             <Text
-              className="text-label text-neutral-900 dark:text-neutral-50 font-semibold"
-              style={{ fontVariant: ["tabular-nums"] }}
+              className="text-label text-primary font-semibold font-mono tabular-nums"
             >
               {formatCurrency(displayAmount, bill.currency)}
             </Text>
           ) : (
-            <Text className="text-label text-neutral-400">—</Text>
+            <Text className="text-label text-secondary font-mono">—</Text>
           )}
           {dueDateLabel && !["overdue","due_today"].includes(occurrence?.state ?? "") ? (
-            <Text className="text-caption text-neutral-400 dark:text-neutral-500">
+            <Text className="text-caption text-secondary font-mono">
               {dueDateLabel}
             </Text>
           ) : null}
@@ -112,9 +110,9 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
               hitSlop={8}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >
-              <View className="flex-row items-center gap-0.5">
-                <Ionicons name="checkmark-circle-outline" size={14} color={Colors.emerald[600]} />
-                <Text className="text-caption text-emerald-600 font-medium">Mark paid</Text>
+              <View className="flex-row items-center gap-1 mt-0.5">
+                <Ionicons name="checkmark-circle-outline" size={14} className="text-success" />
+                <Text className="text-caption text-success font-medium">Mark paid</Text>
               </View>
             </Pressable>
           )}

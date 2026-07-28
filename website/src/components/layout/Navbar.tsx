@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "../ui/Logo";
+import { Button } from "../ui/Button";
 
 const NAV_LINKS = [
   { label: "Features",    href: "/#features" },
@@ -30,42 +31,20 @@ export default function Navbar() {
     <>
       <header
         role="banner"
-        style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-          padding: scrolled ? "8px 0" : "16px 0",
-          transition: "padding 250ms ease",
-        }}
+        className={`fixed top-0 left-0 right-0 z-[100] transition-[padding] duration-250 ease-out ${scrolled ? 'py-2' : 'py-4'}`}
       >
-        <div style={{
-          maxWidth: scrolled ? "calc(100% - 32px)" : "1360px",
-          margin: "0 auto",
-          padding: "0 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: scrolled ? "rgba(7,7,15,0.88)" : "transparent",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          borderRadius: scrolled ? "14px" : "0",
-          border: scrolled ? "1px solid var(--border)" : "none",
-          transition: "all 250ms ease",
-        }}>
+        <div className={`mx-auto px-5 flex items-center justify-between transition-all duration-250 ease-out ${scrolled ? 'max-w-[calc(100%-32px)] bg-canvas/90 backdrop-blur-md rounded-2xl border border-border shadow-resting' : 'max-w-[1360px] bg-transparent'}`}>
           {/* Logo */}
-          <Link to="/" style={{
-            display: "flex", alignItems: "center", gap: 8,
-            textDecoration: "none", color: "var(--ink)",
-            fontWeight: 600, fontSize: 15, letterSpacing: "-0.02em",
-          }}>
+          <Link to="/" className="flex items-center gap-2 no-underline text-primary font-semibold text-[15px] tracking-tight">
             <Logo size={30} />
             Bill Reminder
           </Link>
 
           {/* Desktop nav */}
           {!isAuth && (
-            <nav role="navigation" aria-label="Main navigation" style={{
-              display: "flex", alignItems: "center", gap: 4,
-            }} className="desktop-nav">
+            <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
               {NAV_LINKS.map(l => (
-                <a key={l.label} href={l.href} className="btn-ghost" style={{ fontSize: 14, color: "var(--ink-2)" }}>
+                <a key={l.label} href={l.href} className="px-3 py-1.5 text-sm font-medium text-secondary hover:text-primary transition-colors">
                   {l.label}
                 </a>
               ))}
@@ -73,8 +52,7 @@ export default function Navbar() {
                 href="https://github.com/suryadeepbanerjee/Bill-Reminder"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-ghost"
-                style={{ fontSize: 14, color: "var(--ink-2)" }}
+                className="px-3 py-1.5 text-sm font-medium text-secondary hover:text-primary transition-colors"
               >
                 GitHub
               </a>
@@ -82,10 +60,12 @@ export default function Navbar() {
           )}
 
           {/* CTA */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }} className="desktop-cta">
-            <Link to="/sign-in" className="btn-ghost" style={{ color: "var(--ink-2)" }}>Sign in</Link>
-            <Link to="/sign-up" className="btn-primary" style={{ padding: "8px 16px", fontSize: 13 }}>
-              Get started
+          <div className="hidden md:flex items-center gap-2">
+            <Link to="/sign-in">
+              <Button variant="secondary" size="sm">Sign in</Button>
+            </Link>
+            <Link to="/sign-up">
+              <Button size="sm">Get started</Button>
             </Link>
           </div>
 
@@ -94,12 +74,7 @@ export default function Navbar() {
             onClick={() => setOpen(v => !v)}
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
-            className="mobile-menu-btn"
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              padding: 8, color: "var(--ink-2)",
-              display: "none",
-            }}
+            className="md:hidden flex p-2 text-secondary bg-transparent border-none cursor-pointer"
           >
             <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
               {open ? (
@@ -120,46 +95,23 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
-            style={{
-              position: "fixed", top: 72, left: 16, right: 16,
-              background: "var(--surface-1)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-xl)",
-              padding: "12px",
-              zIndex: 99,
-            }}
+            className="fixed top-[72px] left-4 right-4 bg-surface border border-border rounded-card p-3 z-[99] shadow-raised md:hidden"
           >
             {NAV_LINKS.map(l => (
-              <a key={l.label} href={l.href} onClick={() => setOpen(false)} style={{
-                display: "block", padding: "10px 14px",
-                borderRadius: "var(--r-sm)",
-                color: "var(--ink-2)", fontSize: 14, fontWeight: 500,
-                textDecoration: "none",
-                transition: "background 150ms, color 150ms",
-              }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.background = "rgba(255,255,255,0.05)"; (e.target as HTMLElement).style.color = "var(--ink)"; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "var(--ink-2)"; }}
-              >
+              <a key={l.label} href={l.href} onClick={() => setOpen(false)} className="block px-3.5 py-2.5 rounded-lg text-secondary text-sm font-medium hover:text-primary hover:bg-white/5 transition-colors no-underline">
                 {l.label}
               </a>
             ))}
-            <div className="divider" style={{ margin: "8px 0" }} />
-            <Link to="/sign-in" onClick={() => setOpen(false)} className="btn-ghost" style={{ display: "block", width: "100%", textAlign: "center" }}>
-              Sign in
+            <div className="h-px bg-border my-2" />
+            <Link to="/sign-in" onClick={() => setOpen(false)}>
+              <Button variant="secondary" className="w-full mb-2">Sign in</Button>
             </Link>
-            <Link to="/sign-up" onClick={() => setOpen(false)} className="btn-primary" style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-              Get started
+            <Link to="/sign-up" onClick={() => setOpen(false)}>
+              <Button className="w-full">Get started</Button>
             </Link>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .desktop-nav, .desktop-cta { display: none !important; }
-          .mobile-menu-btn { display: flex !important; }
-        }
-      `}</style>
     </>
   );
 }

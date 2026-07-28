@@ -3,20 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import AuthLayout from "../components/layout/AuthLayout";
+import { Button } from "../components/ui/Button";
+import { TextInput } from "../components/ui/TextInput";
 
 const RESEND_COOLDOWN = 60;
 type Stage = "email" | "otp";
-
-function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <label htmlFor={id} style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--ink-2)", marginBottom: 6 }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 function ErrorAlert({ message }: { message: string }) {
   return (
@@ -26,11 +17,10 @@ function ErrorAlert({ message }: { message: string }) {
         animate={{ opacity: 1, y: 0, height: "auto" }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="alert alert-error"
-        style={{ marginBottom: 16 }}
+        className="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-[13.5px] leading-relaxed mb-4"
         role="alert"
       >
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="shrink-0 mt-0.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <span>{message}</span>
@@ -47,11 +37,10 @@ function SuccessAlert({ message }: { message: string }) {
         animate={{ opacity: 1, y: 0, height: "auto" }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="alert alert-success"
-        style={{ marginBottom: 16 }}
+        className="flex items-start gap-2.5 p-3 rounded-lg bg-success/10 border border-success/20 text-success text-[13.5px] leading-relaxed mb-4"
         role="status"
       >
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="shrink-0 mt-0.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <span>{message}</span>
@@ -160,8 +149,9 @@ export default function SignInCode() {
       <AuthLayout title="Sign in with code" subtitle="Enter your email and we'll send you a 6-digit sign-in code.">
         {emailError && <ErrorAlert message={emailError} />}
 
-        <Field label="Email" id="sic-email">
-          <input
+        <div className="mb-4">
+          <TextInput
+            label="Email"
             id="sic-email"
             type="email"
             autoComplete="email"
@@ -169,29 +159,29 @@ export default function SignInCode() {
             value={email}
             onChange={e => { setEmail(e.target.value); setEmailError(null); }}
             onKeyDown={e => { if (e.key === "Enter") handleSendCode(); }}
-            className="auth-input"
             placeholder="your@email.com"
           />
-        </Field>
+        </div>
 
-        <button
+        <Button
           type="button"
           onClick={handleSendCode}
           disabled={sendLoading}
-          className="btn-primary"
-          style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+          loading={sendLoading}
+          className="w-full justify-center mb-3 h-11"
         >
-          {sendLoading && <div className="spinner" />}
-          {sendLoading ? "Sending…" : "Send code"}
-        </button>
+          Send code
+        </Button>
 
-        <Link to="/sign-in" className="btn-outline" style={{ width: "100%", justifyContent: "center", display: "flex" }}>
-          Back to sign in
+        <Link to="/sign-in" className="no-underline block">
+          <Button variant="secondary" className="w-full justify-center h-11">
+            Back to sign in
+          </Button>
         </Link>
 
-        <p style={{ textAlign: "center", fontSize: 13, color: "var(--ink-3)", marginTop: 24 }}>
+        <p className="text-center text-[13px] text-secondary mt-6">
           Don't have an account?{" "}
-          <Link to="/sign-up" style={{ color: "var(--brand)", textDecoration: "none", fontWeight: 500 }}>Sign up</Link>
+          <Link to="/sign-up" className="text-accent no-underline font-medium hover:underline">Sign up</Link>
         </p>
       </AuthLayout>
     );
@@ -200,13 +190,8 @@ export default function SignInCode() {
   // ── Stage 2: Code entry ───────────────────────────────────────────────────
   return (
     <AuthLayout title="Enter your code" subtitle={`We sent a 6-digit code to ${email}. Open your email and enter it below.`}>
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14,
-          background: "var(--brand-faint)", border: "1px solid var(--brand-border)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          margin: "0 auto", color: "var(--brand)",
-        }}>
+      <div className="text-center mb-6">
+        <div className="w-[52px] h-[52px] rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto text-accent">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
           </svg>
@@ -216,8 +201,9 @@ export default function SignInCode() {
       {otpError   && <ErrorAlert   message={otpError}   />}
       {otpSuccess  && <SuccessAlert message={otpSuccess} />}
 
-      <Field label="6-digit code" id="sic-otp">
-        <input
+      <div className="mb-4">
+        <TextInput
+          label="6-digit code"
           id="sic-otp"
           type="text"
           inputMode="numeric"
@@ -228,44 +214,42 @@ export default function SignInCode() {
           value={otpCode}
           onChange={e => { setOtpCode(e.target.value.replace(/\D/g, "")); setOtpError(null); }}
           onKeyDown={e => { if (e.key === "Enter") handleVerify(); }}
-          className="auth-input"
           placeholder="123456"
-          style={{ letterSpacing: "0.3em", fontSize: 22, textAlign: "center" }}
+          className="tracking-[0.3em] text-[22px] text-center"
         />
-      </Field>
+      </div>
 
-      <button
+      <Button
         type="button"
         onClick={handleVerify}
         disabled={verifyLoading || otpCode.length !== 6}
-        className="btn-primary"
-        style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+        loading={verifyLoading}
+        className="w-full justify-center mb-2.5 h-11"
       >
-        {verifyLoading && <div className="spinner" />}
-        {verifyLoading ? "Verifying…" : "Verify & sign in"}
-      </button>
+        Verify & sign in
+      </Button>
 
-      <button
+      <Button
         type="button"
         onClick={handleResend}
         disabled={cooldown > 0 || sendLoading || verifyLoading}
-        className="btn-outline"
-        style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+        loading={sendLoading}
+        variant="secondary"
+        className="w-full justify-center mb-2.5 h-11"
       >
-        {sendLoading && <div className="spinner" style={{ borderTopColor: "var(--brand)" }} />}
-        {cooldown > 0 ? `Resend code in ${cooldown}s` : sendLoading ? "Sending…" : "Resend code"}
-      </button>
+        {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
+      </Button>
 
-      <button
+      <Button
         type="button"
         onClick={() => { setStage("email"); setOtpCode(""); setOtpError(null); setOtpSuccess(null); setCooldown(0); }}
-        className="btn-ghost"
-        style={{ width: "100%", justifyContent: "center" }}
+        variant="ghost"
+        className="w-full justify-center h-11"
       >
         Use a different email
-      </button>
+      </Button>
 
-      <p style={{ textAlign: "center", fontSize: 12, color: "var(--ink-3)", marginTop: 20 }}>
+      <p className="text-center text-xs text-secondary/70 mt-5">
         Can't find it? Check your spam folder. Code expires in 10 minutes.
       </p>
     </AuthLayout>

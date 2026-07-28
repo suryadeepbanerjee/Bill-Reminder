@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Light Mode Variables ── */
+    --color-canvas: #FAFAFA;
+    --color-surface: #FFFFFF;
+    --color-input: #F4F4F5;
+    --color-border: #E4E4E7;
+    
+    --color-primary: #09090B;
+    --color-secondary: #71717A;
+    
+    --color-accent: #BA9618;
+    --color-accent-hover: #D1A920;
+    --color-accent-muted: rgba(186,150,24,0.08);
+    --color-accent-text: #8C6E0D;
+    
+    --color-error: #DC2626;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+  }
+
+  /* NativeWind handles dark mode primarily via the .dark class injected at runtime */
+  .dark {
+    --color-canvas: #0A0A0C;
+    --color-surface: #131418;
+    --color-input: #1A1C22;
+    --color-border: #282B34;
+    
+    --color-primary: #F4F4F6;
+    --color-secondary: #8E929E;
+    
+    --color-accent: #BA9618;
+    --color-accent-hover: #D1A920;
+    --color-accent-muted: rgba(186,150,24,0.12);
+    --color-accent-text: #0A0A0C;
+  }
+}
