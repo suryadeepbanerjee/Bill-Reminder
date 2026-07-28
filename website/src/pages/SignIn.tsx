@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import AuthLayout from "../components/layout/AuthLayout";
 
+const RESEND_COOLDOWN = 60;
+
+type Stage = "form" | "otp";
+
 function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -15,7 +19,7 @@ function Field({ label, id, children }: { label: string; id: string; children: R
   );
 }
 
-function ErrorAlert({ message, actions }: { message: string; actions?: React.ReactNode }) {
+function ErrorAlert({ message }: { message: string }) {
   return (
     <AnimatePresence>
       <motion.div
@@ -30,10 +34,28 @@ function ErrorAlert({ message, actions }: { message: string; actions?: React.Rea
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        <div>
-          <span>{message}</span>
-          {actions && <div style={{ marginTop: 8, display: "flex", gap: 12 }}>{actions}</div>}
-        </div>
+        <span>{message}</span>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function SuccessAlert({ message }: { message: string }) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: -8, height: 0 }}
+        animate={{ opacity: 1, y: 0, height: "auto" }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="alert alert-success"
+        style={{ marginBottom: 16 }}
+        role="status"
+      >
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{message}</span>
       </motion.div>
     </AnimatePresence>
   );
@@ -41,16 +63,27 @@ function ErrorAlert({ message, actions }: { message: string; actions?: React.Rea
 
 export default function SignIn() {
   const navigate = useNavigate();
+
+  // ── Password sign-in ──────────────────────────────────────────────────────
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
-  const [magic, setMagic]       = useState(false);
-  const [magicLoading, setMagicLoading] = useState(false);
+
+  // ── OTP flow ──────────────────────────────────────────────────────────────
+  const [stage, setStage]           = useState<Stage>("form");
+  const [otpEmail, setOtpEmail]     = useState("");
+  const [otpCode, setOtpCode]       = useState("");
+  const [otpError, setOtpError]     = useState<string | null>(null);
+  const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
+  const [sendLoading, setSendLoading]     = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [cooldown, setCooldown]     = useState(0);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // ── Password sign-in ──────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -58,10 +91,11 @@ export default function SignIn() {
     try {
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) {
-        if (err.message.toLowerCase().includes("invalid login") || err.message.toLowerCase().includes("invalid credentials")) {
+        const msg = err.message.toLowerCase();
+        if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
           setError("Incorrect email or password.");
-        } else if (err.message.toLowerCase().includes("email not confirmed")) {
-          setError("Please verify your email first. Check your inbox for the verification link.");
+        } else if (msg.includes("email not confirmed")) {
+          setError("Please verify your email first. Check your inbox.");
         } else {
           setError(err.message);
         }
@@ -72,45 +106,158 @@ export default function SignIn() {
     finally { setLoading(false); }
   };
 
-  const handleMagicLink = async () => {
-    if (!emailValid) { setError("Enter a valid email address first."); return; }
-    setError(null); setMagicLoading(true);
-    try {
-      const { error: err } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (err) { setError(err.message); return; }
-      setMagic(true);
-    } catch { setError("Something went wrong. Please try again."); }
-    finally { setMagicLoading(false); }
+  // ── Send OTP ──────────────────────────────────────────────────────────────
+  const startCooldown = () => {
+    setCooldown(RESEND_COOLDOWN);
+    const timer = setInterval(() => {
+      setCooldown((c) => { if (c <= 1) { clearInterval(timer); return 0; } return c - 1; });
+    }, 1000);
   };
 
-  if (magic) {
+  const sendOtp = async (targetEmail: string): Promise<boolean> => {
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email: targetEmail,
+      options: { shouldCreateUser: false },
+    });
+    if (err) { setOtpError(err.message); return false; }
+    return true;
+  };
+
+  const handleSendCode = async () => {
+    if (!emailValid) { setError("Enter a valid email address first."); return; }
+    setError(null);
+    setSendLoading(true);
+    try {
+      const ok = await sendOtp(email);
+      if (!ok) return;
+      setOtpEmail(email);
+      setStage("otp");
+      startCooldown();
+    } catch { setError("Something went wrong. Please try again."); }
+    finally { setSendLoading(false); }
+  };
+
+  const handleResend = async () => {
+    setOtpError(null);
+    setOtpSuccess(null);
+    setOtpCode("");
+    setSendLoading(true);
+    try {
+      const ok = await sendOtp(otpEmail);
+      if (!ok) return;
+      setOtpSuccess("New code sent — check your inbox.");
+      startCooldown();
+    } catch { setOtpError("Could not resend. Please try again."); }
+    finally { setSendLoading(false); }
+  };
+
+  // ── Verify OTP ────────────────────────────────────────────────────────────
+  const handleVerify = async () => {
+    const code = otpCode.trim();
+    setOtpError(null);
+    setOtpSuccess(null);
+    if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+      setOtpError("Enter the 6-digit code from your email.");
+      return;
+    }
+    setVerifyLoading(true);
+    try {
+      const { error: err } = await supabase.auth.verifyOtp({
+        email: otpEmail,
+        token: code,
+        type:  "email",
+      });
+      if (err) {
+        const msg = err.message.toLowerCase();
+        if (msg.includes("expired") || msg.includes("otp") || msg.includes("invalid")) {
+          setOtpError("Incorrect or expired code. Request a new one.");
+        } else {
+          setOtpError(err.message);
+        }
+        return;
+      }
+      navigate("/");
+    } catch { setOtpError("Could not verify. Please try again."); }
+    finally { setVerifyLoading(false); }
+  };
+
+  // ── OTP code entry screen ─────────────────────────────────────────────────
+  if (stage === "otp") {
     return (
-      <AuthLayout title="Check your inbox" subtitle={`We sent a sign-in link to ${email}`}>
-        <div style={{ textAlign: "center", padding: "8px 0" }}>
+      <AuthLayout title="Enter your code" subtitle={`We sent a 6-digit code to ${otpEmail}`}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 14,
             background: "var(--brand-faint)", border: "1px solid var(--brand-border)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px", color: "var(--brand)",
+            margin: "0 auto 0",color: "var(--brand)",
           }}>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
             </svg>
           </div>
-          <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6, marginBottom: 24 }}>
-            Tap the link in the email to sign in instantly. The link expires in 1 hour.
-          </p>
-          <button onClick={() => setMagic(false)} className="btn-outline" style={{ width: "100%", justifyContent: "center" }}>
-            Use password instead
-          </button>
         </div>
+
+        {otpError   && <ErrorAlert   message={otpError}   />}
+        {otpSuccess  && <SuccessAlert message={otpSuccess} />}
+
+        <Field label="6-digit code" id="otp-code">
+          <input
+            id="otp-code"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{6}"
+            maxLength={6}
+            autoFocus
+            autoComplete="one-time-code"
+            value={otpCode}
+            onChange={e => { setOtpCode(e.target.value.replace(/\D/g, "")); setOtpError(null); }}
+            onKeyDown={e => { if (e.key === "Enter") handleVerify(); }}
+            className="auth-input"
+            placeholder="123456"
+            style={{ letterSpacing: "0.3em", fontSize: 22, textAlign: "center" }}
+          />
+        </Field>
+
+        <button
+          type="button"
+          onClick={handleVerify}
+          disabled={verifyLoading || otpCode.length !== 6}
+          className="btn-primary"
+          style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+        >
+          {verifyLoading && <div className="spinner" />}
+          {verifyLoading ? "Verifying…" : "Verify & sign in"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={cooldown > 0 || sendLoading || verifyLoading}
+          className="btn-outline"
+          style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+        >
+          {sendLoading && <div className="spinner" style={{ borderTopColor: "var(--brand)" }} />}
+          {cooldown > 0 ? `Resend code in ${cooldown}s` : sendLoading ? "Sending…" : "Resend code"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setStage("form"); setOtpCode(""); setOtpError(null); setOtpSuccess(null); setCooldown(0); }}
+          className="btn-ghost"
+          style={{ width: "100%", justifyContent: "center" }}
+        >
+          Use a different email
+        </button>
+
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--ink-3)", marginTop: 20 }}>
+          Can't find it? Check your spam folder. Code expires in 10 minutes.
+        </p>
       </AuthLayout>
     );
   }
 
+  // ── Sign-in form ──────────────────────────────────────────────────────────
   return (
     <AuthLayout title="Welcome back" subtitle="Sign in to continue tracking your bills">
       <form onSubmit={handleSubmit} noValidate>
@@ -166,13 +313,20 @@ export default function SignIn() {
           <div className="divider" style={{ flex: 1 }} />
         </div>
 
-        <button type="button" disabled={magicLoading} onClick={handleMagicLink} className="btn-outline" style={{ width: "100%", justifyContent: "center" }}>
-          {magicLoading ? <div className="spinner" style={{ borderTopColor: "var(--brand)" }} /> : (
+        {/* OTP code sign-in — no link, no browser redirect */}
+        <button
+          type="button"
+          disabled={sendLoading || loading}
+          onClick={handleSendCode}
+          className="btn-outline"
+          style={{ width: "100%", justifyContent: "center" }}
+        >
+          {sendLoading ? <div className="spinner" style={{ borderTopColor: "var(--brand)" }} /> : (
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
             </svg>
           )}
-          {magicLoading ? "Sending…" : "Send magic link"}
+          {sendLoading ? "Sending…" : "Sign in with code"}
         </button>
       </form>
 
