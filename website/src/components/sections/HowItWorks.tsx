@@ -152,16 +152,12 @@ export default function HowItWorks() {
 								className="flex flex-col md:flex-row items-center gap-10 md:gap-16"
 							>
 								<div className={`flex-1 md:flex-[0.55] space-y-4 ${isEven ? "md:order-1" : "md:order-2"}`}>
-									<div className="relative flex items-start">
-										<span
-											className="text-8xl md:text-9xl font-bold text-accent/5 select-none leading-none absolute -top-12 -left-6 md:-left-8"
-											aria-hidden="true"
-										>
+									<div className="space-y-2">
+										<div className="text-[5rem] md:text-[7rem] font-black leading-none text-white/5 select-none">
 											{String(index + 1).padStart(2, "0")}
-										</span>
-										<h3 className="text-2xl md:text-3xl font-bold tracking-tight text-primary relative z-10 pl-8 md:pl-12">
-											{step.title}
-										</h3>
+										</div>
+
+										<h3 className="text-2xl md:text-3xl font-bold tracking-tight text-primary">{step.title}</h3>
 									</div>
 									<p className="text-base text-secondary leading-relaxed max-w-[40ch]">{step.body}</p>
 									<ul className="space-y-1.5 text-sm text-secondary">
