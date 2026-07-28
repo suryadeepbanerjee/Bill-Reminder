@@ -271,6 +271,15 @@ export default function SignInScreen() {
           disabled={isLoading}
           fullWidth
         />
+
+        {/* OTP code sign-in — native mobile flow */}
+        <Button
+          title="Sign in with code"
+          variant="ghost"
+          onPress={() => router.push("/(auth)/sign-in-otp")}
+          disabled={isLoading}
+          fullWidth
+        />
       </View>
 
       <View className="flex-row justify-center mt-8 gap-1">

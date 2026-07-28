@@ -52,3 +52,5 @@ supabase/.env
 website/node_modules/
 website/dist/
 website/.env
+
+app.zip
