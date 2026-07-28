@@ -322,21 +322,15 @@
 
       appBtn.setAttribute('href', deepLink);
 
-      // ── Auto-open the app (no tap required) ──────────────────────────────
-      // Fire the deep link via a hidden iframe — this is non-blocking so the
-      // success page stays visible as a fallback if the app isn't installed.
-      // On mobile, the OS intercepts the custom scheme and opens the app.
+      // ── Auto-open the app ─────────────────────────────────────────────────
+      // window.location.href has higher OS-level priority than iframe for
+      // custom schemes — more reliable on Android Chrome.
+      // On iOS Safari, user-gesture requirement means the button is the
+      // reliable fallback; this attempt may silently fail there.
       if (deepLink !== 'bill-reminder://signin') {
         try {
-          var iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = deepLink;
-          document.body.appendChild(iframe);
-          // Remove iframe after a moment to keep DOM clean
-          setTimeout(function () {
-            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-          }, 2000);
-        } catch (e) { /* ignore — manual button is always the fallback */ }
+          window.location.href = deepLink;
+        } catch (e) { /* ignore — button is always the fallback */ }
       }
     })();
 

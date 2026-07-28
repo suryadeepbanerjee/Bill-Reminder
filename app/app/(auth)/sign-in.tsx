@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Text, View } from "react-native";
+import { useState, useEffect } from "react";
+import { Text, View, AppState } from "react-native";
 import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +36,24 @@ export default function SignInScreen() {
   const emailValue = watch("email");
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
 
+  // ── Auto-navigate when deep link fires while waiting ─────────────────────
+  // callback.tsx calls supabase.auth.setSession() when the app is opened via
+  // the deep link from success.html. That triggers onAuthStateChange in
+  // _layout.tsx → auth store updated → (auth)/_layout.tsx redirects automatically.
+  //
+  // This AppState listener is a belt-and-suspenders check: if the user
+  // returns to the app via the app switcher AFTER the deep link has already
+  // fired and set the session, we catch it here.
+  useEffect(() => {
+    if (!magicSent) return;
+    const sub = AppState.addEventListener('change', async (state) => {
+      if (state === 'active') {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) router.replace('/(tabs)/dashboard');
+      }
+    });
+    return () => sub.remove();
+  }, [magicSent]);
   // ── Check session when user taps Next ────────────────────────────────────
   const handleNext = async () => {
     setNotVerified(false);
@@ -118,7 +136,7 @@ export default function SignInScreen() {
           {/* Not verified feedback */}
           {notVerified && (
             <AlertBadge
-              message="Please verify your email first — tap the link in your inbox, then press Next."
+              message="Go back to your browser and tap 'Back to App' on the verification page — the app will sign you in automatically."
               variant="error"
             />
           )}
