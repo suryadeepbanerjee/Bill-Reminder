@@ -218,10 +218,9 @@ export default function Hero() {
 		<section
 			aria-labelledby="hero-heading"
 			className="relative mx-auto w-full pt-[100px] pb-16 px-6 md:px-8
-      min-h-[calc(100vh-40px)] overflow-hidden
+      min-h-screen overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_50%,#e8e8e8_88%)]
-      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]
-      rounded-b-xl"
+      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]"
 		>
 			{/* Grid BG */}
 			<div
@@ -233,14 +232,14 @@ export default function Hero() {
 				aria-hidden="true"
 			/>
 
-			{/* Radial Accent — centered large glow */}
+			{/* Radial Accent — perfectly centered */}
 			<div
-				className="absolute left-1/2 top-[calc(100%-90px)] lg:top-[calc(100%-150px)]
-        h-[500px] w-[700px] md:h-[500px] md:w-[1100px] lg:h-[750px] lg:w-[140%]
-        -translate-x-1/2 rounded-[100%] border-[#B48CDE] bg-white dark:bg-black
-        bg-[radial-gradient(closest-side,#fff_82%,#000000)]
-        dark:bg-[radial-gradient(closest-side,#000_82%,#ffffff)]
-        animate-fade-up pointer-events-none"
+				className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+        h-[500px] w-[700px] md:h-[600px] md:w-[900px] lg:h-[800px] lg:w-[1200px]
+        rounded-full bg-white dark:bg-black
+        bg-[radial-gradient(closest-side,#ffffff_70%,#000000)]
+        dark:bg-[radial-gradient(closest-side,#000000_70%,#ffffff)]
+        animate-fade-up pointer-events-none opacity-70"
 				aria-hidden="true"
 			/>
 
@@ -316,7 +315,7 @@ export default function Hero() {
 								</Link>
 							</div>
 
-							{/* Metrics */}
+							{/* Metrics — now visible with improved contrast */}
 							<div className="flex gap-7 mt-11 flex-wrap">
 								{[
 									{ value: "Free", label: "No subscription fee" },
@@ -325,7 +324,7 @@ export default function Hero() {
 								].map((m) => (
 									<div key={m.value}>
 										<p className="text-[17px] font-bold text-primary tracking-tight mb-1">{m.value}</p>
-										<p className="text-xs text-secondary">{m.label}</p>
+										<p className="text-sm text-secondary/90">{m.label}</p>
 									</div>
 								))}
 							</div>
