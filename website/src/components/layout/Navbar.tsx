@@ -24,7 +24,7 @@ export default function Navbar() {
   // close menu on route change
   useEffect(() => setOpen(false), [pathname]);
 
-  const isAuth = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"].includes(pathname);
+  const isAuth = ["/sign-in", "/sign-in-code", "/sign-up", "/forgot-password", "/reset-password"].includes(pathname);
 
   return (
     <>
