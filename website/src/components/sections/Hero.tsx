@@ -205,8 +205,8 @@ export default function Hero() {
 			aria-labelledby="hero-heading"
 			className="relative mx-auto w-full pt-[100px] pb-16 px-6 md:px-8
       min-h-[calc(100vh-40px)] overflow-hidden
-      bg-[linear-gradient(to_bottom,#fff,#ffffff_50%,#e8e8e8_88%)]
-      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]
+      bg-[linear-gradient(to_bottom,#fff,#ffffff_45%,var(--color-canvas)_100%)]
+      dark:bg-[linear-gradient(to_bottom,#000,var(--color-canvas)_38%,#1c1e24_70%,var(--color-canvas)_100%)]
       rounded-b-xl"
 		>
 			{/* Ledger grid — tight to the content, not full-bleed */}
@@ -247,13 +247,6 @@ export default function Hero() {
 				<div className="absolute left-1/2 -translate-x-1/2 -top-[3px] w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_12px_2px_rgba(186,150,24,0.5)]" />
 			</div>
 
-			{/* Bottom fade to blend into next section */}
-			<div
-				className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none
-        bg-gradient-to-t from-canvas via-canvas/80 to-transparent"
-				aria-hidden="true"
-			/>
-
 			<div className="container mx-auto px-6 relative z-10">
 				<div className="flex flex-col lg:flex-row items-center justify-center gap-16 lg:gap-24">
 					{/* ── Left: Copy ── */}
@@ -285,7 +278,7 @@ export default function Hero() {
 								<span className="bg-gradient-to-r from-accent to-accent/60 bg-clip-text text-transparent">bill again.</span>
 							</h1>
 
-							<p className="text-[clamp(15px,2vw,17px)] text-secondary leading-relaxed max-w-[60ch] mb-9">
+							<p className="text-[clamp(15px,2vw,17px)] text-primary/70 leading-relaxed max-w-[60ch] mb-9">
 								Bill Reminder helps you stay ahead of recurring payments with intelligent reminders, offline support, cloud sync, and a
 								clean experience designed to eliminate late fees and forgotten bills.
 							</p>
@@ -319,8 +312,8 @@ export default function Hero() {
 								</Link>
 							</div>
 
-							{/* Metrics — now using text-secondary with improved contrast */}
-							<div className="flex gap-7 mt-11 flex-wrap">
+							{/* Metrics — glass tile so they read clearly against the hero background */}
+							<div className="flex gap-6 sm:gap-10 mt-11 flex-wrap bg-surface/60 backdrop-blur-md border border-border rounded-2xl px-6 py-5 shadow-resting">
 								{[
 									{ value: "Free", label: "No subscription fee" },
 									{ value: "Offline", label: "Works without internet" },
