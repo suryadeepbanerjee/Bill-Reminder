@@ -313,7 +313,7 @@ export default function Hero() {
 							</div>
 
 							{/* Metrics — separate glass tiles so each stat reads as its own card */}
-							<div className="flex gap-3 sm:gap-4 mt-11 flex-wrap">
+							<div className="flex gap-3 sm:gap-4 mt-11 flex-wrap justify-center sm:justify-start">
 								{[
 									{ value: "Free", label: "No subscription fee" },
 									{ value: "Offline", label: "Works without internet" },
