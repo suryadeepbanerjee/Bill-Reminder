@@ -312,14 +312,17 @@ export default function Hero() {
 								</Link>
 							</div>
 
-							{/* Metrics — glass tile so they read clearly against the hero background */}
-							<div className="flex gap-6 sm:gap-10 mt-11 flex-wrap bg-surface/60 backdrop-blur-md border border-border rounded-2xl px-6 py-5 shadow-resting">
+							{/* Metrics — separate glass tiles so each stat reads as its own card */}
+							<div className="flex gap-3 sm:gap-4 mt-11 flex-wrap">
 								{[
 									{ value: "Free", label: "No subscription fee" },
 									{ value: "Offline", label: "Works without internet" },
 									{ value: "Private", label: "Your data, your rules" },
 								].map((m) => (
-									<div key={m.value}>
+									<div
+										key={m.value}
+										className="bg-surface/60 backdrop-blur-md border border-border rounded-2xl px-5 py-4 shadow-resting"
+									>
 										<p className="text-[17px] font-bold text-primary tracking-tight mb-1">{m.value}</p>
 										<p className="text-sm text-secondary">{m.label}</p>
 									</div>
