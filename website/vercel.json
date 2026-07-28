@@ -3,6 +3,7 @@
     { "source": "/auth/callback", "destination": "/index.html" },
     { "source": "/auth/error",    "destination": "/index.html" },
     { "source": "/sign-in",       "destination": "/index.html" },
+    { "source": "/sign-in-code",  "destination": "/index.html" },
     { "source": "/sign-up",       "destination": "/index.html" },
     { "source": "/forgot-password","destination": "/index.html" },
     { "source": "/reset-password", "destination": "/index.html" },
