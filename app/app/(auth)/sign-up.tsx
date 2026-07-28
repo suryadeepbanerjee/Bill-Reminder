@@ -77,7 +77,7 @@ export default function SignUpScreen() {
         return;
       }
 
-      router.push("/(auth)/verify-email");
+      router.push({ pathname: "/(auth)/verify-email", params: { email: data.email } });
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
