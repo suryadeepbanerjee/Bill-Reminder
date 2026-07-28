@@ -71,7 +71,6 @@ function CategoriesCard() {
 			className="hidden lg:block absolute top-[-8px] right-[-28px] w-44 p-3.5 bg-surface/90 backdrop-blur-md border border-border rounded-2xl shadow-raised z-20"
 		>
 			<p className="text-[9px] font-semibold text-secondary tracking-wider uppercase mb-2.5">By category</p>
-			{/* stacked bar */}
 			<div className="flex h-1.5 rounded-full overflow-hidden mb-2.5">
 				{cats.map((c) => (
 					<div key={c.label} style={{ width: `${c.pct}%`, background: c.color }} />
@@ -137,19 +136,14 @@ function PhoneMockup() {
 			className="relative z-10"
 		>
 			<div className="w-[264px] bg-canvas border border-border rounded-[32px] p-3 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] relative z-10">
-				{/* Screen */}
 				<div className="rounded-[22px] overflow-hidden bg-canvas border border-border">
-					{/* Status bar */}
 					<div className="px-4 py-2.5 flex justify-between items-center bg-canvas">
 						<span className="text-[10px] text-primary font-semibold font-mono tabular-nums">9:41</span>
 						<div className="flex gap-1 items-center">
 							<div className="w-3 h-1.5 bg-success rounded-sm opacity-80" />
 						</div>
 					</div>
-
-					{/* App content */}
 					<div className="px-3.5 pb-3.5 bg-canvas">
-						{/* Header */}
 						<div className="mb-3.5 flex items-start justify-between">
 							<div>
 								<p className="text-[10px] text-secondary mb-0.5">Good morning,</p>
@@ -163,8 +157,6 @@ function PhoneMockup() {
 								</svg>
 							</div>
 						</div>
-
-						{/* Summary bar — monthly spending summary */}
 						<div className="flex gap-1.5 mb-3.5">
 							{[
 								{ label: "Due this month", value: "₹4,850", bg: "bg-surface border border-border", text: "text-primary" },
@@ -177,8 +169,6 @@ function PhoneMockup() {
 								</div>
 							))}
 						</div>
-
-						{/* Category filter chips */}
 						<div className="flex gap-1.5 mb-3 overflow-hidden">
 							{["All", "Streaming", "Utilities", "Housing"].map((c, i) => (
 								<span
@@ -191,8 +181,6 @@ function PhoneMockup() {
 								</span>
 							))}
 						</div>
-
-						{/* Bills */}
 						<p className="text-[9px] text-secondary font-semibold tracking-wider uppercase mb-1">Upcoming</p>
 						<BillCard emoji="⚡" name="Electricity" amount="₹1,200" category="Utilities" overdue />
 						<BillCard emoji="📺" name="Netflix" amount="₹649" category="Streaming" daysLeft={2} recurring />
@@ -200,13 +188,10 @@ function PhoneMockup() {
 						<BillCard emoji="☁️" name="iCloud" amount="₹75" category="Storage" paid />
 					</div>
 				</div>
-
-				{/* Home indicator */}
 				<div className="flex justify-center pt-2">
 					<div className="w-[60px] h-[3px] rounded-full bg-secondary/30" />
 				</div>
 			</div>
-
 			<CategoriesCard />
 			<TimelineCard />
 		</motion.div>
@@ -216,11 +201,13 @@ function PhoneMockup() {
 export default function Hero() {
 	return (
 		<section
+			id="hero"
 			aria-labelledby="hero-heading"
 			className="relative mx-auto w-full pt-[100px] pb-16 px-6 md:px-8
-      min-h-screen overflow-hidden
+      min-h-[calc(100vh-40px)] overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_50%,#e8e8e8_88%)]
-      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]"
+      dark:bg-[linear-gradient(to_bottom,#000,#0000_30%,#898e8e_78%,#ffffff_99%_50%)]
+      rounded-b-xl"
 		>
 			{/* Grid BG */}
 			<div
@@ -232,20 +219,20 @@ export default function Hero() {
 				aria-hidden="true"
 			/>
 
-			{/* Radial Accent — perfectly centered */}
+			{/* Radial Accent — exactly like hero-1: positioned at bottom center */}
 			<div
-				className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-        h-[500px] w-[700px] md:h-[600px] md:w-[900px] lg:h-[800px] lg:w-[1200px]
-        rounded-full bg-white dark:bg-black
-        bg-[radial-gradient(closest-side,#ffffff_70%,#000000)]
-        dark:bg-[radial-gradient(closest-side,#000000_70%,#ffffff)]
-        animate-fade-up pointer-events-none opacity-70"
+				className="absolute left-1/2 top-[calc(100%-90px)] lg:top-[calc(100%-150px)]
+        h-[500px] w-[700px] md:h-[500px] md:w-[1100px] lg:h-[750px] lg:w-[140%]
+        -translate-x-1/2 rounded-[100%] border-[#B48CDE] bg-white dark:bg-black
+        bg-[radial-gradient(closest-side,#fff_82%,#000000)]
+        dark:bg-[radial-gradient(closest-side,#000_82%,#ffffff)]
+        animate-fade-up pointer-events-none"
 				aria-hidden="true"
 			/>
 
 			{/* Bottom fade to blend into next section */}
 			<div
-				className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none
+				className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none
         bg-gradient-to-t from-canvas via-canvas/80 to-transparent"
 				aria-hidden="true"
 			/>
@@ -315,7 +302,7 @@ export default function Hero() {
 								</Link>
 							</div>
 
-							{/* Metrics — now visible with improved contrast */}
+							{/* Metrics — now using text-secondary with improved contrast */}
 							<div className="flex gap-7 mt-11 flex-wrap">
 								{[
 									{ value: "Free", label: "No subscription fee" },
@@ -324,7 +311,7 @@ export default function Hero() {
 								].map((m) => (
 									<div key={m.value}>
 										<p className="text-[17px] font-bold text-primary tracking-tight mb-1">{m.value}</p>
-										<p className="text-sm text-secondary/90">{m.label}</p>
+										<p className="text-sm text-secondary">{m.label}</p>
 									</div>
 								))}
 							</div>
@@ -333,7 +320,6 @@ export default function Hero() {
 
 					{/* ── Right: Phone ── */}
 					<div className="flex justify-center relative mt-20 lg:mt-0 flex-shrink-0">
-						{/* Glow behind phone (kept for extra depth) */}
 						<div
 							className="absolute inset-[-40px] bg-[radial-gradient(ellipse_at_center,var(--color-border)_0%,transparent_65%)] rounded-full pointer-events-none"
 							aria-hidden="true"
