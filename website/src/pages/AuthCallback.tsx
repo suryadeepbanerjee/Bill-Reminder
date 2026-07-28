@@ -89,14 +89,8 @@ async function processCallback(): Promise<void> {
       return;
     }
 
-    // OAuth providers (Google, GitHub, …) — no 'type' in hash.
-    // Session is already set on the web client; just go home.
-    if (!hashType) {
-      window.location.replace("/");
-      return;
-    }
-
-    // signup, email_change, magic_link → success + store tokens for deep link
+    // signup, email_change, magic_link, AND mobile OAuth (implicit) 
+    // → success + store tokens for deep link
     return redirectSuccess(accessToken, refreshToken);
   }
 
@@ -115,6 +109,12 @@ async function processCallback(): Promise<void> {
     if (type === "recovery") {
       sessionStorage.setItem("br_auth_verified", "1");
       window.location.replace("/reset-password");
+      return;
+    }
+
+    // Website OAuth (PKCE) — no 'type'. Session is set on the web client; just go home.
+    if (!type) {
+      window.location.replace("/");
       return;
     }
 

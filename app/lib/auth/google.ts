@@ -54,9 +54,10 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   }
 
   // Step 3: Parse tokens from the captured deep-link URL
-  // Shape: bill-reminder://callback?access_token=...&refresh_token=...
-  const queryPart    = result.url.split("?")[1] ?? "";
-  const params       = new URLSearchParams(queryPart);
+  // Shape: bill-reminder://callback?access_token=... (forwarded by success.html)
+  // Or: bill-reminder://callback#access_token=... (if caught directly on implicit redirect)
+  const tokenPart    = result.url.split("?")[1] || result.url.split("#")[1] || "";
+  const params       = new URLSearchParams(tokenPart);
   const accessToken  = params.get("access_token");
   const refreshToken = params.get("refresh_token") ?? "";
 

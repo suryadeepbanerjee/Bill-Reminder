@@ -87,8 +87,6 @@ const configs: Record<Reason, Config> = {
     body: "We couldn't complete your verification. This can happen with expired or malformed links. Please try again from the sign-in page.",
     primaryLabel: "Go to sign in",
     primaryHref: "/sign-in",
-    secondaryLabel: "Return home",
-    secondaryHref: "/",
   },
 };
 
