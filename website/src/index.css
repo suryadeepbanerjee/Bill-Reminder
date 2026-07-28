@@ -3,108 +3,145 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* ── Light Mode Variables ── */
-    --color-canvas: #FAFAFA;
-    --color-surface: #FFFFFF;
-    --color-input: #F4F4F5;
-    --color-border: #E4E4E7;
-    
-    --color-primary: #09090B;
-    --color-secondary: #71717A;
-    
-    --color-accent: #BA9618;
-    --color-accent-hover: #D1A920;
-    --color-accent-muted: rgba(186,150,24,0.08);
-    --color-accent-text: #8C6E0D;
-    
-    --color-error: #DC2626;
-    --color-success: #10B981;
-    --color-warning: #F59E0B;
-  }
+	:root {
+		/* ── Light Mode Variables ── */
+		--color-canvas: #fafafa;
+		--color-surface: #ffffff;
+		--color-input: #f4f4f5;
+		--color-border: #e4e4e7;
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      /* ── Dark Mode Variables (Default as per user, but respects system first) ── */
-      --color-canvas: #0A0A0C;
-      --color-surface: #131418;
-      --color-input: #1A1C22;
-      --color-border: #282B34;
-      
-      --color-primary: #F4F4F6;
-      --color-secondary: #8E929E;
-      
-      --color-accent: #BA9618;
-      --color-accent-hover: #D1A920;
-      --color-accent-muted: rgba(186,150,24,0.12);
-      --color-accent-text: #0A0A0C; /* Text On Gold */
-    }
-  }
+		--color-primary: #09090b;
+		--color-secondary: #71717a;
 
-  /* Manual overrides */
-  .dark {
-    --color-canvas: #0A0A0C;
-    --color-surface: #131418;
-    --color-input: #1A1C22;
-    --color-border: #282B34;
-    
-    --color-primary: #F4F4F6;
-    --color-secondary: #8E929E;
-    
-    --color-accent: #BA9618;
-    --color-accent-hover: #D1A920;
-    --color-accent-muted: rgba(186,150,24,0.12);
-    --color-accent-text: #0A0A0C;
-  }
+		--color-accent: #ba9618;
+		--color-accent-hover: #d1a920;
+		--color-accent-muted: rgba(186, 150, 24, 0.08);
+		--color-accent-text: #8c6e0d;
 
-  .light {
-    --color-canvas: #FAFAFA;
-    --color-surface: #FFFFFF;
-    --color-input: #F4F4F5;
-    --color-border: #E4E4E7;
-    
-    --color-primary: #09090B;
-    --color-secondary: #71717A;
-    
-    --color-accent: #BA9618;
-    --color-accent-hover: #D1A920;
-    --color-accent-muted: rgba(186,150,24,0.08);
-    --color-accent-text: #8C6E0D;
-  }
+		--color-error: #dc2626;
+		--color-success: #10b981;
+		--color-warning: #f59e0b;
+	}
 
-  body {
-    background-color: var(--color-canvas);
-    color: var(--color-primary);
-    @apply font-sans antialiased selection:bg-accent selection:text-accent-text;
-    overflow-x: hidden;
-  }
+	@media (prefers-color-scheme: dark) {
+		:root {
+			/* ── Dark Mode Variables (Default as per user, but respects system first) ── */
+			--color-canvas: #0a0a0c;
+			--color-surface: #131418;
+			--color-input: #1a1c22;
+			--color-border: #282b34;
+
+			--color-primary: #f4f4f6;
+			--color-secondary: #8e929e;
+
+			--color-accent: #ba9618;
+			--color-accent-hover: #d1a920;
+			--color-accent-muted: rgba(186, 150, 24, 0.12);
+			--color-accent-text: #0a0a0c; /* Text On Gold */
+		}
+	}
+
+	/* Manual overrides */
+	.dark {
+		--color-canvas: #0a0a0c;
+		--color-surface: #131418;
+		--color-input: #1a1c22;
+		--color-border: #282b34;
+
+		--color-primary: #f4f4f6;
+		--color-secondary: #8e929e;
+
+		--color-accent: #ba9618;
+		--color-accent-hover: #d1a920;
+		--color-accent-muted: rgba(186, 150, 24, 0.12);
+		--color-accent-text: #0a0a0c;
+	}
+
+	.light {
+		--color-canvas: #fafafa;
+		--color-surface: #ffffff;
+		--color-input: #f4f4f5;
+		--color-border: #e4e4e7;
+
+		--color-primary: #09090b;
+		--color-secondary: #71717a;
+
+		--color-accent: #ba9618;
+		--color-accent-hover: #d1a920;
+		--color-accent-muted: rgba(186, 150, 24, 0.08);
+		--color-accent-text: #8c6e0d;
+	}
+
+	body {
+		background-color: var(--color-canvas);
+		color: var(--color-primary);
+		@apply font-sans antialiased selection:bg-accent selection:text-accent-text;
+		overflow-x: hidden;
+	}
 }
 
 @layer utilities {
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
-  .section {
-    @apply py-24 lg:py-32;
-  }
+	.tabular-nums {
+		font-variant-numeric: tabular-nums;
+	}
+	.section {
+		@apply py-24 lg:py-32;
+	}
 }
 
 /* Custom Scrollbar for premium feel */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { 
-  background: var(--color-border); 
-  border-radius: 99px; 
+::-webkit-scrollbar {
+	width: 6px;
 }
-::-webkit-scrollbar-thumb:hover { 
-  background: var(--color-secondary); 
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-secondary);
 }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* ─── New animations from hero-1 ─── */
+@keyframes fade-in {
+	0% {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fade-up {
+	0% {
+		opacity: 0;
+		transform: translateY(40px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-fade-in {
+	animation: fade-in 0.8s ease-out forwards;
+}
+
+.animate-fade-up {
+	animation: fade-up 0.8s ease-out forwards;
 }
