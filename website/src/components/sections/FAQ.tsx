@@ -14,7 +14,7 @@ const faqs = [
     q: "Does it work without internet?",
     a: "Yes. Every feature is available offline. When you reconnect, changes sync automatically across your devices via Supabase.",
   },
-  {
+  <div className="w-full text-left">{
     q: "Is there an iOS version?",
     a: "Not yet. The app currently ships on Android. iOS is on the roadmap — star the GitHub repository to follow progress.",
   },
@@ -55,19 +55,19 @@ export default function FAQ() {
           </motion.div>
 
           {/* Q&A */}
-          <div className="w-full text-left">
+          <div className="mx-auto w-full max-w-[760px]">
             {faqs.map((faq, i) => (
               <motion.div
                 key={faq.q}
                 initial={{ opacity: 0, y: 16 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.4, delay: i * 0.07 }}
-                className={`pb-6 mb-6 ${i < faqs.length - 1 ? "border-b border-border" : ""}`}
+                className={`pb-8 mb-8 text-center ${i < faqs.length - 1 ? "border-b border-border" : ""}`}
               >
-                <h3 className="text-[15px] font-semibold text-primary tracking-tight mb-2">
+              <h3 className="mb-3 text-lg font-semibold tracking-tight text-primary">
                   {faq.q}
                 </h3>
-                <p className="text-[13.5px] text-secondary leading-[1.65]">
+                <p className="mx-auto max-w-[42rem] text-center text-[15px] leading-7 text-secondary">
                   {faq.a}
                 </p>
               </motion.div>
