@@ -84,6 +84,9 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+  .section {
+    @apply py-24 lg:py-32;
+  }
 }
 
 /* Custom Scrollbar for premium feel */

@@ -207,13 +207,14 @@ export default function Hero() {
       <div className="absolute top-0 left-0 right-0 h-[500px] pointer-events-none bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,var(--color-border)_0%,transparent_70%)]" aria-hidden="true" />
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* ── Left: Copy ── */}
-          <div className="max-w-[560px]">
+        <div className="flex flex-col items-center text-center">
+          {/* ── Top: Copy ── */}
+          <div className="max-w-[760px] flex flex-col items-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col items-center"
             >
               {/* Status badge */}
               <div className="inline-flex items-center gap-1.5 py-1.5 pl-2 pr-3 bg-surface border border-border rounded-full mb-7 shadow-resting">
@@ -231,7 +232,7 @@ export default function Hero() {
 
               <h1
                 id="hero-heading"
-                className="text-[clamp(2.6rem,5.5vw,4.5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-5"
+                className="text-[clamp(2.6rem,5.5vw,5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-6"
                 style={{ textWrap: "balance" as any }}
               >
                 Never miss another<br />
@@ -240,11 +241,11 @@ export default function Hero() {
                 </span>
               </h1>
 
-              <p className="text-[clamp(15px,2vw,17px)] text-secondary leading-relaxed max-w-[60ch] mb-9">
+              <p className="text-[clamp(15px,2vw,17px)] text-secondary leading-relaxed max-w-[60ch] mb-9 mx-auto">
                 Bill Reminder helps you stay ahead of recurring payments with intelligent reminders, offline support, cloud sync, and a clean experience designed to eliminate late fees and forgotten bills.
               </p>
 
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-4 flex-wrap justify-center">
                 <a
                   href="https://github.com/suryadeepbanerjee/Bill-Reminder/releases/latest"
                   target="_blank"
@@ -265,7 +266,7 @@ export default function Hero() {
               </div>
 
               {/* Metrics */}
-              <div className="flex gap-7 mt-11 flex-wrap">
+              <div className="flex justify-center gap-10 mt-12 flex-wrap">
                 {[
                   { value: "Free",     label: "No subscription fee" },
                   { value: "Offline",  label: "Works without internet" },
@@ -280,8 +281,8 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── Right: Phone ── */}
-          <div className="flex justify-center relative mt-12 lg:mt-0">
+          {/* ── Bottom: Phone ── */}
+          <div className="flex justify-center relative mt-20">
             {/* Glow behind phone */}
             <div className="absolute inset-[-40px] bg-[radial-gradient(ellipse_at_center,var(--color-border)_0%,transparent_65%)] rounded-full pointer-events-none" aria-hidden="true" />
             <PhoneMockup />
