@@ -302,6 +302,14 @@
     // here. We read them and build a deep link so the mobile app can restore the
     // session automatically — no manual sign-in required.
     (function () {
+      // Check if there's a pending invite — redirect to accept-invite instead
+      var pendingHid = sessionStorage.getItem('pending_invite_hid');
+      if (pendingHid) {
+        sessionStorage.removeItem('pending_invite_hid');
+        window.location.replace('/accept-invite?hid=' + encodeURIComponent(pendingHid));
+        return;
+      }
+
       var appBtn = document.getElementById('open-app-btn');
       if (!appBtn) return;
 

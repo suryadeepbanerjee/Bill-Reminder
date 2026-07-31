@@ -76,7 +76,14 @@ export default function SignIn() {
         }
         return;
       }
-      navigate("/");
+      // After sign-in, check if there's a pending invite to accept
+      const pendingHid = sessionStorage.getItem("pending_invite_hid");
+      if (pendingHid) {
+        sessionStorage.removeItem("pending_invite_hid");
+        navigate(`/accept-invite?hid=${pendingHid}`);
+      } else {
+        navigate("/");
+      }
     } catch { setError("Something went wrong. Please try again."); }
     finally { setLoading(false); }
   };
@@ -85,9 +92,14 @@ export default function SignIn() {
     setError(null);
     setGoogleLoading(true);
     try {
+      // Store pending invite before OAuth redirect (sessionStorage persists across redirects)
+      const pendingHid = sessionStorage.getItem("pending_invite_hid");
+      const redirectTo = pendingHid
+        ? `${window.location.origin}/accept-invite?hid=${pendingHid}`
+        : `${window.location.origin}/auth/callback`;
       await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo },
       });
     } catch {
       setError("Could not start Google sign-in. Please try again.");
