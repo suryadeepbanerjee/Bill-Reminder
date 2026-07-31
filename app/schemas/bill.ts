@@ -98,6 +98,14 @@ export const createBillSchema = createBillBaseSchema.superRefine((data, ctx) => 
       path:    ["check_interval_days"],
     });
   }
+
+  if (data.behavior_type === "fixed_due_date" && data.due_day_offset == null) {
+    ctx.addIssue({
+      code:    z.ZodIssueCode.custom,
+      message: "Due day is required for fixed due date bills",
+      path:    ["due_day_offset"],
+    });
+  }
 });
 
 export type CreateBillFormData = z.infer<typeof createBillSchema>;

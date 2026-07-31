@@ -19,7 +19,6 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Claim pending reminders atomically
@@ -28,14 +27,125 @@ serve(async (req: Request) => {
 
     if (claimError) throw claimError;
 
+    let pushedSent = 0;
+    let emailsSent = 0;
+    let failed = 0;
+
     // Dispatch each claimed reminder
     for (const reminder of pendingReminders || []) {
-      if (reminder.channel === "push") {
-        // Call push-sender
-        console.log(`Sending push for reminder: ${reminder.id}`);
-      } else if (reminder.channel === "email") {
-        // Call email-sender
-        console.log(`Sending email for reminder: ${reminder.id}`);
+      try {
+        // Get occurrence and bill details for the notification content
+        const { data: occurrence, error: occError } = await supabase
+          .from("bill_occurrences")
+          .select(`
+            *,
+            bills!inner (
+              id,
+              title,
+              provider_name,
+              amount_expected,
+              household_id
+            )
+          `)
+          .eq("id", reminder.occurrence_id)
+          .single();
+
+        if (occError || !occurrence) {
+          console.error(`Failed to fetch occurrence ${reminder.occurrence_id}:`, occError?.message);
+          failed++;
+          // Mark as failed
+          await supabase
+            .from("scheduled_reminders")
+            .update({ status: "failed", sent_at: new Date().toISOString() })
+            .eq("id", reminder.id);
+          continue;
+        }
+
+        const bill = occurrence.bills;
+        const title = `Bill Reminder: ${bill.title}`;
+        const body = `Your bill "${bill.title}"${bill.provider_name ? ` (${bill.provider_name})` : ""} is due on ${occurrence.due_date || "soon"}.`;
+
+        if (reminder.channel === "push") {
+          // Call push-sender
+          const pushResponse = await supabase.functions.invoke("push-sender", {
+            body: {
+              reminderId: reminder.id,
+              userId: reminder.user_id,
+              title,
+              body,
+            },
+          });
+
+          if (pushResponse.error) {
+            console.error(`Push send failed for reminder ${reminder.id}:`, pushResponse.error);
+            failed++;
+            await supabase
+              .from("scheduled_reminders")
+              .update({ status: "failed", sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+          } else {
+            pushedSent++;
+          }
+        } else if (reminder.channel === "email") {
+          // Get user's email
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("email, email_notifications_enabled")
+            .eq("id", reminder.user_id)
+            .single();
+
+          if (profileError || !profile || !profile.email) {
+            console.error(`Failed to fetch profile for user ${reminder.user_id}:`, profileError?.message);
+            failed++;
+            await supabase
+              .from("scheduled_reminders")
+              .update({ status: "skipped", sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+            continue;
+          }
+
+          // Check email notification preference
+          if (!profile.email_notifications_enabled) {
+            await supabase
+              .from("scheduled_reminders")
+              .update({ status: "skipped", sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+            continue;
+          }
+
+          // Call email-sender
+          const emailResponse = await supabase.functions.invoke("email-sender", {
+            body: {
+              reminderId: reminder.id,
+              userId: reminder.user_id,
+              billId: bill.id,
+              email: profile.email,
+              subject: title,
+              billName: bill.title,
+              amount: bill.amount_expected ? `₹${bill.amount_expected}` : "Variable",
+              dueDate: occurrence.due_date || "Soon",
+              status: occurrence.state,
+            },
+          });
+
+          if (emailResponse.error) {
+            console.error(`Email send failed for reminder ${reminder.id}:`, emailResponse.error);
+            failed++;
+            await supabase
+              .from("scheduled_reminders")
+              .update({ status: "failed", sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+          } else {
+            emailsSent++;
+          }
+        }
+      } catch (e) {
+        console.error(`Error dispatching reminder ${reminder.id}:`, e);
+        failed++;
+        await supabase
+          .from("scheduled_reminders")
+          .update({ status: "failed", sent_at: new Date().toISOString() })
+          .eq("id", reminder.id);
       }
     }
 
@@ -43,6 +153,10 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         dispatched: pendingReminders?.length || 0,
+        pushedSent,
+        emailsSent,
+        failed,
+        timestamp: new Date().toISOString(),
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -51,10 +165,10 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 500,
       }
     );
   }

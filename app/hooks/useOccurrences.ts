@@ -9,8 +9,8 @@ import { useHousehold } from "./useHousehold";
 import type { MarkPaidInput } from "../lib/supabase/types";
 
 export function useDashboard() {
-  const { data: householdData } = useHousehold();
-  const householdId = householdData?.household.id;
+  const { activeHousehold } = useHousehold();
+  const householdId = activeHousehold?.household.id;
 
   return useQuery({
     queryKey: ["dashboard", householdId],
@@ -41,21 +41,41 @@ export function useMarkPaid() {
 
   return useMutation({
     mutationFn: (input: MarkPaidInput) => markOccurrencePaid(input),
-    // Optimistic update — immediately show paid state before server response
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["dashboard"] });
       const snapshot = queryClient.getQueryData(["dashboard"]);
+      // Optimistic update: set occurrence state to paid immediately
+      queryClient.setQueryData(["dashboard"], (old: any) => {
+        if (!old) return old;
+        const markPaid = (items: any[]) =>
+          items.map((o: any) =>
+            o.id === input.occurrence_id
+              ? { ...o, state: "paid", paid_at: input.paid_at, paid_amount: input.paid_amount }
+              : o
+          );
+        return {
+          ...old,
+          today:          markPaid(old.today),
+          overdue:        markPaid(old.overdue),
+          upcoming:       markPaid(old.upcoming),
+          recentlyPaid:   [
+            ...markPaid(old.recentlyPaid),
+            ...(old.today.find((o: any) => o.id === input.occurrence_id)
+              ? [old.today.find((o: any) => o.id === input.occurrence_id)]
+              : []),
+          ].slice(0, 10),
+        };
+      });
       return { snapshot };
     },
-    onSuccess: (_data, input) => {
-      // Invalidate all relevant caches
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["occurrences"] });
       queryClient.invalidateQueries({ queryKey: ["currentOccurrence"] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
     onError: (_err, _input, context) => {
-      // Roll back optimistic update on failure
       if (context?.snapshot) {
         queryClient.setQueryData(["dashboard"], context.snapshot);
       }

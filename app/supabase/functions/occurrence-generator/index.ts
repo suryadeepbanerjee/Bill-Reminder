@@ -19,26 +19,43 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get all active bills
     const { data: bills, error: billsError } = await supabase
       .from("bills")
-      .select("*")
+      .select("id")
       .eq("is_active", true);
 
     if (billsError) throw billsError;
 
-    // For each bill, check if next occurrence exists and create if not
+    let billsProcessed = 0;
+    let occurrencesCreated = 0;
+
+    // For each bill, use the database function to generate the next occurrence
     for (const bill of bills || []) {
-      // Logic to compute next occurrence dates based on repeat_kind
-      // This is a placeholder - implement full date math in production
-      console.log(`Processing bill: ${bill.id}`);
+      try {
+        const { error } = await supabase.rpc("generate_next_occurrence", {
+          p_bill_id: bill.id,
+        });
+        if (!error) {
+          billsProcessed++;
+          occurrencesCreated++;
+        } else {
+          console.error(`Failed to generate occurrence for bill ${bill.id}:`, error.message);
+        }
+      } catch (e) {
+        console.error(`Error processing bill ${bill.id}:`, e);
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, billsProcessed: bills?.length || 0 }),
+      JSON.stringify({
+        success: true,
+        billsProcessed,
+        occurrencesCreated,
+        timestamp: new Date().toISOString(),
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -46,10 +63,10 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 500,
       }
     );
   }

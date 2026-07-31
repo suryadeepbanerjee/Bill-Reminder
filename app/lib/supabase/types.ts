@@ -11,7 +11,11 @@ export type HouseholdRole   = "admin" | "editor" | "viewer";
 export interface Profile {
   id:           string;
   display_name: string | null;
+  avatar_url:   string | null;
+  email:        string | null;
+  email_notifications_enabled: boolean;
   created_at:   string;
+  updated_at:   string;
 }
 
 export interface Household {

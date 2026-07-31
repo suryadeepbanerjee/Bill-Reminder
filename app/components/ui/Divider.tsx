@@ -15,7 +15,7 @@ export function Divider({
   if (orientation === "vertical") {
     return (
       <View
-        className={`w-px bg-neutral-200 dark:bg-neutral-800 self-stretch ${className}`}
+        className={`w-px bg-border self-stretch ${className}`}
         style={[{ marginVertical: inset }, style]}
         {...props}
       />
@@ -24,7 +24,7 @@ export function Divider({
 
   return (
     <View
-      className={`h-px bg-neutral-200 dark:bg-neutral-800 ${className}`}
+      className={`h-px bg-border ${className}`}
       style={[{ marginHorizontal: inset }, style]}
       {...props}
     />

@@ -73,6 +73,16 @@ export default function BillsScreen() {
     return map;
   }, [dashboard]);
 
+  // Separate set of bill IDs that have at least one paid occurrence
+  const paidBillIds = useMemo(() => {
+    const set = new Set<string>();
+    if (!dashboard) return set;
+    for (const o of dashboard.recentlyPaid) {
+      set.add(o.bills.id);
+    }
+    return set;
+  }, [dashboard]);
+
   // Filter and search
   const filteredBills = useMemo(() => {
     let result = bills;
@@ -84,7 +94,7 @@ export default function BillsScreen() {
         if (filter === "overdue")   return o?.state === "overdue";
         if (filter === "due_today") return o?.state === "due_today";
         if (filter === "upcoming")  return ["upcoming","generated","expected_payment"].includes(o?.state ?? "");
-        if (filter === "paid")      return o?.state === "paid";
+        if (filter === "paid")      return paidBillIds.has(b.id);
         return true;
       });
     }
@@ -101,7 +111,7 @@ export default function BillsScreen() {
     }
 
     return result;
-  }, [bills, filter, search, occurrenceByBillId]);
+  }, [bills, filter, search, occurrenceByBillId, paidBillIds]);
 
   const handleMarkPaid = useCallback((billId: string) => {
     const o = occurrenceByBillId.get(billId);
@@ -118,10 +128,10 @@ export default function BillsScreen() {
   const isError   = billsError;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       {/* ── Sticky header with search ──────────────────────────────── */}
-      <View className="px-4 pt-4 pb-2 gap-3 bg-neutral-50 dark:bg-neutral-950">
-        <Text className="text-display text-neutral-900 dark:text-neutral-50">Bills</Text>
+      <View className="px-4 pt-4 pb-2 gap-3 bg-canvas">
+        <Text className="text-display text-primary">Bills</Text>
 
         <SearchField
           value={search}
@@ -155,7 +165,7 @@ export default function BillsScreen() {
 
       {isError && (
         <ErrorView
-          message={billsErrorObj instanceof Error ? billsErrorObj.message : "Failed to load bills."}
+          message="Failed to load bills."
           onRetry={refetch}
         />
       )}
@@ -177,11 +187,13 @@ export default function BillsScreen() {
             />
           }
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          initialNumToRender={6}
           ListEmptyComponent={
             <EmptyState
               variant={search ? "search" : "bills"}
-              ctaLabel={search ? undefined : "Add your first bill"}
-              onCta={search ? undefined : () => router.push("/add-bill")}
             />
           }
           renderItem={({ item: bill }) => {

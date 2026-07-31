@@ -18,7 +18,7 @@ export function useUpdateProfile() {
   const { user }    = useAuthStore();
 
   return useMutation({
-    mutationFn: (input: { display_name?: string }) =>
+    mutationFn: (input: { display_name?: string; email?: string; email_notifications_enabled?: boolean }) =>
       updateProfile(user!.id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });

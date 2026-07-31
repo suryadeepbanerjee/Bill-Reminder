@@ -29,7 +29,11 @@ export function BillStateChip({ state, label }: BillStateChipProps) {
   const displayLabel = label ?? cfg.label;
 
   return (
-    <View className={`flex-row items-center gap-1 px-2 py-1 rounded-pill self-start ${cfg.bg}`}>
+    <View
+      className={`flex-row items-center gap-1 px-2 py-1 rounded-pill self-start ${cfg.bg}`}
+      accessibilityRole="text"
+      accessibilityLabel={displayLabel}
+    >
       <Ionicons name={cfg.icon} size={12} color={cfg.color} />
       <Text style={{ color: cfg.color }} className="text-caption font-medium">
         {displayLabel}

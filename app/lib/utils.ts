@@ -42,9 +42,11 @@ export function formatDateShort(date: string | Date | null | undefined): string 
 
 export function formatRelativeDate(date: string | Date | null | undefined): string {
   if (!date) return "—";
-  const d   = typeof date === "string" ? new Date(date) : date;
-  const now = new Date();
-  const diffMs   = d.getTime() - now.getTime();
+  const d       = typeof date === "string" ? new Date(date + "T00:00:00") : date;
+  const now     = new Date();
+  const dDay    = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const nowDay  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffMs  = dDay.getTime() - nowDay.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0)  return "Today";
@@ -58,10 +60,12 @@ export function formatRelativeDate(date: string | Date | null | undefined): stri
 /** Returns positive number if date is in the past (overdue), negative if future */
 export function daysUntil(date: string | Date | null | undefined): number | null {
   if (!date) return null;
-  const d      = typeof date === "string" ? new Date(date) : date;
-  const now    = new Date();
-  const diffMs = d.getTime() - now.getTime();
-  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const d   = typeof date === "string" ? new Date(date + "T00:00:00") : date;
+  const now = new Date();
+  // Compare date-only parts (strip time)
+  const dDay   = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((dDay.getTime() - nowDay.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export function formatOverdueLabel(date: string | Date | null | undefined): string {

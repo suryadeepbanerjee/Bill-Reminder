@@ -23,17 +23,17 @@ const variantConfig: Record<ToastVariant, {
   success: {
     icon:      "checkmark-circle",
     iconColor: Colors.emerald[500],
-    bg:        "#1a1a1a",
+    bg:        "rgba(30,30,30,0.95)",
   },
   error: {
     icon:      "alert-circle",
     iconColor: Colors.red[400],
-    bg:        "#1a1a1a",
+    bg:        "rgba(30,30,30,0.95)",
   },
   info: {
     icon:      "information-circle",
     iconColor: Colors.sky[400],
-    bg:        "#1a1a1a",
+    bg:        "rgba(30,30,30,0.95)",
   },
 };
 

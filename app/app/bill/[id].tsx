@@ -8,10 +8,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { useBill }                       from "../../hooks/useBills";
+import { useBill, useUpdateBill }         from "../../hooks/useBills";
 import { useDeleteBill }                 from "../../hooks/useBills";
 import { useBillOccurrences, useMarkPaid } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
@@ -39,7 +41,9 @@ import {
   formatBehaviorType,
 } from "../../lib/utils";
 import { Colors }                         from "../../lib/theme";
-import type { BillOccurrence, BillReminderRule } from "../../lib/supabase/types";
+import { humanize }                       from "../../lib/errors";
+import { updateBillSchema, UpdateBillFormData } from "../../schemas/bill";
+import type { Bill, BillOccurrence, BillReminderRule } from "../../lib/supabase/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -51,6 +55,398 @@ function getReminderAnchorLabel(anchor: string): string {
   if (anchor === "due_date")         return "Due date";
   if (anchor === "expected_payment") return "Expected payment date";
   return "Generation date";
+}
+
+// ── Bill type options ────────────────────────────────────────────────────────
+
+const BEHAVIOR_OPTIONS = [
+  { value: "fixed_due_date" as const, label: "Fixed due date", icon: "calendar-outline" as const },
+  { value: "prepaid_validity" as const, label: "Prepaid / Validity", icon: "time-outline" as const },
+  { value: "wallet_balance" as const, label: "Wallet / Balance", icon: "wallet-outline" as const },
+];
+
+const REPEAT_OPTIONS = [
+  { value: "monthly" as const,        label: "Monthly",              needsInterval: false },
+  { value: "yearly" as const,         label: "Yearly",               needsInterval: false },
+  { value: "every_x_days" as const,   label: "Every X days",         needsInterval: true  },
+  { value: "every_x_weeks" as const,  label: "Every X weeks",        needsInterval: true  },
+  { value: "every_x_months" as const, label: "Every X months",       needsInterval: true  },
+  { value: "none" as const,           label: "One-time (no repeat)", needsInterval: false },
+];
+
+// ── Edit Bill sheet ──────────────────────────────────────────────────────────
+
+interface EditBillSheetProps {
+  visible: boolean;
+  bill:    Bill;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps) {
+  const [error, setError] = useState<string | null>(null);
+  const { mutateAsync: updateBill, isPending } = useUpdateBill();
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<UpdateBillFormData>({
+    resolver: zodResolver(updateBillSchema),
+    defaultValues: {
+      title:              bill.title,
+      provider_name:      bill.provider_name ?? undefined,
+      amount_expected:    bill.amount_expected ?? undefined,
+      behavior_type:      bill.behavior_type,
+      repeat_kind:        bill.repeat_kind,
+      repeat_interval:    bill.repeat_interval ?? undefined,
+      due_day_offset:     bill.due_day_offset ?? undefined,
+      validity_days:      bill.validity_days ?? undefined,
+      check_interval_days: bill.check_interval_days ?? undefined,
+      minimum_balance:    bill.minimum_balance ?? undefined,
+    },
+    mode: "onBlur",
+  });
+
+  const behaviorType  = watch("behavior_type");
+  const repeatKind    = watch("repeat_kind");
+  const needsInterval = ["every_x_days", "every_x_weeks", "every_x_months"].includes(repeatKind as string);
+
+  const onSubmit = async (data: UpdateBillFormData) => {
+    setError(null);
+    try {
+      // Null out fields not relevant to the selected behavior type
+      const payload: UpdateBillFormData = {
+        ...data,
+        validity_days:       data.behavior_type === "prepaid_validity" ? (data.validity_days       ?? null) : null,
+        check_interval_days: data.behavior_type === "wallet_balance"   ? (data.check_interval_days ?? null) : null,
+        minimum_balance:     data.behavior_type === "wallet_balance"   ? (data.minimum_balance     ?? null) : null,
+        due_day_offset:      data.behavior_type === "fixed_due_date"   ? (data.due_day_offset      ?? null) : null,
+      };
+
+      await updateBill({ id: bill.id, input: payload as any });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onSuccess();
+      onClose();
+    } catch (e: any) {
+      setError(humanize(e, "unknown"));
+    }
+  };
+
+  return (
+    <Modal visible={visible} onClose={onClose} variant="bottom">
+      <View className="max-h-[85vh]">
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
+          <Text className="text-title text-primary font-semibold">
+            Edit bill
+          </Text>
+          <IconButton
+            icon={<Ionicons name="close" size={20} className="text-primary" />}
+            onPress={onClose}
+            accessibilityLabel="Close"
+            variant="ghost"
+          />
+        </View>
+
+        <Divider />
+
+        {/* Scrollable form */}
+        <ScrollView
+          className="px-4 pt-4"
+          contentContainerStyle={{ paddingBottom: 16 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {error && (
+            <View className="mb-4">
+              <AlertBadge message={error} variant="error" />
+            </View>
+          )}
+
+          <View className="gap-4">
+            {/* Bill name */}
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Bill name"
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value ?? ""}
+                  error={errors.title?.message}
+                  maxCharacters={120}
+                />
+              )}
+            />
+
+            {/* Provider */}
+            <Controller
+              control={control}
+              name="provider_name"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Provider / Vendor"
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value ?? ""}
+                  maxCharacters={80}
+                />
+              )}
+            />
+
+            {/* Amount */}
+            <Controller
+              control={control}
+              name="amount_expected"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Expected amount"
+                  placeholder="0"
+                  keyboardType="decimal-pad"
+                  returnKeyType="done"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value != null ? String(value) : ""}
+                  error={errors.amount_expected?.message}
+                  hint="Leave blank if it varies each cycle"
+                  leadingIcon={
+                    <Text className="text-body text-secondary font-medium">₹</Text>
+                  }
+                />
+              )}
+            />
+
+            {/* Bill type */}
+            <View>
+              <Text className="text-label text-primary font-medium mb-2">
+                Bill type
+              </Text>
+              {BEHAVIOR_OPTIONS.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setValue("behavior_type", opt.value);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={opt.label}
+                  accessibilityState={{ selected: behaviorType === opt.value }}
+                  className={`flex-row items-center gap-3 p-3 rounded-card border mb-2 ${
+                    behaviorType === opt.value
+                      ? "border-accent bg-accent/10"
+                      : "border-border bg-surface"
+                  }`}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                >
+                  <View
+                    className={`w-8 h-8 rounded-input items-center justify-center ${
+                      behaviorType === opt.value
+                        ? "bg-accent"
+                        : "bg-surface border border-border"
+                    }`}
+                  >
+                    <Ionicons
+                      name={opt.icon}
+                      size={16}
+                      className={behaviorType === opt.value ? "text-accent-text" : "text-primary"}
+                    />
+                  </View>
+                  <Text
+                    className={`text-body flex-1 ${
+                      behaviorType === opt.value
+                        ? "text-accent font-semibold"
+                        : "text-primary"
+                    }`}
+                  >
+                    {opt.label}
+                  </Text>
+                  {behaviorType === opt.value && (
+                    <Ionicons name="checkmark-circle" size={18} className="text-accent" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Conditional: prepaid validity days */}
+            {behaviorType === "prepaid_validity" && (
+              <Controller
+                control={control}
+                name="validity_days"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label="Validity period (days)"
+                    placeholder="e.g. 28"
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    onBlur={onBlur}
+                    onChangeText={(t) => {
+                      const parsed = parseInt(t);
+                      onChange(isNaN(parsed) ? undefined : parsed);
+                    }}
+                    value={value != null ? String(value) : ""}
+                    error={errors.validity_days?.message}
+                  />
+                )}
+              />
+            )}
+
+            {/* Conditional: wallet fields */}
+            {behaviorType === "wallet_balance" && (
+              <>
+                <Controller
+                  control={control}
+                  name="check_interval_days"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Check every (days)"
+                      placeholder="e.g. 30"
+                      keyboardType="number-pad"
+                      returnKeyType="next"
+                      onBlur={onBlur}
+                      onChangeText={(t) => {
+                        const parsed = parseInt(t);
+                        onChange(isNaN(parsed) ? undefined : parsed);
+                      }}
+                      value={value != null ? String(value) : ""}
+                      error={errors.check_interval_days?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="minimum_balance"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Alert below balance"
+                      placeholder="0"
+                      keyboardType="decimal-pad"
+                      onBlur={onBlur}
+                      onChangeText={(t) => {
+                        const parsed = parseFloat(t);
+                        onChange(isNaN(parsed) ? undefined : parsed);
+                      }}
+                      value={value != null ? String(value) : ""}
+                      leadingIcon={
+                        <Text className="text-body text-secondary font-medium">₹</Text>
+                      }
+                    />
+                  )}
+                />
+              </>
+            )}
+
+            {/* Repeat frequency */}
+            <View>
+              <Text className="text-label text-primary font-medium mb-2">
+                Repeat frequency
+              </Text>
+              {REPEAT_OPTIONS.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setValue("repeat_kind", opt.value);
+                  }}
+                  className={`flex-row items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 ${
+                    repeatKind === opt.value ? "bg-accent/10" : ""
+                  }`}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                >
+                  <Text
+                    className={`text-body ${
+                      repeatKind === opt.value
+                        ? "text-accent font-semibold"
+                        : "text-primary"
+                    }`}
+                  >
+                    {opt.label}
+                  </Text>
+                  {repeatKind === opt.value && (
+                    <Ionicons name="checkmark" size={18} className="text-accent" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Conditional: repeat interval */}
+            {needsInterval && (
+              <Controller
+                control={control}
+                name="repeat_interval"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label={`Every how many ${
+                      repeatKind === "every_x_days"   ? "days" :
+                      repeatKind === "every_x_weeks"  ? "weeks" : "months"
+                    }?`}
+                    placeholder="e.g. 2"
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    onBlur={onBlur}
+                    onChangeText={(t) => {
+                      const parsed = parseInt(t);
+                      onChange(isNaN(parsed) ? undefined : parsed);
+                    }}
+                    value={value != null ? String(value) : ""}
+                    error={errors.repeat_interval?.message}
+                  />
+                )}
+              />
+            )}
+
+            {/* Conditional: due day offset for fixed due date */}
+            {behaviorType === "fixed_due_date" && (
+              <Controller
+                control={control}
+                name="due_day_offset"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label="Due on day (of month)"
+                    placeholder="e.g. 5"
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    onBlur={onBlur}
+                    onChangeText={(t) => {
+                      const parsed = parseInt(t);
+                      onChange(isNaN(parsed) ? undefined : parsed);
+                    }}
+                    value={value != null ? String(value) : ""}
+                    error={errors.due_day_offset?.message}
+                    hint="Enter 0 for end-of-cycle (last day)"
+                  />
+                )}
+              />
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Action bar */}
+        <Divider />
+        <View className="flex-row gap-3 px-4 py-3">
+          <View className="flex-1">
+            <Button title="Cancel" variant="secondary" onPress={onClose} fullWidth />
+          </View>
+          <View className="flex-1">
+            <Button
+              title="Save changes"
+              variant="accent"
+              onPress={handleSubmit(onSubmit)}
+              loading={isPending}
+              fullWidth
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 // ── Mark Paid sheet ───────────────────────────────────────────────────────────
@@ -93,14 +489,14 @@ function MarkPaidSheet({
       onSuccess();
       onClose();
     } catch (e: any) {
-      setError(e?.message ?? "Failed to mark as paid.");
+      setError(humanize(e, "unknown"));
     }
   };
 
   return (
     <Modal visible={visible} onClose={onClose} variant="bottom">
       <View className="px-4 pt-4 pb-6 gap-4">
-        <Text className="text-title text-neutral-900 dark:text-neutral-50 font-semibold">
+        <Text className="text-title text-primary font-semibold">
           Mark as paid
         </Text>
 
@@ -114,7 +510,7 @@ function MarkPaidSheet({
           returnKeyType="next"
           autoFocus
           leadingIcon={
-            <Text className="text-body text-neutral-500 font-medium">₹</Text>
+            <Text className="text-body text-secondary font-medium">₹</Text>
           }
           hint="Pre-filled with the expected amount"
         />
@@ -166,13 +562,13 @@ function ReminderRuleRow({ rule, billId }: { rule: BillReminderRule; billId: str
   return (
     <View className="flex-row items-center gap-3 px-4 py-3.5">
       <View className="w-8 h-8 rounded-input bg-neutral-100 dark:bg-neutral-800 items-center justify-center">
-        <Ionicons name={channelIcon} size={16} color={Colors.neutral[500]} />
+        <Ionicons name={channelIcon} size={16} className="text-primary" />
       </View>
       <View className="flex-1">
-        <Text className="text-label text-neutral-900 dark:text-neutral-100 font-medium">
+        <Text className="text-label text-primary font-medium">
           {offsetLabel}
         </Text>
-        <Text className="text-caption text-neutral-400 mt-0.5">
+        <Text className="text-caption text-secondary mt-0.5">
           {getReminderAnchorLabel(rule.anchor)} · {rule.channel === "both" ? "Push + Email" : rule.channel}
         </Text>
       </View>
@@ -197,15 +593,15 @@ function OccurrenceRow({ occurrence }: { occurrence: BillOccurrence }) {
     <View className="flex-row items-center gap-3 px-4 py-3">
       <View
         className={`w-2 h-2 rounded-full ${
-          isPaid ? "bg-emerald-500" : "bg-neutral-300 dark:bg-neutral-600"
+          isPaid ? "bg-success" : "bg-neutral-300 dark:bg-neutral-600"
         }`}
       />
       <View className="flex-1">
-        <Text className="text-label text-neutral-900 dark:text-neutral-100">
+        <Text className="text-label text-primary">
           {formatDate(occurrence.cycle_start)}
         </Text>
         {occurrence.paid_at && (
-          <Text className="text-caption text-neutral-400 mt-0.5">
+          <Text className="text-caption text-secondary mt-0.5">
             Paid {formatDate(occurrence.paid_at)}
             {occurrence.payment_notes ? ` · ${occurrence.payment_notes}` : ""}
           </Text>
@@ -213,7 +609,7 @@ function OccurrenceRow({ occurrence }: { occurrence: BillOccurrence }) {
       </View>
       {occurrence.paid_amount != null ? (
         <Text
-          className="text-label text-neutral-700 dark:text-neutral-300 font-medium"
+          className="text-label text-primary font-medium"
           style={{ fontVariant: ["tabular-nums"] }}
         >
           {formatCurrency(occurrence.paid_amount)}
@@ -229,6 +625,7 @@ function OccurrenceRow({ occurrence }: { occurrence: BillOccurrence }) {
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [showMarkPaid, setShowMarkPaid] = useState(false);
+  const [showEditBill, setShowEditBill]   = useState(false);
 
   const { data: bill, isLoading, isError, error, refetch } = useBill(id);
   const { data: occurrences = [] } = useBillOccurrences(id);
@@ -255,7 +652,7 @@ export default function BillDetailScreen() {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
               router.back();
             } catch (e: any) {
-              Alert.alert("Error", e?.message ?? "Failed to delete bill.");
+              Alert.alert("Error", "Failed to delete bill. Please try again.");
             }
           },
         },
@@ -265,7 +662,7 @@ export default function BillDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
         <Header title="Bill details" showBack />
         <LoadingSkeleton variant="detail" />
       </SafeAreaView>
@@ -274,10 +671,10 @@ export default function BillDetailScreen() {
 
   if (isError || !bill) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
         <Header title="Bill details" showBack />
         <ErrorView
-          message={error instanceof Error ? error.message : "Failed to load bill."}
+          message="Failed to load bill."
           onRetry={refetch}
         />
       </SafeAreaView>
@@ -291,20 +688,20 @@ export default function BillDetailScreen() {
   const canMarkPaid      = currentOccurrence && isActionableState(currentOccurrence.state);
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <Header
         title={bill.title}
         showBack
         rightAction={
-          <View className="flex-row gap-1">
+          <View className="flex-row gap-3">
             <IconButton
-              icon={<Ionicons name="create-outline" size={20} color={Colors.neutral[600]} />}
-              onPress={() => {}} // TODO: edit screen
+              icon={<Ionicons name="create-outline" size={20} className="text-primary" />}
+              onPress={() => setShowEditBill(true)}
               accessibilityLabel="Edit bill"
               variant="ghost"
             />
             <IconButton
-              icon={<Ionicons name="trash-outline" size={20} color={Colors.red[600]} />}
+              icon={<Ionicons name="trash-outline" size={20} className="text-error" />}
               onPress={handleDelete}
               accessibilityLabel="Delete bill"
               variant="danger"
@@ -325,24 +722,24 @@ export default function BillDetailScreen() {
               <CategoryIconBadge icon={cat.icon} color={cat.color} size={56} />
 
               <View className="items-center">
-                <Text className="text-label text-neutral-500 dark:text-neutral-400 mb-0.5">
+                <Text className="text-caption text-secondary mb-0.5">
                   {cat.name}
                   {bill.provider_name ? ` · ${bill.provider_name}` : ""}
                 </Text>
-                <Text className="text-title text-neutral-900 dark:text-neutral-50 font-semibold text-center">
+                <Text className="text-title text-primary font-semibold text-center">
                   {bill.title}
                 </Text>
               </View>
 
               {displayAmount != null ? (
                 <Text
-                  className="text-amount-lg text-neutral-900 dark:text-neutral-50 font-bold"
+                  className="text-amount-lg text-primary font-bold"
                   style={{ fontVariant: ["tabular-nums"] }}
                 >
                   {formatCurrency(displayAmount, bill.currency)}
                 </Text>
               ) : (
-                <Text className="text-amount-lg text-neutral-400">Variable</Text>
+                <Text className="text-amount-lg text-secondary">Variable</Text>
               )}
 
               {currentOccurrence && (
@@ -356,7 +753,7 @@ export default function BillDetailScreen() {
                     }
                   />
                   {dueDate && !["overdue","due_today"].includes(currentOccurrence.state) && (
-                    <Text className="text-caption text-neutral-400">
+                    <Text className="text-caption text-secondary">
                       {formatDate(dueDate)}
                     </Text>
                   )}
@@ -374,7 +771,7 @@ export default function BillDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setShowMarkPaid(true);
               }}
-              className="bg-emerald-500 rounded-input flex-row items-center justify-center gap-2 py-4"
+              className="bg-success rounded-input flex-row items-center justify-center gap-2 py-4"
               style={({ pressed }) => ({
                 opacity:   pressed ? 0.88 : 1,
                 transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -382,7 +779,7 @@ export default function BillDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel="Mark bill as paid"
             >
-              <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
               <Text className="text-label text-white font-semibold">
                 Mark as paid
               </Text>
@@ -392,7 +789,7 @@ export default function BillDetailScreen() {
 
         {/* ── Bill details ────────────────────────────────────────────── */}
         <View className="px-4 mb-4">
-          <Text className="text-caption text-neutral-500 dark:text-neutral-400 font-medium mb-1.5">
+          <Text className="text-caption text-secondary font-medium mb-1.5">
             Details
           </Text>
           <Surface level="resting" bordered rounded="card">
@@ -407,10 +804,10 @@ export default function BillDetailScreen() {
               .map((row, idx, arr) => (
                 <View key={row!.label}>
                   <View className="flex-row items-center justify-between px-4 py-3.5">
-                    <Text className="text-body text-neutral-500 dark:text-neutral-400">
+                    <Text className="text-body text-secondary">
                       {row!.label}
                     </Text>
-                    <Text className="text-body text-neutral-900 dark:text-neutral-100 font-medium">
+                    <Text className="text-body text-primary font-medium">
                       {row!.value}
                     </Text>
                   </View>
@@ -422,12 +819,12 @@ export default function BillDetailScreen() {
 
         {/* ── Reminders ───────────────────────────────────────────────── */}
         <View className="px-4 mb-4">
-          <Text className="text-caption text-neutral-500 dark:text-neutral-400 font-medium mb-1.5">
+          <Text className="text-caption text-secondary font-medium mb-1.5">
             Reminders
           </Text>
           {reminderRules.length === 0 ? (
             <Surface level="resting" bordered rounded="card" className="py-6 items-center">
-              <Text className="text-body text-neutral-400">No reminders set</Text>
+              <Text className="text-body text-secondary">No reminders set</Text>
             </Surface>
           ) : (
             <Surface level="resting" bordered rounded="card">
@@ -442,16 +839,16 @@ export default function BillDetailScreen() {
         </View>
 
         {/* ── Payment history ─────────────────────────────────────────── */}
-        {occurrences.length > 0 && (
+        {occurrences.filter(o => o.state === "paid").length > 0 && (
           <View className="px-4">
-            <Text className="text-caption text-neutral-500 dark:text-neutral-400 font-medium mb-1.5">
-              History
+            <Text className="text-caption text-secondary font-medium mb-1.5">
+              Payment history
             </Text>
             <Surface level="resting" bordered rounded="card">
-              {occurrences.slice(0, 12).map((o, idx) => (
+              {occurrences.filter(o => o.state === "paid").slice(0, 12).map((o, idx, arr) => (
                 <View key={o.id}>
                   <OccurrenceRow occurrence={o} />
-                  {idx < Math.min(occurrences.length, 12) - 1 && <Divider inset={16} />}
+                  {idx < arr.length - 1 && <Divider inset={16} />}
                 </View>
               ))}
             </Surface>
@@ -473,6 +870,16 @@ export default function BillDetailScreen() {
           }}
         />
       )}
+
+      {/* ── Edit Bill sheet ────────────────────────────────────────────── */}
+      <EditBillSheet
+        visible={showEditBill}
+        bill={bill}
+        onClose={() => setShowEditBill(false)}
+        onSuccess={() => {
+          // React Query invalidation handles refetch
+        }}
+      />
     </SafeAreaView>
   );
 }

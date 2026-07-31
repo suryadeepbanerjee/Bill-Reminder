@@ -34,12 +34,12 @@ export function Screen({
   style,
 }: ScreenProps) {
   const inner = noScroll ? (
-    <View className={`flex-1 bg-neutral-50 dark:bg-neutral-950 ${contentClassName}`} style={style}>
+    <View className={`flex-1 bg-canvas ${contentClassName}`} style={style}>
       {children}
     </View>
   ) : (
     <ScrollView
-      className="flex-1 bg-neutral-50 dark:bg-neutral-950"
+      className="flex-1 bg-canvas"
       contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -51,7 +51,7 @@ export function Screen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={edges}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={edges}>
       {title && (
         <Header
           title={title}

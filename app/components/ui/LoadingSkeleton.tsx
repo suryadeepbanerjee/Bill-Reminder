@@ -30,7 +30,7 @@ function SkeletonBox({ className = "", style }: SkeletonBoxProps) {
 
   return (
     <Animated.View
-      className={`bg-neutral-200 dark:bg-neutral-700 rounded-sm ${className}`}
+      className={`bg-border rounded-sm ${className}`}
       style={[{ opacity }, style]}
     />
   );
@@ -39,7 +39,7 @@ function SkeletonBox({ className = "", style }: SkeletonBoxProps) {
 /** A single bill card skeleton */
 function BillCardSkeleton() {
   return (
-    <View className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-card p-4 mb-3">
+    <View className="bg-surface border border-border rounded-card p-4 mb-3">
       <View className="flex-row items-center gap-3">
         <SkeletonBox className="w-10 h-10 rounded-input" />
         <View className="flex-1 gap-2">
@@ -86,7 +86,7 @@ export function LoadingSkeleton({ variant = "list", count = 3 }: LoadingSkeleton
     return (
       <View className="p-4 gap-4">
         {/* Hero area */}
-        <View className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-card p-6 items-center gap-3">
+        <View className="bg-surface border border-border rounded-card p-6 items-center gap-3">
           <SkeletonBox className="w-14 h-14 rounded-full" />
           <SkeletonBox className="h-6 w-2/3 rounded-sm" />
           <SkeletonBox className="h-8 w-1/3 rounded-sm" />
@@ -94,7 +94,7 @@ export function LoadingSkeleton({ variant = "list", count = 3 }: LoadingSkeleton
         </View>
         {/* Details */}
         {Array.from({ length: 4 }).map((_, i) => (
-          <View key={i} className="flex-row justify-between py-3 border-b border-neutral-100 dark:border-neutral-800">
+          <View key={i} className="flex-row justify-between py-3 border-b border-border">
             <SkeletonBox className="h-4 w-1/3 rounded-sm" />
             <SkeletonBox className="h-4 w-1/4 rounded-sm" />
           </View>

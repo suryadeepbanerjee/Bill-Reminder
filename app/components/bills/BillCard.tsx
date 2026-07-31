@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { Pressable, View, Text } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { Bill, BillOccurrence } from "../../lib/supabase/types";
+import { Bill, BillOccurrence, OccurrenceState } from "../../lib/supabase/types";
 import { CategoryIconBadge } from "./CategoryPill";
 import { BillStateChip } from "./BillStateChip";
 import {
@@ -10,6 +11,20 @@ import {
   formatOverdueLabel,
 } from "../../lib/utils";
 
+function getDisplayState(occurrence: BillOccurrence): OccurrenceState {
+  if (occurrence.state === "paid" || occurrence.state === "archived") return occurrence.state;
+  const dateStr = occurrence.due_date ?? occurrence.expected_payment_date;
+  if (!dateStr) return occurrence.state;
+  const dueDay = new Date(dateStr + "T00:00:00");
+  const nowDay = new Date();
+  const due = new Date(dueDay.getFullYear(), dueDay.getMonth(), dueDay.getDate());
+  const now = new Date(nowDay.getFullYear(), nowDay.getMonth(), nowDay.getDate());
+  const diff = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return "overdue";
+  if (diff === 0) return "due_today";
+  return "upcoming";
+}
+
 interface BillCardProps {
   bill:        Bill & { categories: { name: string; icon: string; color: string } };
   occurrence?: BillOccurrence;
@@ -17,16 +32,14 @@ interface BillCardProps {
   onMarkPaid?: () => void;
 }
 
-export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProps) {
+export const BillCard = memo(function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProps) {
   const cat = bill.categories;
-
-  // Resolve display amount
   const displayAmount = occurrence?.amount ?? bill.amount_expected;
+  const displayState = occurrence ? getDisplayState(occurrence) : undefined;
 
-  // Resolve due date label
   const dueDate = occurrence?.due_date ?? occurrence?.expected_payment_date;
-  const dueDateLabel = occurrence?.state
-    ? (["overdue", "due_today"].includes(occurrence.state)
+  const dueDateLabel = displayState
+    ? (["overdue", "due_today"].includes(displayState)
         ? formatOverdueLabel(dueDate)
         : formatRelativeDate(dueDate))
     : null;
@@ -76,8 +89,8 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
           {occurrence && (
             <View className="mt-1.5">
               <BillStateChip
-                state={occurrence.state}
-                label={["overdue","due_today"].includes(occurrence.state) ? dueDateLabel! : undefined}
+                state={displayState!}
+                label={["overdue","due_today"].includes(displayState!) ? dueDateLabel! : undefined}
               />
             </View>
           )}
@@ -94,14 +107,14 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
           ) : (
             <Text className="text-label text-secondary font-mono">—</Text>
           )}
-          {dueDateLabel && !["overdue","due_today"].includes(occurrence?.state ?? "") ? (
+          {dueDateLabel && !["overdue","due_today"].includes(displayState ?? "") ? (
             <Text className="text-caption text-secondary font-mono">
               {dueDateLabel}
             </Text>
           ) : null}
 
           {/* Quick "Mark Paid" for actionable states */}
-          {onMarkPaid && occurrence && ["due_today","overdue","expected_payment"].includes(occurrence.state) && (
+          {onMarkPaid && occurrence && ["due_today","overdue","expected_payment"].includes(displayState!) && (
             <Pressable
               onPress={handleMarkPaid}
               accessibilityRole="button"
@@ -120,4 +133,4 @@ export function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProp
       </View>
     </Pressable>
   );
-}
+});

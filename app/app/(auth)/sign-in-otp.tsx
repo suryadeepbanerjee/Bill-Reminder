@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
-import { Colors } from "../../lib/theme";
+import { humanize } from "../../lib/errors";
 
 const RESEND_COOLDOWN = 60;
 
@@ -41,7 +41,7 @@ export default function SignInOtpScreen() {
         options: { shouldCreateUser: false },
       });
       if (error) {
-        setEmailError(error.message);
+        setEmailError(humanize(error, "auth"));
         return;
       }
       setState("otp");
@@ -65,7 +65,7 @@ export default function SignInOtpScreen() {
         options: { shouldCreateUser: false },
       });
       if (error) {
-        setOtpError(error.message);
+        setOtpError(humanize(error, "auth"));
         return;
       }
       setSuccessMsg("New code sent — check your inbox.");
@@ -115,7 +115,7 @@ export default function SignInOtpScreen() {
           setOtpError("Incorrect or expired code. Request a new one.");
           return;
         }
-        setOtpError(error.message);
+        setOtpError(humanize(error, "auth"));
         return;
       }
       // Session created on the mobile Supabase client — navigate to dashboard.
@@ -182,8 +182,8 @@ export default function SignInOtpScreen() {
     >
       {/* Key icon */}
       <View className="items-center py-6 mb-2">
-        <View className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950 items-center justify-center">
-          <Ionicons name="key-outline" size={36} color={Colors.accent[500]} />
+        <View className="w-20 h-20 rounded-full bg-accent/10 items-center justify-center">
+          <Ionicons name="key-outline" size={36} className="text-accent" />
         </View>
       </View>
 
@@ -248,7 +248,7 @@ export default function SignInOtpScreen() {
       </View>
 
       <View className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card">
-        <Text className="text-caption text-neutral-500 dark:text-neutral-400 text-center leading-5">
+        <Text className="text-caption text-secondary text-center leading-5">
           Can't find it? Check your spam folder. The code expires in 10 minutes.
         </Text>
       </View>

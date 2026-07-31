@@ -21,9 +21,10 @@ import { Colors } from "../lib/theme";
  * If tokens are absent or invalid → fall back to the sign-in screen.
  */
 export default function CallbackScreen() {
-  const { access_token, refresh_token } = useLocalSearchParams<{
+  const { access_token, refresh_token, type } = useLocalSearchParams<{
     access_token?: string;
     refresh_token?: string;
+    type?: string;
   }>();
 
   useEffect(() => {
@@ -35,9 +36,11 @@ export default function CallbackScreen() {
         });
 
         if (!error) {
-          // Session restored — onAuthStateChange in _layout.tsx will update
-          // the auth store; navigate directly to dashboard.
-          router.replace("/(tabs)/dashboard");
+          if (type === "recovery") {
+            router.replace("/(auth)/update-password");
+          } else {
+            router.replace("/(tabs)/dashboard");
+          }
           return;
         }
       }
@@ -51,7 +54,7 @@ export default function CallbackScreen() {
 
   // Brief loading state while setSession() runs.
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView className="flex-1 bg-canvas">
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color={Colors.accent[500]} />
       </View>

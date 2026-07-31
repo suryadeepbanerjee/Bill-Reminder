@@ -18,12 +18,28 @@ export interface DashboardData {
   recentlyPaid: DashboardOccurrence[];
 }
 
+function getOccurrenceCategory(o: DashboardOccurrence): "overdue" | "today" | "upcoming" {
+  const dateStr = o.due_date ?? o.expected_payment_date;
+  if (!dateStr) return "upcoming";
+
+  const dueDay = new Date(dateStr + "T00:00:00");
+  const nowDay = new Date();
+  const due = new Date(dueDay.getFullYear(), dueDay.getMonth(), dueDay.getDate());
+  const now = new Date(nowDay.getFullYear(), nowDay.getMonth(), nowDay.getDate());
+  const diffDays = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "overdue";
+  if (diffDays === 0) return "today";
+  return "upcoming";
+}
+
 export async function fetchDashboardData(householdId: string): Promise<DashboardData> {
-  // Fetch all open (not archived) occurrences for the household
   const { data, error } = await supabase
     .from("bill_occurrences")
     .select(OCCURRENCE_WITH_BILL)
     .in("state", ["due_today", "overdue", "upcoming", "generated", "expected_payment", "paid"])
+    .eq("bills.household_id", householdId)
+    .eq("bills.is_active", true)
     .order("due_date", { ascending: true, nullsFirst: false })
     .limit(100);
 
@@ -31,12 +47,19 @@ export async function fetchDashboardData(householdId: string): Promise<Dashboard
 
   const allOccurrences = (data ?? []) as DashboardOccurrence[];
 
-  // Filter to household (RLS handles security, but we filter post-join for household)
-  const today        = allOccurrences.filter(o => o.state === "due_today");
-  const upcoming     = allOccurrences.filter(o =>
-    ["upcoming", "generated", "expected_payment"].includes(o.state)
-  );
-  const overdue      = allOccurrences.filter(o => o.state === "overdue");
+  // Categorize by actual due_date, not by state (state is updated hourly by cron)
+  const today: DashboardOccurrence[] = [];
+  const upcoming: DashboardOccurrence[] = [];
+  const overdue: DashboardOccurrence[] = [];
+
+  for (const o of allOccurrences) {
+    if (o.state === "paid") continue;
+    const cat = getOccurrenceCategory(o);
+    if (cat === "overdue") overdue.push(o);
+    else if (cat === "today") today.push(o);
+    else upcoming.push(o);
+  }
+
   const recentlyPaid = allOccurrences
     .filter(o => o.state === "paid")
     .sort((a, b) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime())
@@ -71,7 +94,7 @@ export async function fetchCurrentOccurrence(billId: string): Promise<BillOccurr
   return data as BillOccurrence | null;
 }
 
-// ── Mark paid (RPC — atomic: pay + cancel reminders + generate next) ──────────
+// ── Mark paid (atomic: pay + cancel reminders) ────────────────────────────────
 
 export async function markOccurrencePaid(input: MarkPaidInput): Promise<void> {
   // First: update the occurrence to paid state
@@ -102,5 +125,7 @@ export async function markOccurrencePaid(input: MarkPaidInput): Promise<void> {
     console.warn("Failed to cancel reminders:", remError.message);
   }
 
-  // Next occurrence generation is handled server-side by occurrence-generator edge function
+  // Next occurrence generation is handled server-side by:
+  // 1. The occurrences_after_update_paid trigger (migration 018)
+  // 2. The occurrence-generator edge function (daily cron)
 }

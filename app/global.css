@@ -4,38 +4,47 @@
 
 @layer base {
   :root {
-    /* ── Light Mode Variables ── */
-    --color-canvas: #FAFAFA;
-    --color-surface: #FFFFFF;
-    --color-input: #F4F4F5;
-    --color-border: #E4E4E7;
-    
-    --color-primary: #09090B;
-    --color-secondary: #71717A;
-    
-    --color-accent: #BA9618;
-    --color-accent-hover: #D1A920;
-    --color-accent-muted: rgba(186,150,24,0.08);
-    --color-accent-text: #8C6E0D;
-    
-    --color-error: #DC2626;
-    --color-success: #10B981;
-    --color-warning: #F59E0B;
+    /* ── Light Mode Variables ──
+       Stored as space-separated RGB triplets so Tailwind's
+       rgb(var(--x) / <alpha-value>) pattern (see tailwind.theme.js)
+       can apply opacity modifiers like bg-accent/10. */
+    --color-canvas: 249 250 251;
+    --color-surface: 255 255 255;
+    --color-input: 243 244 246;
+    --color-border: 229 231 235;
+    --color-toggle-active: 229 231 235;
+
+    --color-primary: 17 24 39;
+    --color-secondary: 75 85 99;
+
+    --color-accent: 186 150 24;
+    --color-accent-hover: 209 169 32;
+    --color-accent-muted: rgba(186, 150, 24, 0.08);
+    --color-accent-text: 17 24 39; /* High contrast text on gold */
+
+    --color-error: 220 38 38;
+    --color-success: 16 185 129;
+    --color-warning: 245 158 11;
   }
 
-  /* NativeWind handles dark mode primarily via the .dark class injected at runtime */
   .dark {
-    --color-canvas: #0A0A0C;
-    --color-surface: #131418;
-    --color-input: #1A1C22;
-    --color-border: #282B34;
-    
-    --color-primary: #F4F4F6;
-    --color-secondary: #8E929E;
-    
-    --color-accent: #BA9618;
-    --color-accent-hover: #D1A920;
-    --color-accent-muted: rgba(186,150,24,0.12);
-    --color-accent-text: #0A0A0C;
+    /* ── Better Material-style dark mode ── */
+    --color-canvas: 18 18 18;
+    --color-surface: 30 30 30;
+    --color-input: 44 44 44;
+    --color-border: 51 51 51;
+    --color-toggle-active: 18 18 18;
+
+    --color-primary: 249 250 251;
+    --color-secondary: 156 163 175;
+
+    --color-accent: 209 169 32;
+    --color-accent-hover: 234 179 8;
+    --color-accent-muted: rgba(209, 169, 32, 0.12);
+    --color-accent-text: 18 18 18; /* High contrast text on gold */
+
+    --color-error: 248 113 113;
+    --color-success: 52 211 153;
+    --color-warning: 251 191 36;
   }
 }

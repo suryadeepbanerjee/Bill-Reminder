@@ -7,6 +7,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase/client";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { signInSchema, SignInFormData } from "../../schemas/auth";
+import { humanize } from "../../lib/errors";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { PasswordField } from "../../components/ui/PasswordField";
@@ -40,7 +41,7 @@ export default function SignInScreen() {
         password: data.password,
       });
       if (authError) {
-        setError(authError.message);
+        setError(humanize(authError, "auth"));
         return;
       }
       router.replace("/(tabs)/dashboard");

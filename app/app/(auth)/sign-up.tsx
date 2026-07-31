@@ -8,6 +8,7 @@ import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { tempAuth } from "../../lib/tempAuth";
 import { signUpSchema, SignUpFormData } from "../../schemas/auth";
+import { humanize } from "../../lib/errors";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { PasswordField } from "../../components/ui/PasswordField";
@@ -72,7 +73,7 @@ export default function SignUpScreen() {
         if (authError.message.toLowerCase().includes("rate limit")) {
           setError("Too many attempts. Please wait a few minutes and try again.");
         } else {
-          setError(authError.message);
+          setError(humanize(authError, "auth"));
         }
         return;
       }

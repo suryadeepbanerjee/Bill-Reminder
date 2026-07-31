@@ -22,6 +22,7 @@ export function useCreateReminderRule() {
     mutationFn: (input: Omit<BillReminderRule, "id">) => createReminderRule(input),
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ["reminderRules", input.bill_id] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }
@@ -36,6 +37,7 @@ export function useUpdateReminderRule() {
     }) => updateReminderRule(id, input),
     onSuccess: (_data, { billId }) => {
       queryClient.invalidateQueries({ queryKey: ["reminderRules", billId] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }
@@ -46,6 +48,7 @@ export function useDeleteReminderRule() {
     mutationFn: ({ id }: { id: string; billId: string }) => deleteReminderRule(id),
     onSuccess: (_data, { billId }) => {
       queryClient.invalidateQueries({ queryKey: ["reminderRules", billId] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }
@@ -57,6 +60,7 @@ export function useToggleReminderRule() {
       toggleReminderRule(id, enabled),
     onSuccess: (_data, { billId }) => {
       queryClient.invalidateQueries({ queryKey: ["reminderRules", billId] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }

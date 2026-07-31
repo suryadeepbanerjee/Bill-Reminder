@@ -13,7 +13,7 @@ export function ScreenContainer({
 }: ScreenContainerProps) {
   const content = (
     <ScrollView
-      className="flex-1 bg-neutral-50"
+      className="flex-1 bg-canvas"
       contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
       contentContainerClassName={contentContainerClassName}
@@ -25,7 +25,7 @@ export function ScreenContainer({
 
   if (safeArea) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50" edges={["bottom"]}>
+      <SafeAreaView className="flex-1 bg-canvas" edges={["bottom"]}>
         {content}
       </SafeAreaView>
     );

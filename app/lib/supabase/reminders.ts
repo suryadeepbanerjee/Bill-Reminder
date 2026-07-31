@@ -1,5 +1,35 @@
 import { supabase } from "./client";
-import type { BillReminderRule } from "./types";
+import type { BillOccurrence, BillReminderRule, Bill } from "./types";
+
+export interface SyncData {
+  occurrences: (BillOccurrence & { bills: Bill })[];
+  rules: BillReminderRule[];
+}
+
+export async function fetchSyncData(householdId: string): Promise<SyncData> {
+  // Fetch actionable occurrences for the household
+  const { data: occurrencesData, error: occError } = await supabase
+    .from("bill_occurrences")
+    .select("*, bills!inner(*)")
+    .in("state", ["upcoming", "generated", "expected_payment", "due_today", "overdue"])
+    .eq("bills.household_id", householdId);
+
+  if (occError) throw new Error(occError.message);
+
+  // Fetch enabled rules for the household's bills
+  const { data: rulesData, error: ruleError } = await supabase
+    .from("bill_reminder_rules")
+    .select("*, bills!inner(household_id)")
+    .eq("enabled", true)
+    .eq("bills.household_id", householdId);
+
+  if (ruleError) throw new Error(ruleError.message);
+
+  return {
+    occurrences: (occurrencesData ?? []) as any[],
+    rules: (rulesData ?? []) as BillReminderRule[],
+  };
+}
 
 export async function fetchReminderRules(billId: string): Promise<BillReminderRule[]> {
   const { data, error } = await supabase

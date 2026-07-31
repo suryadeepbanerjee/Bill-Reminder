@@ -11,6 +11,7 @@ import AuthError from "./pages/AuthError";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
+import AcceptInvite from "./pages/AcceptInvite";
 import { ThemeProvider } from "./components/ThemeProvider";
 
 function ScrollToTop() {
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/auth/error" element={<AuthError />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
           {/* 404 — must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>

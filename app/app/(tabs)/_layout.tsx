@@ -3,6 +3,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useThemeStore } from "../../stores/theme-store";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -29,6 +30,7 @@ function TabIcon({
 export default function TabsLayout() {
   const { session, isLoading } = useAuthStore();
   const { resolved } = useThemeStore();
+  const insets = useSafeAreaInsets();
 
   if (isLoading) return null;
   if (!session)  return <Redirect href="/(auth)/sign-in" />;
@@ -46,15 +48,16 @@ export default function TabsLayout() {
           borderTopColor:   isDark ? "#262626" : "#E5E5E5",
           backgroundColor:  isDark ? "#0A0A0A" : "#FAFAFA",
           elevation:        0,
-          height:           Platform.OS === "ios" ? undefined : 60,
-          paddingTop:       Platform.OS === "android" ? 4 : 0,
+          height:           Platform.OS === "android" ? 60 + insets.bottom : undefined,
+          paddingBottom:    Platform.OS === "android" ? insets.bottom : undefined,
+          paddingTop:       Platform.OS === "android" ? 8 : 0,
         },
         tabBarLabelStyle: {
           fontSize:    11,
           fontWeight:  "600",
           marginTop:   -2,
           letterSpacing: 0.1,
-          marginBottom: Platform.OS === "android" ? 6 : 0,
+          marginBottom: Platform.OS === "android" ? 8 : 0,
         },
         tabBarIconStyle: {
           marginTop: Platform.OS === "android" ? 4 : 2,

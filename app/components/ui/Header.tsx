@@ -42,7 +42,7 @@ export function Header({
 
   return (
     <View
-      className={`${transparent ? "" : "bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800"}`}
+      className={`${transparent ? "" : "bg-canvas border-b border-border"}`}
       style={{ paddingTop: topInset ? insets.top : 0 }}
     >
       <View className="flex-row items-center px-4 h-14">
@@ -58,7 +58,7 @@ export function Header({
             <Ionicons
               name="chevron-back"
               size={24}
-              color={iconColor}
+              className="text-primary"
               style={{ marginLeft: -2 }}
             />
           </Pressable>
@@ -68,15 +68,15 @@ export function Header({
         <View className="flex-1">
           {subtitle ? (
             <>
-              <Text className="text-caption text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+              <Text className="text-caption text-secondary uppercase tracking-wider">
                 {subtitle}
               </Text>
-              <Text className="text-title text-neutral-900 dark:text-neutral-50" numberOfLines={1}>
+              <Text className="text-title text-primary" numberOfLines={1}>
                 {title}
               </Text>
             </>
           ) : (
-            <Text className="text-title text-neutral-900 dark:text-neutral-50" numberOfLines={1}>
+            <Text className="text-title text-primary" numberOfLines={1}>
               {title}
             </Text>
           )}

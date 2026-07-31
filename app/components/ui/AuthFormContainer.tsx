@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Pressable } from "react-native";
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Pressable, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,16 +21,18 @@ export function AuthFormContainer({
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
         className="flex-1"
       >
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingTop: 20 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-1 px-6 pt-4 pb-10 justify-center">
+          <View className="px-6 pt-8 pb-10">
             {/* Back button */}
             {showBack && (
               <Pressable
@@ -40,7 +42,7 @@ export function AuthFormContainer({
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
               >
-                <Ionicons name="chevron-back" size={20} className="text-secondary" />
+                <Ionicons name="chevron-back" size={20} className="text-primary" />
                 <Text className="text-body text-secondary">Back</Text>
               </Pressable>
             )}
@@ -48,14 +50,19 @@ export function AuthFormContainer({
             {/* Logo mark */}
             <View className="items-center mb-10">
               <View
-                className="items-center justify-center mb-4 bg-accent shadow-resting"
+                className="items-center justify-center mb-4 overflow-hidden shadow-resting"
                 style={{
                   width:           56,
                   height:          56,
                   borderRadius:    16,
                 }}
               >
-                <Ionicons name="notifications" size={26} className="text-accent-text" />
+                <Image
+                  source={require("../../app/fevicon.png")}
+                  style={{ width: 56, height: 56 }}
+                  resizeMode="cover"
+                  accessibilityLabel="Bill Reminder logo"
+                />
               </View>
               <Text className="text-caption text-secondary font-semibold tracking-[0.2em]">
                 BILL REMINDER

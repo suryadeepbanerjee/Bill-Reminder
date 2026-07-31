@@ -113,34 +113,34 @@ export const SemanticColors = {
   },
   dark: {
     // Surfaces
-    background:    Colors.neutral[950],
-    surface:       Colors.neutral[900],
-    surfaceRaised: Colors.neutral[800],
-    border:        Colors.neutral[800],
-    borderFocused: Colors.accent[400],
+    background:    "#121212",
+    surface:       "#1E1E1E",
+    surfaceRaised: "#2C2C2C",
+    border:        "#333333",
+    borderFocused: "#D1A920",
 
     // Text
-    textPrimary:   Colors.neutral[50],
-    textSecondary: Colors.neutral[400],
+    textPrimary:   "#F9FAFB",
+    textSecondary: "#9CA3AF",
     textTertiary:  Colors.neutral[600],
     textDisabled:  Colors.neutral[700],
-    textInverse:   Colors.neutral[900],
-    textAccent:    Colors.accent[400],
+    textInverse:   "#121212",
+    textAccent:    "#D1A920",
 
     // Action
-    accentBg:      Colors.accent[500],
-    accentText:    Colors.white,
-    accentSubtle:  Colors.accent[950],
+    accentBg:      "#D1A920",
+    accentText:    "#121212",
+    accentSubtle:  "rgba(209,169,32,0.12)",
 
     // States
     overdueIcon:   Colors.amber[400],
-    overdueBg:     "#2A1F00",  // dark amber tint
+    overdueBg:     "#2A1F00",
     paidIcon:      Colors.emerald[400],
-    paidBg:        "#00271A",  // dark emerald tint
+    paidBg:        "#00271A",
     upcomingIcon:  Colors.sky[400],
-    upcomingBg:    "#001A28",  // dark sky tint
+    upcomingBg:    "#001A28",
     errorIcon:     Colors.red[400],
-    errorBg:       "#2A0000",  // dark red tint
+    errorBg:       "#2A0000",
   },
 } as const;
 

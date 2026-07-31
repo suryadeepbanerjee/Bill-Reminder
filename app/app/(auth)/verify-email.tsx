@@ -7,7 +7,7 @@ import { tempAuth } from "../../lib/tempAuth";
 import { Button } from "../../components/ui/Button";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { AlertBadge } from "../../components/ui/AlertBadge";
-import { Colors } from "../../lib/theme";
+import { humanize } from "../../lib/errors";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -96,7 +96,7 @@ export default function VerifyEmailScreen() {
           return;
         }
 
-        setError(resendError.message);
+        setError(humanize(resendError, "auth"));
         return;
       }
 
@@ -129,8 +129,8 @@ export default function VerifyEmailScreen() {
         subtitle="Your email is already verified. Sign in to access your account."
       >
         <View className="items-center py-6 mb-2">
-          <View className="w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-950 items-center justify-center">
-            <Ionicons name="checkmark-circle" size={40} color="#10b981" />
+          <View className="w-20 h-20 rounded-full bg-success/10 items-center justify-center">
+            <Ionicons name="checkmark-circle" size={40} className="text-success" />
           </View>
         </View>
 
@@ -160,8 +160,8 @@ export default function VerifyEmailScreen() {
   return (
     <AuthFormContainer title="Check your email" subtitle={subtitle}>
       <View className="items-center py-6 mb-2">
-        <View className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950 items-center justify-center">
-          <Ionicons name="mail-open-outline" size={36} color={Colors.accent[500]} />
+        <View className="w-20 h-20 rounded-full bg-accent/10 items-center justify-center">
+          <Ionicons name="mail-open-outline" size={36} className="text-accent" />
         </View>
       </View>
 
@@ -201,13 +201,13 @@ export default function VerifyEmailScreen() {
       </View>
 
       <View className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-card gap-2">
-        <Text className="text-caption text-neutral-500 dark:text-neutral-400 text-center leading-5">
+        <Text className="text-caption text-secondary text-center leading-5">
           Can't find the email? Check your spam folder. The link expires in 24 hours.
         </Text>
-        <Text className="text-caption text-neutral-400 dark:text-neutral-500 text-center leading-5">
+        <Text className="text-caption text-secondary text-center leading-5">
           Already verified?{" "}
           <Text
-            className="text-accent-500 font-semibold"
+            className="text-accent font-semibold"
             onPress={() => router.replace("/(auth)/sign-in")}
           >
             Sign in →

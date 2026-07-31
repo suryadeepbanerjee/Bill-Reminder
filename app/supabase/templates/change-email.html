@@ -1,86 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirm your new email - Bill Reminder</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #FAFAFA;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: antialiased;
-      color: #1C1C1E;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-    .card {
-      background-color: #FFFFFF;
-      border-radius: 12px;
-      padding: 40px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-      border: 1px solid #E5E5E5;
-    }
-    .logo {
-      width: 48px;
-      height: 48px;
-      background-color: #5B5BD6;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #FFFFFF;
-      font-weight: bold;
-      font-size: 20px;
-      margin-bottom: 24px;
-    }
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 16px 0;
-      color: #1C1C1E;
-    }
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-      color: #525252;
-      margin: 0 0 24px 0;
-    }
-    .button {
-      display: inline-block;
-      background-color: #5B5BD6;
-      color: #FFFFFF !important;
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      padding: 14px 24px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-    }
-    .footer {
-      margin-top: 32px;
-      font-size: 13px;
-      color: #A3A3A3;
-      text-align: center;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Confirm your new email address</title>
+<!--[if mso]>
+<noscript>
+<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+</noscript>
+<![endif]-->
+<style>
+  body, table, td { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+  body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; }
+  a { text-decoration: none; }
+
+  :root { color-scheme: light dark; supported-color-schemes: light dark; }
+
+  .bg-page   { background-color: #fbf8ef; }
+  .bg-card   { background-color: #FFFFFF; }
+  .border    { border-color: #e8dfc3 !important; }
+  .mark-bg   { background-color: #b69317; }
+  .mark-txt  { color: #17161B !important; }
+  .eyebrow   { color: #b69317 !important; }
+  .heading   { color: #1d1d1f !important; }
+  .body-txt  { color: #5d5a52 !important; }
+  .muted-txt { color: #8d8777 !important; }
+  .btn-bg    { background-color: #b69317; }
+  .btn-txt   { color: #17161B !important; }
+  .note-bg   { background-color: #f5efd8; }
+  .note-txt  { color: #5d5a52 !important; }
+  .link-txt  { color: #b69317 !important; }
+  .hr        { border-top: 1px solid #e8dfc3; }
+
+  .otp-box   { background-color: #f5efd8; border-color: #e8dfc3; color: #1d1d1f; }
+  .otp-hint  { color: #5d5a52; }
+
+  @media (prefers-color-scheme: dark) {
+    .bg-page   { background-color: #17171a !important; }
+    .bg-card   { background-color: #202022 !important; }
+    .border    { border-color: #333336 !important; }
+    .mark-bg   { background-color: #c9a632 !important; }
+    .mark-txt  { color: #17171a !important; }
+    .eyebrow   { color: #c9a632 !important; }
+    .heading   { color: #f2f2ef !important; }
+    .body-txt  { color: #a7a08f !important; }
+    .muted-txt { color: #8d8777 !important; }
+    .btn-bg    { background-color: #c9a632 !important; }
+    .btn-txt   { color: #17171a !important; }
+    .note-bg   { background-color: #252528 !important; }
+    .note-txt  { color: #a7a08f !important; }
+    .link-txt  { color: #c9a632 !important; }
+    .hr        { border-top: 1px solid #333336 !important; }
+
+    .otp-box   { background-color: #252528 !important; border-color: #333336 !important; color: #f2f2ef !important; }
+    .otp-hint  { color: #a7a08f !important; }
+  }
+
+  @media screen and (max-width: 600px) {
+    .container { width: 100% !important; }
+    .px { padding-left: 24px !important; padding-right: 24px !important; }
+    .py-top { padding-top: 40px !important; }
+    .py-bottom { padding-bottom: 40px !important; }
+    .heading { font-size: 24px !important; line-height: 32px !important; }
+  }
+</style>
 </head>
-<body>
-  <div class="container">
-    <div class="card">
-      <div class="logo">BR</div>
-      <h1>Confirm your new email</h1>
-      <p>We received a request to change the email address associated with your Bill Reminder account.</p>
-      <a href="{{ .ConfirmationURL }}" class="button">Confirm New Email</a>
-      <p style="font-size: 14px; color: #737373;">If you didn't request an email change, please ignore this email and your address will remain unchanged.</p>
-    </div>
-    <div class="footer">
-      &copy; Bill Reminder. All rights reserved.
-    </div>
-  </div>
+<body class="bg-page" style="margin:0; padding:0; background-color:#fbf8ef;">
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+  Confirm you want to change your Bill Reminder email address.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+</div>
+
+<table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fbf8ef;">
+<tr>
+<td align="center" style="padding: 56px 16px;">
+
+<!--[if mso]>
+<table role="presentation" align="center" width="600"><tr><td>
+<![endif]-->
+<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+
+  <!-- Logo + brand name -->
+  <tr>
+    <td class="px" style="padding: 0 40px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+        <tr>
+          <td align="center" valign="middle" style="width:40px; height:40px;">
+            <img src="https://billreminder.suryadeepbanerjee.in/fevicon.png" width="40" height="40" alt="Bill Reminder" style="display:block; border:0; outline:none; text-decoration:none; width:40px; height:40px; max-width:40px; border-radius:8px;">
+          </td>
+          <td style="width:10px;">&nbsp;</td>
+          <td valign="middle" align="center" class="muted-txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:500; color:#8d8777;">
+            Bill Reminder
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Card -->
+  <tr>
+    <td class="bg-card border px" style="background-color:#FFFFFF; border:1px solid #e8dfc3; border-radius:16px; padding: 48px 40px;">
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center" class="eyebrow" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#b69317; padding-bottom:14px;">
+            Email change requested
+          </td>
+        </tr>
+        <tr>
+          <td align="center" class="heading" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:28px; line-height:36px; font-weight:600; letter-spacing:-0.3px; color:#1d1d1f; padding-bottom:16px;">
+            Confirm your new email
+          </td>
+        </tr>
+        <tr>
+          <td align="center" class="body-txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#5d5a52; padding-bottom:12px;">
+            We received a request to change the email on your Bill Reminder account from <strong style="font-weight:600;">{{ .Email }}</strong> to <strong style="font-weight:600;">{{ .NewEmail }}</strong>. Enter the following one-time code in the app to confirm the change.
+          </td>
+        </tr>
+        <tr>
+          <td align="center" class="body-txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#5d5a52; padding-bottom:36px;">
+            Reminders and sign-in links will go to the new address once this is confirmed.
+          </td>
+        </tr>
+
+        <!-- OTP code display -->
+        <tr>
+          <td align="center" style="padding-bottom:36px;">
+            <div class="otp-box" style="display:inline-block;background:#f5efd8;border:1px solid #e8dfc3;border-radius:14px;padding:18px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;letter-spacing:10px;color:#1d1d1f;line-height:1;">
+              {{ .Token }}
+            </div>
+
+            <p class="otp-hint" style="margin:18px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#5d5a52;">
+              Enter this code in the Bill Reminder app.
+            </p>
+          </td>
+        </tr>
+
+        <tr><td class="hr" style="border-top:1px solid #e8dfc3; font-size:1px; line-height:1px;">&nbsp;</td></tr>
+
+        <tr>
+          <td class="note-bg" style="background-color:#f5efd8; border-radius:10px; padding:16px 18px; margin-top:28px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td class="note-txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:20px; color:#5d5a52;">
+              This code expires in 24 hours.<br>Never share this code with anyone.<br>If you didn't request this change, ignore this email and your address will stay as it is — no change takes effect until you enter the code.
+            </td></tr></table>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td class="px" align="center" style="padding: 32px 40px 0;">
+      <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+        <tr>
+          <td align="center" class="muted-txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#8d8777;">
+            Bill Reminder &nbsp;&middot;&nbsp; Secure authentication for your Bill Reminder account
+          </td>
+        </tr>
+        <tr>
+          <td align="center" class="muted-txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#8d8777; padding-top:2px;">
+            &copy; 2026 Bill Reminder. All rights reserved.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+</table>
+<!--[if mso]>
+</td></tr></table>
+<![endif]-->
+
+</td>
+</tr>
+</table>
 </body>
 </html>

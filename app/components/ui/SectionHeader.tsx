@@ -13,7 +13,7 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, action }: SectionHeaderProps) {
   return (
     <View className="flex-row items-center justify-between mb-2">
-      <Text className="text-caption text-neutral-500 dark:text-neutral-400 font-medium">
+      <Text className="text-caption text-secondary font-medium">
         {title}
       </Text>
       {action && (
@@ -23,7 +23,7 @@ export function SectionHeader({ title, action }: SectionHeaderProps) {
           hitSlop={8}
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Text className="text-caption text-accent-500 font-medium">{action.label}</Text>
+          <Text className="text-caption text-accent font-medium">{action.label}</Text>
         </Pressable>
       )}
     </View>

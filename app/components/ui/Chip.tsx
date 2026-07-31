@@ -17,8 +17,8 @@ export function Chip({ label, active = false, onPress, color }: ChipProps) {
     onPress?.();
   };
 
-  const bgClass  = active ? "bg-neutral-900 dark:bg-neutral-100" : "bg-neutral-100 dark:bg-neutral-800";
-  const txtClass = active ? "text-white dark:text-neutral-900"   : "text-neutral-600 dark:text-neutral-400";
+  const bgClass  = active ? "bg-accent border border-accent" : "bg-surface border border-border";
+  const txtClass = active ? "text-accent-text" : "text-primary";
 
   return (
     <Pressable

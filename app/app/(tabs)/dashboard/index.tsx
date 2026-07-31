@@ -75,7 +75,7 @@ function TotalBanner({ amount }: { amount: number }) {
   return (
     <View className="bg-primary rounded-card p-5 flex-row items-center justify-between shadow-resting">
       <View>
-        <Text className="text-caption text-canvas/70 mb-1 font-medium">
+        <Text className="text-caption text-canvas mb-1 font-medium opacity-80">
           Total owed now
         </Text>
         <Text
@@ -86,7 +86,7 @@ function TotalBanner({ amount }: { amount: number }) {
       </View>
       <Pressable
         onPress={() => router.push("/(tabs)/bills")}
-        className="bg-canvas rounded-input px-4 py-2.5 shadow-resting"
+        className="bg-canvas rounded-input px-4 py-2.5 border border-border"
         style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
         accessibilityRole="button"
         accessibilityLabel="View all bills"
@@ -133,8 +133,8 @@ function OccurrenceSection({
         }
       />
       {shown.length === 0 ? (
-        <View className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-card py-5 items-center mx-0.5">
-          <Text className="text-caption text-neutral-400 dark:text-neutral-500">
+        <View className="bg-surface border border-border rounded-card py-5 items-center mx-0.5">
+          <Text className="text-caption text-secondary">
             {emptyLabel}
           </Text>
         </View>
@@ -208,7 +208,7 @@ export default function DashboardScreen() {
     data.upcoming.length === 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -235,21 +235,21 @@ export default function DashboardScreen() {
 
         {isError && (
           <ErrorView
-            message={error instanceof Error ? error.message : "Failed to load dashboard."}
+            message="Failed to load dashboard."
             onRetry={refetch}
           />
         )}
 
         {data && (
-          <View className="px-4 gap-5">
+          <View className="px-4 gap-6">
             {/* ── Summary pills ──────────────────────────────────────── */}
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-3 mb-4">
               <SummaryPill
                 label="Overdue"
                 count={data.overdue.length}
                 icon="warning-outline"
-                iconColor="text-warning"
-                bg="bg-warning/10 border border-warning/20"
+                iconColor="text-error"
+                bg="bg-error/10 border border-error/20"
                 onPress={() => router.push("/(tabs)/bills")}
               />
               <SummaryPill
@@ -264,34 +264,27 @@ export default function DashboardScreen() {
                 label="Upcoming"
                 count={data.upcoming.length}
                 icon="time-outline"
-                iconColor="text-secondary"
-                bg="bg-surface border border-border"
+                iconColor="text-success"
+                bg="bg-success/10 border border-success/20"
               />
             </View>
 
             {/* ── Total owed banner ──────────────────────────────────── */}
             {totalDueNow != null && <TotalBanner amount={totalDueNow} />}
 
-            {/* ── Overdue ────────────────────────────────────────────── */}
-            {data.overdue.length > 0 && (
-              <OccurrenceSection
-                title={`Overdue · ${data.overdue.length}`}
-                items={data.overdue}
-                emptyLabel=""
-                onViewBill={(id) => router.push(`/bill/${id}`)}
-                onMarkPaid={handleMarkPaid}
-                limit={3}
-              />
-            )}
-
-            {/* ── Due today ──────────────────────────────────────────── */}
-            <OccurrenceSection
-              title="Due today"
-              items={data.today}
-              emptyLabel="Nothing due today ✓"
-              onViewBill={(id) => router.push(`/bill/${id}`)}
-              onMarkPaid={handleMarkPaid}
-            />
+            {/* ── Action Required (overdue + due today) ─────────────────── */}
+            {(() => {
+              const actionRequired = [...data.overdue, ...data.today];
+              return (
+                <OccurrenceSection
+                  title={`Action Required · ${actionRequired.length}`}
+                  items={actionRequired}
+                  emptyLabel="All clear! No bills need attention."
+                  onViewBill={(id) => router.push(`/bill/${id}`)}
+                  onMarkPaid={handleMarkPaid}
+                />
+              );
+            })()}
 
             {/* ── Upcoming ───────────────────────────────────────────── */}
             <OccurrenceSection
@@ -327,10 +320,12 @@ export default function DashboardScreen() {
         )}
       </ScrollView>
 
-      {/* ── FAB ─────────────────────────────────────────────────────── */}
-      <View className="absolute bottom-6 right-4" pointerEvents="box-none">
-        <FAB onPress={() => router.push("/add-bill")} label="Add bill" />
-      </View>
+      {/* ── FAB ──────────────────────────────────────────────────────── */}
+      {!isEmpty && (
+        <View className="absolute bottom-6 right-4" pointerEvents="box-none">
+          <FAB onPress={() => router.push("/add-bill")} label="Add bill" />
+        </View>
+      )}
 
       {/* ── Toast ───────────────────────────────────────────────────── */}
       <Toast

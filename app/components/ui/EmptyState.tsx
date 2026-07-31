@@ -58,17 +58,17 @@ export function EmptyState({
 
   return (
     <View className="items-center justify-center py-12 px-8">
-      <View className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-800 items-center justify-center mb-4">
+      <View className="w-16 h-16 rounded-full bg-surface border border-border items-center justify-center mb-4">
         <Ionicons
           name={defaults.icon}
           size={28}
-          color={Colors.neutral[400]}
+          className="text-primary"
         />
       </View>
-      <Text className="text-label text-neutral-900 dark:text-neutral-100 font-semibold text-center mb-2">
+      <Text className="text-label text-primary font-semibold text-center mb-2">
         {displayTitle}
       </Text>
-      <Text className="text-body text-neutral-500 dark:text-neutral-400 text-center leading-6">
+      <Text className="text-body text-secondary text-center leading-6">
         {displaySubtitle}
       </Text>
       {ctaLabel && onCta && (

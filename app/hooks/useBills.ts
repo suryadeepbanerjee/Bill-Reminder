@@ -10,8 +10,8 @@ import { useHousehold } from "./useHousehold";
 import type { CreateBillInput, UpdateBillInput } from "../lib/supabase/types";
 
 export function useBills() {
-  const { data: householdData } = useHousehold();
-  const householdId = householdData?.household.id;
+  const { activeHousehold } = useHousehold();
+  const householdId = activeHousehold?.household.id;
 
   return useQuery({
     queryKey: ["bills", householdId],
@@ -30,13 +30,13 @@ export function useBill(billId: string | undefined) {
 
 export function useCreateBill() {
   const queryClient = useQueryClient();
-  const { data: householdData } = useHousehold();
 
   return useMutation({
     mutationFn: (input: CreateBillInput) => createBill(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }
@@ -51,6 +51,7 @@ export function useUpdateBill() {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["bill", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }
@@ -63,6 +64,7 @@ export function useDeleteBill() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }

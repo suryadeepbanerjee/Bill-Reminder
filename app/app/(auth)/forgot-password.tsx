@@ -1,21 +1,29 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View, Alert } from "react-native";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Ionicons } from "@expo/vector-icons";
-import { supabase, webRedirectUri } from "../../lib/supabase/client";
+import * as Haptics from "expo-haptics";
+
+import { supabase } from "../../lib/supabase/client";
 import { forgotPasswordSchema, ForgotPasswordFormData } from "../../schemas/auth";
+import { humanize } from "../../lib/errors";
+
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
+import { PasswordField } from "../../components/ui/PasswordField";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
-import { Colors } from "../../lib/theme";
 
 export default function ForgotPasswordScreen() {
-  const [error, setError]         = useState<string | null>(null);
-  const [success, setSuccess]     = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<"request" | "verify">("request");
+
+  // Verify step state
+  const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const {
     control,
@@ -28,50 +36,128 @@ export default function ForgotPasswordScreen() {
     mode: "onBlur",
   });
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
+  const onRequestReset = async (data: ForgotPasswordFormData) => {
     setError(null);
     setIsLoading(true);
     try {
-      const { error: authError } = await supabase.auth.resetPasswordForEmail(
-        data.email,
-        { redirectTo: webRedirectUri }
-      );
-      if (authError) {
-        setError(authError.message);
+      // Check if email exists in profiles first
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", data.email)
+        .maybeSingle();
+
+      if (!profile) {
+        setError("No account found with this email address.");
+        setIsLoading(false);
         return;
       }
-      setSuccess(true);
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(data.email);
+      if (authError) throw authError;
+      
+      setStep("verify");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e: any) {
+      setError(humanize(e, "auth"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (success) {
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+
+  const onVerifyAndReset = async () => {
+    if (!otp || otp.length < 6) { setError("Please enter a valid 6-digit code."); return; }
+    if (!password || password.length <= 12) { setError("Password must be greater than 12 characters."); return; }
+    if (password !== confirmPassword) { setError("Passwords do not match."); return; }
+
+    setError(null);
+    setIsLoading(true);
+    try {
+      if (!isOtpVerified) {
+        // 1. Verify OTP
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          email: getValues("email"),
+          token: otp.trim(),
+          type: "recovery",
+        });
+        if (verifyError) throw verifyError;
+        
+        // Mark as verified so we don't try to use the same OTP again if updateUser fails
+        setIsOtpVerified(true);
+      }
+
+      // 2. Update password
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Success", "Your password has been reset successfully.");
+      router.replace("/(tabs)/dashboard");
+    } catch (e: any) {
+      setError(humanize(e, "auth"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (step === "verify") {
     return (
       <AuthFormContainer
         title="Check your email"
-        subtitle={`We sent a reset link to ${getValues("email")}. Check your inbox and follow the link.`}
+        subtitle={`We sent a 6-digit code to ${getValues("email")}. Enter it below along with your new password.`}
       >
-        <View className="items-center py-4 mb-6">
-          <View className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950 items-center justify-center">
-            <Ionicons name="mail-outline" size={32} color={Colors.emerald[600]} />
+        <View className="gap-4">
+          {error && <AlertBadge message={error} variant="error" />}
+
+          <TextInput
+            label="Verification Code"
+            placeholder="6-digit code"
+            keyboardType="number-pad"
+            maxLength={6}
+            value={otp}
+            onChangeText={setOtp}
+            autoFocus
+          />
+
+          <PasswordField
+            label="New Password"
+            placeholder="Enter new password"
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          <PasswordField
+            label="Confirm Password"
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
+
+          <View className="gap-3 mt-2">
+            <Button
+              title="Reset Password"
+              variant="accent"
+              fullWidth
+              onPress={onVerifyAndReset}
+              loading={isLoading}
+              disabled={otp.length < 6 || !password || !confirmPassword}
+            />
+            <Button
+              title="Try a different email"
+              variant="ghost"
+              fullWidth
+              onPress={() => {
+                setStep("request");
+                setOtp("");
+                setPassword("");
+                setConfirmPassword("");
+                setError(null);
+                setIsOtpVerified(false);
+              }}
+            />
           </View>
-        </View>
-        <View className="gap-3">
-          <Button
-            title="Back to sign in"
-            variant="accent"
-            fullWidth
-            onPress={() => router.replace("/(auth)/sign-in")}
-          />
-          <Button
-            title="Try a different email"
-            variant="ghost"
-            fullWidth
-            onPress={() => setSuccess(false)}
-          />
         </View>
       </AuthFormContainer>
     );
@@ -80,7 +166,7 @@ export default function ForgotPasswordScreen() {
   return (
     <AuthFormContainer
       title="Reset password"
-      subtitle="Enter your email and we'll send a link to reset your password"
+      subtitle="Enter your email and we'll send a code to reset your password"
     >
       <View className="gap-4">
         {error && <AlertBadge message={error} variant="error" />}
@@ -101,16 +187,16 @@ export default function ForgotPasswordScreen() {
               onChangeText={onChange}
               value={value}
               error={errors.email?.message}
-              onSubmitEditing={handleSubmit(onSubmit)}
+              onSubmitEditing={handleSubmit(onRequestReset)}
             />
           )}
         />
 
         <Button
-          title="Send reset link"
+          title="Send reset code"
           variant="accent"
           fullWidth
-          onPress={handleSubmit(onSubmit)}
+          onPress={handleSubmit(onRequestReset)}
           loading={isLoading}
         />
 

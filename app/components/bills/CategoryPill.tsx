@@ -10,21 +10,23 @@ interface CategoryPillProps {
   size?: "sm" | "md";
 }
 
+import { useColorScheme } from "nativewind";
+
 export function CategoryPill({ name, icon, color, size = "md" }: CategoryPillProps) {
   const ionIcon = resolveIcon(icon) as keyof typeof Ionicons.glyphMap;
   const iconSize = size === "sm" ? 12 : 14;
+  const { colorScheme } = useColorScheme();
+  const iconColor = colorScheme === "dark" ? "#FFFFFF" : "#171717";
 
   return (
     <View
-      className={`flex-row items-center gap-1 rounded-pill self-start ${
+      className={`flex-row items-center gap-1 rounded-pill self-start bg-neutral-100 dark:bg-neutral-800 ${
         size === "sm" ? "px-2 py-0.5" : "px-2.5 py-1"
       }`}
-      style={{ backgroundColor: color + "18" }} // 10% opacity tint from category color
     >
-      <Ionicons name={ionIcon} size={iconSize} color={color} />
+      <Ionicons name={ionIcon} size={iconSize} color={iconColor} />
       <Text
-        className={`font-medium ${size === "sm" ? "text-caption" : "text-caption"}`}
-        style={{ color }}
+        className={`font-medium text-primary ${size === "sm" ? "text-caption" : "text-caption"}`}
       >
         {name}
       </Text>
@@ -42,17 +44,20 @@ interface CategoryIconBadgeProps {
 export function CategoryIconBadge({ icon, color, size = 40 }: CategoryIconBadgeProps) {
   const ionIcon = resolveIcon(icon) as keyof typeof Ionicons.glyphMap;
   const iconSize = Math.round(size * 0.45);
+  const { colorScheme } = useColorScheme();
+  const iconColor = colorScheme === "dark" ? "#FFFFFF" : "#171717";
 
   return (
     <View
-      className="items-center justify-center rounded-input"
+      className="items-center justify-center rounded-input bg-neutral-100 dark:bg-neutral-800"
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
       style={{
         width:           size,
         height:          size,
-        backgroundColor: color + "18",
       }}
     >
-      <Ionicons name={ionIcon} size={iconSize} color={color} />
+      <Ionicons name={ionIcon} size={iconSize} color={iconColor} />
     </View>
   );
 }

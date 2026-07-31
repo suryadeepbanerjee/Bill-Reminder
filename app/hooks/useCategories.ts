@@ -11,8 +11,8 @@ export function useCategoryPresets() {
 }
 
 export function useHouseholdCategories() {
-  const { data: householdData } = useHousehold();
-  const householdId = householdData?.household.id;
+  const { activeHousehold } = useHousehold();
+  const householdId = activeHousehold?.household.id;
 
   return useQuery({
     queryKey: ["householdCategories", householdId],

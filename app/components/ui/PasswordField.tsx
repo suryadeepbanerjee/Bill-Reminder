@@ -35,7 +35,7 @@ export const PasswordField = forwardRef<RNTextInput, PasswordFieldProps>(
             <Ionicons
               name={visible ? "eye-off-outline" : "eye-outline"}
               size={20}
-              color={Colors.neutral[400]}
+              className="text-secondary"
             />
           </Pressable>
         }

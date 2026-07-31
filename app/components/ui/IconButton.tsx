@@ -16,7 +16,7 @@ interface IconButtonProps extends Omit<PressableProps, "style"> {
 const variantClasses: Record<IconButtonVariant, string> = {
   default: "bg-neutral-100 dark:bg-neutral-800",
   ghost:   "bg-transparent",
-  filled:  "bg-accent-500",
+  filled:  "bg-accent",
   danger:  "bg-red-50 dark:bg-red-950",
 };
 

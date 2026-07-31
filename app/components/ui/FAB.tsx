@@ -25,11 +25,11 @@ export function FAB({ onPress, label = "Add Bill", accessibilityLabel = "Add new
         transform:  [{ scale: pressed ? 0.95 : 1 }],
         ...Shadow.fab,
       })}
-      className="bg-accent-500 rounded-pill flex-row items-center justify-center px-5 h-14 gap-2"
+      className="bg-accent rounded-pill flex-row items-center justify-center px-5 h-14 gap-2"
     >
-      <Ionicons name="add" size={22} color={Colors.white} />
+      <Ionicons name="add" size={22} className="text-accent-text" />
       {label ? (
-        <Text className="text-label text-white font-semibold">{label}</Text>
+        <Text className="text-label text-accent-text font-bold">{label}</Text>
       ) : null}
     </Pressable>
   );

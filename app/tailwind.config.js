@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-const sharedTheme = require("../tailwind.theme.js");
+const sharedTheme = require("./tailwind.theme.js");
 
 module.exports = {
   content: [
@@ -7,6 +7,7 @@ module.exports = {
     "./components/**/*.{js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
+  darkMode: "class",
   theme: {
     extend: {
       colors: sharedTheme.colors,

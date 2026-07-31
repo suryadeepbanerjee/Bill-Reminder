@@ -23,7 +23,7 @@ export const SearchField = forwardRef<RNTextInput, SearchFieldProps>(
         autoCorrect={false}
         clearButtonMode="never"
         leadingIcon={
-          <Ionicons name="search-outline" size={18} color={Colors.neutral[400]} />
+          <Ionicons name="search-outline" size={18} className="text-primary" />
         }
         trailingElement={
           value && String(value).length > 0 ? (
@@ -33,8 +33,8 @@ export const SearchField = forwardRef<RNTextInput, SearchFieldProps>(
               accessibilityLabel="Clear search"
               hitSlop={8}
             >
-              <View className="bg-neutral-300 dark:bg-neutral-600 rounded-full w-4 h-4 items-center justify-center">
-                <Ionicons name="close" size={10} color={Colors.neutral[700]} />
+              <View className="bg-border rounded-full w-4 h-4 items-center justify-center">
+                <Ionicons name="close" size={10} className="text-primary" />
               </View>
             </Pressable>
           ) : null

@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal as RNModal,
   View,
   Pressable,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   StyleSheet,
 } from "react-native";
@@ -11,7 +11,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  runOnJS,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,16 +36,34 @@ export function Modal({
   const insets  = useSafeAreaInsets();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(600);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
-    if (visible) {
-      opacity.value    = withTiming(1, { duration: 200 });
-      translateY.value = withTiming(0, { duration: 200 });
-    } else {
+    if (!visible) {
       opacity.value    = withTiming(0, { duration: 150 });
       translateY.value = withTiming(600, { duration: 150 });
+      setKeyboardHeight(0);
+    } else {
+      opacity.value    = withTiming(1, { duration: 200 });
+      translateY.value = withTiming(0, { duration: 200 });
     }
   }, [visible, opacity, translateY]);
+
+  useEffect(() => {
+    if (!visible || variant !== "bottom") return;
+
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, [visible, variant]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -63,6 +80,8 @@ export function Modal({
     onClose();
   };
 
+  const bottomInset = Math.max(insets.bottom, 8);
+
   return (
     <RNModal
       visible={visible}
@@ -71,58 +90,53 @@ export function Modal({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {/* Backdrop */}
+      <Pressable
         style={StyleSheet.absoluteFillObject}
+        onPress={handleClose}
       >
-        {/* Backdrop */}
-        <Pressable
-          style={StyleSheet.absoluteFillObject}
-          onPress={handleClose}
-        >
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFillObject,
-              { backgroundColor: "rgba(0,0,0,0.4)" },
-              backdropStyle,
-            ]}
-          />
-        </Pressable>
-
-        {/* Sheet — background is applied via className for dark-mode support */}
         <Animated.View
-          className="bg-white dark:bg-neutral-900"
           style={[
-            variant === "bottom"
-              ? {
-                  position:        "absolute",
-                  bottom:           0,
-                  left:             0,
-                  right:            0,
-                  paddingBottom:    Math.max(insets.bottom, 8),
-                  borderTopLeftRadius:  20,
-                  borderTopRightRadius: 20,
-                }
-              : {
-                  position:     "absolute",
-                  top:          "50%",
-                  left:         24,
-                  right:        24,
-                  transform:    [{ translateY: -150 }],
-                  borderRadius: 20,
-                },
-            sheetStyle,
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: "rgba(0,0,0,0.4)" },
+            backdropStyle,
           ]}
-        >
-          {/* Handle bar for bottom sheet */}
-          {variant === "bottom" && (
-            <View className="items-center pt-3 pb-1">
-              <View className="w-10 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-            </View>
-          )}
-          {children}
-        </Animated.View>
-      </KeyboardAvoidingView>
+        />
+      </Pressable>
+
+      {/* Sheet */}
+      <Animated.View
+        className="bg-surface"
+        style={[
+          variant === "bottom"
+            ? {
+                position:        "absolute",
+                bottom:           keyboardHeight > 0 ? keyboardHeight : 0,
+                left:             0,
+                right:            0,
+                paddingBottom:    bottomInset,
+                borderTopLeftRadius:  20,
+                borderTopRightRadius: 20,
+              }
+            : {
+                position:     "absolute",
+                top:          "50%",
+                left:         24,
+                right:        24,
+                transform:    [{ translateY: -150 }],
+                borderRadius: 20,
+              },
+          sheetStyle,
+        ]}
+      >
+        {/* Handle bar for bottom sheet */}
+        {variant === "bottom" && (
+          <View className="items-center pt-3 pb-1">
+            <View className="w-10 h-1 rounded-full bg-border" />
+          </View>
+        )}
+        {children}
+      </Animated.View>
     </RNModal>
   );
 }

@@ -1,4 +1,5 @@
 import { Pressable, View } from "react-native";
+import { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -29,6 +30,10 @@ export function Switch({
 }: SwitchProps) {
   const progress = useSharedValue(value ? 1 : 0);
 
+  useEffect(() => {
+    progress.value = withTiming(value ? 1 : 0, { duration: 150 });
+  }, [value, progress]);
+
   const handlePress = () => {
     if (disabled) return;
     const newValue = !value;
@@ -44,8 +49,8 @@ export function Switch({
       [0, 1],
       Extrapolation.CLAMP
     ) > 0.5
-      ? Colors.accent[500]
-      : Colors.neutral[200],
+      ? "#D1A920"
+      : Colors.neutral[300],
   }));
 
   const thumbStyle = useAnimatedStyle(() => ({
