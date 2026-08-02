@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -633,11 +633,19 @@ export default function BillDetailScreen() {
   const { mutateAsync: deleteBill, isPending: isDeleting } = useDeleteBill();
 
   // Current (most actionable) occurrence
-  const currentOccurrence = occurrences.find((o) =>
-    ["due_today", "overdue", "expected_payment", "generated", "upcoming"].includes(o.state)
-  ) ?? occurrences[0];
+  const currentOccurrence = useMemo(
+    () => occurrences.find((o) =>
+      ["due_today", "overdue", "expected_payment", "generated", "upcoming"].includes(o.state)
+    ) ?? occurrences[0],
+    [occurrences]
+  );
 
-  const handleDelete = () => {
+  const paidOccurrences = useMemo(
+    () => occurrences.filter(o => o.state === "paid"),
+    [occurrences]
+  );
+
+  const handleDelete = useCallback(() => {
     Alert.alert(
       "Delete bill",
       `Are you sure you want to delete "${bill?.title}"? All history will be preserved but no new occurrences will be generated.`,
@@ -658,7 +666,7 @@ export default function BillDetailScreen() {
         },
       ]
     );
-  };
+  }, [bill?.title, deleteBill, id]);
 
   if (isLoading) {
     return (
@@ -839,13 +847,13 @@ export default function BillDetailScreen() {
         </View>
 
         {/* ── Payment history ─────────────────────────────────────────── */}
-        {occurrences.filter(o => o.state === "paid").length > 0 && (
+        {paidOccurrences.length > 0 && (
           <View className="px-4">
             <Text className="text-caption text-secondary font-medium mb-1.5">
               Payment history
             </Text>
             <Surface level="resting" bordered rounded="card">
-              {occurrences.filter(o => o.state === "paid").slice(0, 12).map((o, idx, arr) => (
+              {paidOccurrences.slice(0, 12).map((o, idx, arr) => (
                 <View key={o.id}>
                   <OccurrenceRow occurrence={o} />
                   {idx < arr.length - 1 && <Divider inset={16} />}

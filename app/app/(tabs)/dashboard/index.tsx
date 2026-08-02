@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -172,7 +172,7 @@ export default function DashboardScreen() {
   const greeting  = useMemo(() => getGreeting(), []);
   const firstName = profile?.display_name?.split(" ")[0] ?? "";
 
-  const handleMarkPaid = (o: DashboardOccurrence) => {
+  const handleMarkPaid = useCallback((o: DashboardOccurrence) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     markPaid(
       {
@@ -190,7 +190,7 @@ export default function DashboardScreen() {
         },
       }
     );
-  };
+  }, [markPaid, showToast]);
 
   const totalDueNow = useMemo(() => {
     if (!data) return null;
@@ -206,6 +206,11 @@ export default function DashboardScreen() {
     data.today.length === 0 &&
     data.overdue.length === 0 &&
     data.upcoming.length === 0;
+
+  const actionRequired = useMemo(
+    () => (data ? [...data.overdue, ...data.today] : []),
+    [data]
+  );
 
   return (
       <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
@@ -273,18 +278,13 @@ export default function DashboardScreen() {
             {totalDueNow != null && <TotalBanner amount={totalDueNow} />}
 
             {/* ── Action Required (overdue + due today) ─────────────────── */}
-            {(() => {
-              const actionRequired = [...data.overdue, ...data.today];
-              return (
-                <OccurrenceSection
-                  title={`Action Required · ${actionRequired.length}`}
-                  items={actionRequired}
-                  emptyLabel="All clear! No bills need attention."
-                  onViewBill={(id) => router.push(`/bill/${id}`)}
-                  onMarkPaid={handleMarkPaid}
-                />
-              );
-            })()}
+            <OccurrenceSection
+              title={`Action Required · ${actionRequired.length}`}
+              items={actionRequired}
+              emptyLabel="All clear! No bills need attention."
+              onViewBill={(id) => router.push(`/bill/${id}`)}
+              onMarkPaid={handleMarkPaid}
+            />
 
             {/* ── Upcoming ───────────────────────────────────────────── */}
             <OccurrenceSection
