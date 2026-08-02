@@ -10,5 +10,10 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
+<<<<<<< HEAD
           curl -v -X GET "https://dyhajmtfkjtwkijhptjx.supabase.co/rest/v1/" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
+=======
+          curl -sf -X GET "https://dyhajmtfkjtwkijhptjx.supabase.co/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+>>>>>>> 36fcb54 (Keep Alive Added)
