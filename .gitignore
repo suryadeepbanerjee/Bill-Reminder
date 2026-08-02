@@ -25,6 +25,8 @@ expo-env.d.ts
 .env.development.local
 .env.test.local
 .env.production.local
+node_modules/
+.env.*
 
 # debug
 npm-debug.*
