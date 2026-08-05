@@ -13,6 +13,7 @@ export default function AcceptInvite() {
   const hid = searchParams.get("hid");
   const [status, setStatus] = useState<Status>("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const [mismatchEmail, setMismatchEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hid) {
@@ -49,6 +50,9 @@ export default function AcceptInvite() {
         const body = await res.json();
 
         if (!res.ok) {
+          if (body.sentTo) {
+            setMismatchEmail(body.sentTo);
+          }
           setStatus("error");
           setErrorMsg(body.error ?? "Failed to accept invitation.");
           return;
@@ -65,6 +69,12 @@ export default function AcceptInvite() {
   const handleSignIn = () => {
     // Store hid in sessionStorage so we can resume after sign-in
     if (hid) sessionStorage.setItem("pending_invite_hid", hid);
+    navigate("/sign-in");
+  };
+
+  const handleSwitchAccount = async () => {
+    if (hid) sessionStorage.setItem("pending_invite_hid", hid);
+    await supabase.auth.signOut();
     navigate("/sign-in");
   };
 
@@ -197,9 +207,21 @@ export default function AcceptInvite() {
                 {errorMsg}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-                <a href="/" className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
-                  Go to Homepage
-                </a>
+                {mismatchEmail && (
+                  <>
+                    <button onClick={handleSwitchAccount} className="btn-primary" style={{ minWidth: 200 }}>
+                      Sign in as {mismatchEmail}
+                    </button>
+                    <a href="/" className="btn-outline" style={{ minWidth: 200, textDecoration: "none" }}>
+                      Go to Homepage
+                    </a>
+                  </>
+                )}
+                {!mismatchEmail && (
+                  <a href="/" className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
+                    Go to Homepage
+                  </a>
+                )}
               </div>
             </>
           )}
