@@ -50,6 +50,7 @@ export function useUpdateBill() {
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["bill", id] });
+      queryClient.invalidateQueries({ queryKey: ["occurrences", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       import("../lib/notifications").then(m => m.syncLocalReminders());
     },

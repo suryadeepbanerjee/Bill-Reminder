@@ -114,6 +114,7 @@ export function Modal({
                 bottom:           keyboardHeight > 0 ? keyboardHeight : 0,
                 left:             0,
                 right:            0,
+                maxHeight:        "85%",
                 paddingBottom:    bottomInset,
                 borderTopLeftRadius:  20,
                 borderTopRightRadius: 20,

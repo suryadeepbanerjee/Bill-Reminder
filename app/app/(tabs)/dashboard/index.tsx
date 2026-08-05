@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState, memo } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { useDashboard, useMarkPaid } from "../../../hooks/useOccurrences";
+import { useDashboard }              from "../../../hooks/useOccurrences";
 import { useProfile }                from "../../../hooks/useProfile";
 import { useToast }                  from "../../../hooks/useToast";
 import { BillCard }                  from "../../../components/bills/BillCard";
+import { MarkPaidModal }             from "../../../components/bills/MarkPaidModal";
+import type { MarkPaidTarget }       from "../../../components/bills/MarkPaidModal";
 import { LoadingSkeleton }           from "../../../components/ui/LoadingSkeleton";
 import { ErrorView }                 from "../../../components/ui/ErrorView";
 import { EmptyState }                from "../../../components/ui/EmptyState";
@@ -99,47 +101,100 @@ function TotalBanner({ amount }: { amount: number }) {
   );
 }
 
-// ── Occurrence section ────────────────────────────────────────────────────────
+// ── Ghost "View all" card ─────────────────────────────────────────────────────
+// Renders a half-visible, blurred teaser card with a glass-style "View all" CTA.
 
-function OccurrenceSection({
+function ViewAllGhostCard({
+  total,
+  onPress,
+}: {
+  total: number;
+  onPress: () => void;
+}) {
+  return (
+    // Outer wrapper — clips the card so only the top half is visible
+    <View style={{ height: 52, overflow: "hidden", marginBottom: 4 }}>
+      {/* The ghost card itself (full height, clipped by parent) */}
+      <View
+        className="bg-surface border border-border rounded-card"
+        style={{ opacity: 0.55 }}
+      >
+        <View className="flex-row items-center gap-3 p-4">
+          {/* placeholder shimmer blocks */}
+          <View className="w-10 h-10 rounded-full bg-border" />
+          <View className="flex-1 gap-2">
+            <View className="h-3 w-32 rounded-full bg-border" />
+            <View className="h-2.5 w-20 rounded-full bg-border" />
+          </View>
+          <View className="h-3 w-12 rounded-full bg-border" />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ── Glass "View all" button ───────────────────────────────────────────────────
+
+function ViewAllButton({
+  total,
+  onPress,
+}: {
+  total: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`View all ${total} items`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+    >
+      <View
+        className="rounded-card border border-border flex-row items-center justify-center gap-2 py-3"
+        style={{
+          backgroundColor: "rgba(255,255,255,0.06)",
+        }}
+      >
+        <Ionicons name="list-outline" size={15} color="#A3A3A3" />
+        <Text className="text-caption text-secondary font-semibold">
+          View all {total}
+        </Text>
+        <Ionicons name="chevron-forward" size={13} color="#A3A3A3" />
+      </View>
+    </Pressable>
+  );
+}
+
+// ── Occurrence section (unlimited) ────────────────────────────────────────────
+// Used for "Action Required" — shows every item, no pagination.
+
+// Memoized so the rows only re-render when the occurrence data (or stable
+// callbacks) change — not on toast/modal state churn in the parent screen.
+
+function UnlimitedOccurrenceSection({
   title,
   items,
   emptyLabel,
   onViewBill,
   onMarkPaid,
-  limit = 3,
 }: {
   title:      string;
   items:      DashboardOccurrence[];
   emptyLabel: string;
   onViewBill: (billId: string) => void;
   onMarkPaid: (o: DashboardOccurrence) => void;
-  limit?:     number;
 }) {
-  const shown   = items.slice(0, limit);
-  const hasMore = items.length > limit;
-
   return (
     <View>
-      <SectionHeader
-        title={title}
-        action={
-          hasMore
-            ? {
-                label:   `See all ${items.length}`,
-                onPress: () => router.push("/(tabs)/bills"),
-              }
-            : undefined
-        }
-      />
-      {shown.length === 0 ? (
+      <SectionHeader title={title} />
+      {items.length === 0 ? (
         <View className="bg-surface border border-border rounded-card py-5 items-center mx-0.5">
           <Text className="text-caption text-secondary">
             {emptyLabel}
           </Text>
         </View>
       ) : (
-        shown.map((o) => (
+        items.map((o) => (
           <BillCard
             key={o.id}
             bill={o.bills as any}
@@ -152,6 +207,65 @@ function OccurrenceSection({
     </View>
   );
 }
+
+const MemoizedUnlimitedSection = memo(UnlimitedOccurrenceSection);
+
+// ── Occurrence section (capped with ghost footer) ─────────────────────────────
+// Used for "Upcoming" and "Recently Paid" — shows up to `limit` items, then
+// renders a half-visible ghost card + glass "View all" button when there are more.
+
+function CappedOccurrenceSection({
+  title,
+  items,
+  emptyLabel,
+  onViewBill,
+  onMarkPaid,
+  limit,
+}: {
+  title:      string;
+  items:      DashboardOccurrence[];
+  emptyLabel: string;
+  onViewBill: (billId: string) => void;
+  onMarkPaid: (o: DashboardOccurrence) => void;
+  limit:      number;
+}) {
+  const shown   = items.slice(0, limit);
+  const hasMore = items.length > limit;
+  return (
+    <View>
+      <SectionHeader title={title} />
+      {shown.length === 0 ? (
+        <View className="bg-surface border border-border rounded-card py-5 items-center mx-0.5">
+          <Text className="text-caption text-secondary">
+            {emptyLabel}
+          </Text>
+        </View>
+      ) : (
+        <>
+          {shown.map((o) => (
+            <BillCard
+              key={o.id}
+              bill={o.bills as any}
+              occurrence={o}
+              onPress={() => onViewBill(o.bills.id)}
+              onMarkPaid={() => onMarkPaid(o)}
+            />
+          ))}
+
+          {/* Half-visible ghost + View all — only when list is truncated */}
+          {hasMore && (
+            <>
+              <ViewAllGhostCard total={items.length} onPress={() => router.push("/(tabs)/bills")} />
+              <ViewAllButton    total={items.length} onPress={() => router.push("/(tabs)/bills")} />
+            </>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
+
+const MemoizedCappedSection = memo(CappedOccurrenceSection);
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -166,31 +280,34 @@ export default function DashboardScreen() {
   } = useDashboard();
 
   const { data: profile }    = useProfile();
-  const { mutate: markPaid } = useMarkPaid();
   const { toast, showToast } = useToast();
+
+  // ── Mark paid modal state ────────────────────────────────────────────
+  const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
+
+  const openMarkPaid = useCallback((o: DashboardOccurrence) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setMarkPaidTarget({
+      occurrence:     o,
+      billTitle:      o.bills.title,
+      amountExpected: o.amount ?? o.bills.amount_expected ?? null,
+      behaviorType:   o.bills.behavior_type,
+    });
+  }, []);
 
   const greeting  = useMemo(() => getGreeting(), []);
   const firstName = profile?.display_name?.split(" ")[0] ?? "";
 
-  const handleMarkPaid = useCallback((o: DashboardOccurrence) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    markPaid(
-      {
-        occurrence_id: o.id,
-        paid_amount:   o.amount ?? o.bills.amount_expected ?? 0,
-        paid_at:       new Date().toISOString(),
-      },
-      {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          showToast(`${o.bills.title} marked as paid`, "success");
-        },
-        onError: () => {
-          showToast("Could not mark as paid. Try again.", "error");
-        },
-      }
-    );
-  }, [markPaid, showToast]);
+  // Stable handlers — memoized sections compare props by reference.
+  const openBill = useCallback((id: string) => {
+    router.push(`/bill/${id}`);
+  }, []);
+
+  const goToBills = useCallback(() => {
+    router.push("/(tabs)/bills");
+  }, []);
+
+  const noop = useCallback(() => {}, []);
 
   const totalDueNow = useMemo(() => {
     if (!data) return null;
@@ -277,33 +394,33 @@ export default function DashboardScreen() {
             {/* ── Total owed banner ──────────────────────────────────── */}
             {totalDueNow != null && <TotalBanner amount={totalDueNow} />}
 
-            {/* ── Action Required (overdue + due today) ─────────────────── */}
-            <OccurrenceSection
+            {/* ── Action Required — shows ALL items, no cap ─────────── */}
+            <MemoizedUnlimitedSection
               title={`Action Required · ${actionRequired.length}`}
               items={actionRequired}
               emptyLabel="All clear! No bills need attention."
-              onViewBill={(id) => router.push(`/bill/${id}`)}
-              onMarkPaid={handleMarkPaid}
+              onViewBill={openBill}
+              onMarkPaid={openMarkPaid}
             />
 
-            {/* ── Upcoming ───────────────────────────────────────────── */}
-            <OccurrenceSection
+            {/* ── Upcoming — capped at 5, ghost footer if more ───────── */}
+            <MemoizedCappedSection
               title="Upcoming"
               items={data.upcoming}
               emptyLabel="No upcoming bills"
-              onViewBill={(id) => router.push(`/bill/${id}`)}
-              onMarkPaid={handleMarkPaid}
+              onViewBill={openBill}
+              onMarkPaid={openMarkPaid}
               limit={5}
             />
 
-            {/* ── Recently paid ──────────────────────────────────────── */}
+            {/* ── Recently paid — capped at 3, ghost footer if more ──── */}
             {data.recentlyPaid.length > 0 && (
-              <OccurrenceSection
+              <MemoizedCappedSection
                 title="Recently paid"
                 items={data.recentlyPaid}
                 emptyLabel=""
-                onViewBill={(id) => router.push(`/bill/${id}`)}
-                onMarkPaid={() => {}}
+                onViewBill={openBill}
+                onMarkPaid={noop}
                 limit={3}
               />
             )}
@@ -326,6 +443,18 @@ export default function DashboardScreen() {
           <FAB onPress={() => router.push("/add-bill")} label="Add bill" />
         </View>
       )}
+
+      {/* ── Mark paid modal ──────────────────────────────────────── */}
+      <MarkPaidModal
+        target={markPaidTarget}
+        onClose={() => setMarkPaidTarget(null)}
+        onSuccess={() =>
+          showToast(
+            `${markPaidTarget?.billTitle ?? "Bill"} marked as paid`,
+            "success"
+          )
+        }
+      />
 
       {/* ── Toast ───────────────────────────────────────────────────── */}
       <Toast

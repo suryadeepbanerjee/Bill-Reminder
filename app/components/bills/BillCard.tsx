@@ -34,6 +34,7 @@ interface BillCardProps {
 
 export const BillCard = memo(function BillCard({ bill, occurrence, onPress, onMarkPaid }: BillCardProps) {
   const cat = bill.categories;
+  if (!cat) return null;
   const displayAmount = occurrence?.amount ?? bill.amount_expected;
   const displayState = occurrence ? getDisplayState(occurrence) : undefined;
 

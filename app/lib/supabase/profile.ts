@@ -1,4 +1,5 @@
 import { supabase } from "./client";
+import { guardAsync } from "../action-guard";
 import type { Profile, Household, HouseholdMember } from "./types";
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
@@ -97,35 +98,37 @@ export async function createHousehold(
   name: string,
   userId: string
 ): Promise<{ household: Household; member: HouseholdMember }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
+  return guardAsync(`mut:create-household:${name.trim()}`, async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-  const res = await fetch(`${supabaseUrl}/functions/v1/create-household`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${session.access_token}`,
-      "Content-Type":  "application/json",
-      "apikey":        supabaseAnonKey,
-    },
-    body: JSON.stringify({ name }),
-  });
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+    const res = await fetch(`${supabaseUrl}/functions/v1/create-household`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`,
+        "Content-Type":  "application/json",
+        "apikey":        supabaseAnonKey,
+      },
+      body: JSON.stringify({ name }),
+    });
 
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
 
-  return {
-    household: body.household as Household,
-    member: {
-      id:           "",
-      household_id: body.household.id,
-      user_id:      userId,
-      role:         "admin",
-      status:       "active",
-      created_at:   body.household.created_at,
-    } as HouseholdMember,
-  };
+    return {
+      household: body.household as Household,
+      member: {
+        id:           "",
+        household_id: body.household.id,
+        user_id:      userId,
+        role:         "admin",
+        status:       "active",
+        created_at:   body.household.created_at,
+      } as HouseholdMember,
+    };
+  }) as Promise<{ household: Household; member: HouseholdMember }>;
 }
 
 /** Invite a user to a household — sends invite email */
@@ -133,37 +136,41 @@ export async function inviteToHousehold(
   householdId: string,
   email: string
 ): Promise<{ success: boolean; message: string }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
+  return guardAsync(`mut:invite:${householdId}:${email}`, async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-  const url = `${supabaseUrl}/functions/v1/invite-member`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${session.access_token}`,
-      "Content-Type":  "application/json",
-      "apikey":        supabaseAnonKey,
-    },
-    body: JSON.stringify({ householdId, email }),
-  });
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+    const url = `${supabaseUrl}/functions/v1/invite-member`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`,
+        "Content-Type":  "application/json",
+        "apikey":        supabaseAnonKey,
+      },
+      body: JSON.stringify({ householdId, email }),
+    });
 
-  const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body.error ?? `Request failed (${res.status})`);
-  }
-  return body as { success: boolean; message: string };
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body.error ?? `Request failed (${res.status})`);
+    }
+    return body as { success: boolean; message: string };
+  }) as Promise<{ success: boolean; message: string }>;
 }
 
 /** Remove a member from a household (admin only) */
 export async function removeMember(memberId: string): Promise<void> {
-  const { error } = await supabase
-    .from("household_members")
-    .update({ status: "removed" })
-    .eq("id", memberId);
+  await guardAsync(`mut:remove-member:${memberId}`, async () => {
+    const { error } = await supabase
+      .from("household_members")
+      .update({ status: "removed" })
+      .eq("id", memberId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
+  });
 }
 
 /** Rename a household (admin only) */
@@ -171,49 +178,55 @@ export async function renameHousehold(
   householdId: string,
   newName: string
 ): Promise<void> {
-  const { error } = await supabase
-    .from("households")
-    .update({ name: newName })
-    .eq("id", householdId);
+  await guardAsync(`mut:rename-household:${householdId}:${newName.trim()}`, async () => {
+    const { error } = await supabase
+      .from("households")
+      .update({ name: newName })
+      .eq("id", householdId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
+  });
 }
 
 /** Delete a household (admin only, cannot delete your only household) */
 export async function deleteHousehold(householdId: string): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
+  await guardAsync(`mut:delete-household:${householdId}`, async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-  const res = await fetch(`${supabaseUrl}/functions/v1/delete-household`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${session.access_token}`,
-      "Content-Type":  "application/json",
-      "apikey":        supabaseAnonKey,
-    },
-    body: JSON.stringify({ householdId }),
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+    const res = await fetch(`${supabaseUrl}/functions/v1/delete-household`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`,
+        "Content-Type":  "application/json",
+        "apikey":        supabaseAnonKey,
+      },
+      body: JSON.stringify({ householdId }),
+    });
+
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
   });
-
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
 }
 
 /** Accept an invite token */
 export async function acceptInvite(
   householdId: string
 ): Promise<{ success: boolean }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
+  return guardAsync(`mut:accept-invite:${householdId}`, async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
 
-  const { data, error } = await supabase.functions.invoke("accept-invite", {
-    body: { householdId },
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
+    const { data, error } = await supabase.functions.invoke("accept-invite", {
+      body: { householdId },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
 
-  if (error) throw new Error(error.message ?? "Failed to accept invite");
-  return data as { success: boolean };
+    if (error) throw new Error(error.message ?? "Failed to accept invite");
+    return data as { success: boolean };
+  }) as Promise<{ success: boolean }>;
 }
 
 export async function savePushToken(

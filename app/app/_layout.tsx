@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,10 +11,16 @@ import { useAuthStore } from "../stores/auth-store";
 import { useThemeStore } from "../stores/theme-store";
 import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
-import { setupNotificationListeners } from "../lib/notifications";
-import { Colors } from "../lib/theme";
+
+// Side-effect: patches expo-router's routing queue so every navigation call
+// (router.*, Link, Redirect) is deduped per destination — silent, cooldown-based.
+import "../lib/guarded-navigation";
+import { releaseAllActions } from "../lib/action-guard";
 
 SplashScreen.preventAutoHideAsync();
+
+// Smooth crossfade when the splash is dismissed (expo-splash-screen >= 31).
+SplashScreen.setOptions({ duration: 200, fade: true });
 
 cssInterop(Ionicons, {
   className: {
@@ -36,7 +42,7 @@ const queryClient = new QueryClient({
 function LoadingScreen() {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080810" }}>
-      <ActivityIndicator size="large" color={Colors.accent[500]} />
+      <ActivityIndicator size="large" color="#D1A920" />
     </View>
   );
 }
@@ -46,14 +52,30 @@ export default function RootLayout() {
   const { resolved, _hydrate } = useThemeStore();
   const { setColorScheme } = useColorScheme();
   const resetHousehold = useHouseholdStore((s) => s.reset);
+  const pathname = usePathname();
 
   useEffect(() => {
     _hydrate();
   }, []);
 
   useEffect(() => {
-    const unsubscribe = setupNotificationListeners();
-    return () => unsubscribe();
+    // Screen blur / navigation: release any in-flight guard locks so the
+    // dedupe state never leaks across screens or sticks after a remount.
+    releaseAllActions();
+  }, [pathname]);
+
+  useEffect(() => {
+    // Lazy-load expo-notifications so its native module doesn't init during
+    // cold start — notification listeners aren't needed before the UI paints.
+    let unsubscribe: (() => void) | undefined;
+    let mounted = true;
+    import("../lib/notifications").then((m) => {
+      if (mounted) unsubscribe = m.setupNotificationListeners();
+    });
+    return () => {
+      mounted = false;
+      unsubscribe?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -61,6 +83,11 @@ export default function RootLayout() {
   }, [resolved, setColorScheme]);
 
   useEffect(() => {
+    // Hide the splash as soon as the first frame paints — the LoadingScreen
+    // below uses the same background (#080810), so the handoff is seamless
+    // and auth restore (SecureStore read) never blocks perceived launch.
+    SplashScreen.hideAsync();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);

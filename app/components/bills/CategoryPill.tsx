@@ -39,17 +39,24 @@ interface CategoryIconBadgeProps {
   icon:  string;
   color: string;
   size?: number;
+  /** Selected state — fills with the accent color (used in picker grids). */
+  selected?: boolean;
 }
 
-export function CategoryIconBadge({ icon, color, size = 40 }: CategoryIconBadgeProps) {
+export function CategoryIconBadge({ icon, color, size = 40, selected = false }: CategoryIconBadgeProps) {
   const ionIcon = resolveIcon(icon) as keyof typeof Ionicons.glyphMap;
   const iconSize = Math.round(size * 0.45);
   const { colorScheme } = useColorScheme();
-  const iconColor = colorScheme === "dark" ? "#FFFFFF" : "#171717";
+  // Accent text is inverted on the accent fill (white in light, dark in dark).
+  const iconColor = selected
+    ? (colorScheme === "dark" ? "#121212" : "#FFFFFF")
+    : (colorScheme === "dark" ? "#FFFFFF" : "#171717");
 
   return (
     <View
-      className="items-center justify-center rounded-input bg-neutral-100 dark:bg-neutral-800"
+      className={`items-center justify-center rounded-input ${
+        selected ? "bg-accent" : "bg-neutral-100 dark:bg-neutral-800"
+      }`}
       accessible={false}
       importantForAccessibility="no-hide-descendants"
       style={{

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { View, Text, ScrollView, Pressable, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/Button";
 import { TextInput } from "../../../components/ui/TextInput";
@@ -17,6 +18,7 @@ import {
   renameHousehold,
   deleteHousehold,
 } from "../../../lib/supabase/profile";
+import { friendlyError } from "../../../lib/errors";
 import type { HouseholdMember, Profile } from "../../../lib/supabase/types";
 
 const INVITE_EXPIRY_HOURS = 24;
@@ -56,6 +58,8 @@ export default function MembersScreen() {
     profile: Profile | null;
   }[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const queryClient = useQueryClient();
 
   const householdId = activeHousehold?.household.id ?? "";
   const isAdmin = activeHousehold?.member.role === "admin";
@@ -114,7 +118,7 @@ export default function MembersScreen() {
       const updated = await fetchHouseholdMembers(householdId);
       setMembers(updated);
     } catch (e: any) {
-      setInviteError(e.message ?? "Could not send invitation.");
+      setInviteError(friendlyError(e));
     } finally {
       setInviting(false);
     }
@@ -135,10 +139,10 @@ export default function MembersScreen() {
               await removeMember(memberId);
               setMembers((prev) => prev.filter((m) => m.member.id !== memberId));
             } catch (e: any) {
-              Alert.alert("Error", e.message ?? "Could not remove member.");
+              Alert.alert("Error", friendlyError(e));
             }
           },
-        },
+        }
       ]
     );
   };
@@ -164,7 +168,7 @@ export default function MembersScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowRename(false);
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not rename household.");
+      Alert.alert("Error", friendlyError(e));
     } finally {
       setRenaming(false);
     }
@@ -193,7 +197,7 @@ export default function MembersScreen() {
       setShowCreateHousehold(false);
       setNewHouseholdName("");
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not create household.");
+      Alert.alert("Error", friendlyError(e));
     } finally {
       setCreatingHousehold(false);
     }
@@ -225,9 +229,16 @@ export default function MembersScreen() {
               if (activeHousehold?.household.id === targetId && remaining.length > 0) {
                 useHouseholdStore.getState().setActiveHousehold(remaining[0]);
               }
-              router.back();
+              // Purge stale query caches so every screen (settings dropdown,
+              // bills, dashboard) reflects the deletion immediately — the
+              // useHousehold queryFn re-syncs the store from fresh server data.
+              queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
+              queryClient.invalidateQueries({ queryKey: ["bills", targetId] });
+              queryClient.invalidateQueries({ queryKey: ["dashboard", targetId] });
+              queryClient.invalidateQueries({ queryKey: ["householdCategories", targetId] });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (e: any) {
-              Alert.alert("Error", e.message ?? "Could not delete household.");
+              Alert.alert("Error", friendlyError(e));
             } finally {
               setDeleting(false);
             }
@@ -249,7 +260,7 @@ export default function MembersScreen() {
     <SafeAreaView className="flex-1 bg-canvas" edges={["bottom"]}>
       <Stack.Screen
         options={{
-          title: "Manage Members",
+          title: "Manage Household",
           headerShown: true,
           headerShadowVisible: false,
           headerStyle: { backgroundColor: "#0A0A0A" },
@@ -567,6 +578,15 @@ export default function MembersScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {deleting && (
+        <View className="absolute inset-0 z-50 bg-black/70 items-center justify-center">
+          <ActivityIndicator size="large" color="#D1A920" />
+          <Text className="mt-3 text-white text-[15px] font-semibold">
+            Deleting household…
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

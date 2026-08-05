@@ -54,11 +54,12 @@ serve(async (req: Request) => {
       try {
         rulesProcessed++;
 
-        // Find open occurrences for this bill
+        // Find open occurrences for this bill (exclude soft-deleted)
         const { data: occurrences, error: occError } = await supabase
           .from("bill_occurrences")
           .select("*")
           .eq("bill_id", rule.bills.id)
+          .is("deleted_at", null)
           .in("state", ["upcoming", "generated", "expected_payment", "due_today", "overdue"]);
 
         if (occError) {

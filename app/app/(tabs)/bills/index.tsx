@@ -6,20 +6,23 @@ import {
   RefreshControl,
   ScrollView,
 } from "react-native";
+import type { ListRenderItem } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import { useBills }       from "../../../hooks/useBills";
-import { useDashboard, useMarkPaid } from "../../../hooks/useOccurrences";
-import { BillCard }       from "../../../components/bills/BillCard";
-import { SearchField }    from "../../../components/ui/SearchField";
-import { Chip }           from "../../../components/ui/Chip";
-import { LoadingSkeleton }from "../../../components/ui/LoadingSkeleton";
-import { ErrorView }      from "../../../components/ui/ErrorView";
-import { EmptyState }     from "../../../components/ui/EmptyState";
-import { FAB }            from "../../../components/ui/FAB";
-import { Colors }         from "../../../lib/theme";
+import { useBills }                  from "../../../hooks/useBills";
+import { useDashboard }              from "../../../hooks/useOccurrences";
+import { BillCard }                  from "../../../components/bills/BillCard";
+import { MarkPaidModal }             from "../../../components/bills/MarkPaidModal";
+import type { MarkPaidTarget }       from "../../../components/bills/MarkPaidModal";
+import { SearchField }               from "../../../components/ui/SearchField";
+import { Chip }                      from "../../../components/ui/Chip";
+import { LoadingSkeleton }           from "../../../components/ui/LoadingSkeleton";
+import { ErrorView }                 from "../../../components/ui/ErrorView";
+import { EmptyState }                from "../../../components/ui/EmptyState";
+import { FAB }                       from "../../../components/ui/FAB";
+import { Colors }                    from "../../../lib/theme";
 import type { Bill, DashboardOccurrence } from "../../../lib/supabase/types";
 
 // ── Filter types ──────────────────────────────────────────────────────────────
@@ -35,8 +38,9 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 export default function BillsScreen() {
-  const [search, setSearch]   = useState("");
-  const [filter, setFilter]   = useState<FilterKey>("all");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
 
   const {
     data:        bills = [],
@@ -48,7 +52,6 @@ export default function BillsScreen() {
   } = useBills();
 
   const { data: dashboard } = useDashboard();
-  const { mutate: markPaid } = useMarkPaid();
 
   // Build a map of billId → latest occurrence so BillCard can show state
   const occurrenceByBillId = useMemo(() => {
@@ -113,16 +116,31 @@ export default function BillsScreen() {
     return result;
   }, [bills, filter, search, occurrenceByBillId, paidBillIds]);
 
-  const handleMarkPaid = useCallback((billId: string) => {
+  const openMarkPaid = useCallback((billId: string) => {
     const o = occurrenceByBillId.get(billId);
     if (!o) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    markPaid({
-      occurrence_id: o.id,
-      paid_amount:   o.amount ?? o.bills.amount_expected ?? 0,
-      paid_at:       new Date().toISOString(),
+    setMarkPaidTarget({
+      occurrence:     o,
+      billTitle:      o.bills.title,
+      amountExpected: o.amount ?? o.bills.amount_expected ?? null,
+      behaviorType:   o.bills.behavior_type,
     });
-  }, [occurrenceByBillId, markPaid]);
+  }, [occurrenceByBillId]);
+
+  // Stable identity so BillCard's memo actually prevents row re-renders
+  // when the parent updates (search keystrokes, refetch, etc.).
+  const renderItem = useCallback<ListRenderItem<Bill>>(({ item }) => {
+    const occurrence = occurrenceByBillId.get(item.id);
+    return (
+      <BillCard
+        bill={item as any}
+        occurrence={occurrence}
+        onPress={() => router.push(`/bill/${item.id}`)}
+        onMarkPaid={() => openMarkPaid(item.id)}
+      />
+    );
+  }, [occurrenceByBillId, openMarkPaid]);
 
   const isLoading = billsLoading;
   const isError   = billsError;
@@ -196,19 +214,15 @@ export default function BillsScreen() {
               variant={search ? "search" : "bills"}
             />
           }
-          renderItem={({ item: bill }) => {
-            const occurrence = occurrenceByBillId.get(bill.id);
-            return (
-              <BillCard
-                bill={bill as any}
-                occurrence={occurrence}
-                onPress={() => router.push(`/bill/${bill.id}`)}
-                onMarkPaid={() => handleMarkPaid(bill.id)}
-              />
-            );
-          }}
+          renderItem={renderItem}
         />
       )}
+
+      {/* ── Mark paid modal ─────────────────────────────────────────── */}
+      <MarkPaidModal
+        target={markPaidTarget}
+        onClose={() => setMarkPaidTarget(null)}
+      />
 
       {/* ── FAB ──────────────────────────────────────────────────────── */}
       <View className="absolute bottom-6 right-4" pointerEvents="box-none">

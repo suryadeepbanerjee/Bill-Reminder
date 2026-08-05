@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import * as Haptics from "expo-haptics";
 
 import { useBill, useUpdateBill }         from "../../hooks/useBills";
 import { useDeleteBill }                 from "../../hooks/useBills";
-import { useBillOccurrences, useMarkPaid } from "../../hooks/useOccurrences";
+import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
 
 import { Header }          from "../../components/ui/Header";
@@ -25,12 +25,17 @@ import { Button }          from "../../components/ui/Button";
 import { IconButton }      from "../../components/ui/IconButton";
 import { Modal }           from "../../components/ui/Modal";
 import { TextInput }       from "../../components/ui/TextInput";
+import { NumericInput }    from "../../components/ui/NumericInput";
 import { AlertBadge }      from "../../components/ui/AlertBadge";
 import { LoadingSkeleton } from "../../components/ui/LoadingSkeleton";
+import { DateAnchorPicker, buildAnchorDate } from "../../components/ui/DateAnchorPicker";
+import { RecurrencePreview } from "../../components/bills/RecurrencePreview";
 import { ErrorView }       from "../../components/ui/ErrorView";
 import { Switch }          from "../../components/ui/Switch";
 import { BillStateChip }   from "../../components/bills/BillStateChip";
 import { CategoryIconBadge } from "../../components/bills/CategoryPill";
+import { MarkPaidModal, MarkPaidTarget } from "../../components/bills/MarkPaidModal";
+import { DeleteTransactionModal, DeleteTransactionTarget } from "../../components/bills/DeleteTransactionModal";
 
 import {
   formatCurrency,
@@ -42,7 +47,7 @@ import {
 } from "../../lib/utils";
 import { Colors }                         from "../../lib/theme";
 import { humanize }                       from "../../lib/errors";
-import { updateBillSchema, UpdateBillFormData } from "../../schemas/bill";
+import { updateBillSchema, UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "../../schemas/bill";
 import type { Bill, BillOccurrence, BillReminderRule } from "../../lib/supabase/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -57,21 +62,18 @@ function getReminderAnchorLabel(anchor: string): string {
   return "Generation date";
 }
 
+function ordinalSuffix(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
 // ── Bill type options ────────────────────────────────────────────────────────
 
 const BEHAVIOR_OPTIONS = [
   { value: "fixed_due_date" as const, label: "Fixed due date", icon: "calendar-outline" as const },
   { value: "prepaid_validity" as const, label: "Prepaid / Validity", icon: "time-outline" as const },
   { value: "wallet_balance" as const, label: "Wallet / Balance", icon: "wallet-outline" as const },
-];
-
-const REPEAT_OPTIONS = [
-  { value: "monthly" as const,        label: "Monthly",              needsInterval: false },
-  { value: "yearly" as const,         label: "Yearly",               needsInterval: false },
-  { value: "every_x_days" as const,   label: "Every X days",         needsInterval: true  },
-  { value: "every_x_weeks" as const,  label: "Every X weeks",        needsInterval: true  },
-  { value: "every_x_months" as const, label: "Every X months",       needsInterval: true  },
-  { value: "none" as const,           label: "One-time (no repeat)", needsInterval: false },
 ];
 
 // ── Edit Bill sheet ──────────────────────────────────────────────────────────
@@ -85,7 +87,26 @@ interface EditBillSheetProps {
 
 function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps) {
   const [error, setError] = useState<string | null>(null);
+  const [nextDueDate, setNextDueDate] = useState<string | null>(bill.next_due_date ?? null);
   const { mutateAsync: updateBill, isPending } = useUpdateBill();
+
+  // Sync the next-due selection every time the sheet opens (it stays mounted).
+  useEffect(() => {
+    if (visible) setNextDueDate(bill.next_due_date ?? null);
+  }, [visible, bill.next_due_date]);
+
+  const initialAnchor = useMemo(() => {
+    // Prefer the stored anchor_date; fall back to bill's creation date (not today)
+    // so the default shown is meaningful rather than arbitrary.
+    const src = bill.anchor_date
+      ? new Date(bill.anchor_date + "T00:00:00")
+      : new Date(bill.created_at);
+    return {
+      month: src.getMonth() + 1,
+      day:   src.getDate(),
+      year:  src.getFullYear(),
+    };
+  }, [bill.anchor_date, bill.created_at]);
 
   const {
     control,
@@ -103,30 +124,83 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
       repeat_kind:        bill.repeat_kind,
       repeat_interval:    bill.repeat_interval ?? undefined,
       due_day_offset:     bill.due_day_offset ?? undefined,
-      validity_days:      bill.validity_days ?? undefined,
-      check_interval_days: bill.check_interval_days ?? undefined,
-      minimum_balance:    bill.minimum_balance ?? undefined,
+      anchor_month:       initialAnchor.month,
+      anchor_day:         initialAnchor.day,
+      anchor_year:        initialAnchor.year,
     },
     mode: "onBlur",
   });
 
+  const anchorMonthVal = watch("anchor_month") ?? initialAnchor.month;
+  const anchorDayVal   = watch("anchor_day")   ?? initialAnchor.day;
+  const anchorYearVal  = watch("anchor_year")   ?? initialAnchor.year;
+
+  const handleAnchorMonthChange = useCallback((m: number) => {
+    setValue("anchor_month", m, { shouldValidate: true, shouldDirty: true });
+  }, [setValue]);
+
+  const handleAnchorDayChange = useCallback((d: number) => {
+    setValue("anchor_day", d, { shouldValidate: true, shouldDirty: true });
+  }, [setValue]);
+
+  const handleAnchorYearChange = useCallback((y: number) => {
+    setValue("anchor_year", y, { shouldValidate: true, shouldDirty: true });
+  }, [setValue]);
+
   const behaviorType  = watch("behavior_type");
   const repeatKind    = watch("repeat_kind");
   const needsInterval = ["every_x_days", "every_x_weeks", "every_x_months"].includes(repeatKind as string);
+  const isPrepaid     = behaviorType === "prepaid_validity" || behaviorType === "wallet_balance";
+  const repeatIntervalVal = watch("repeat_interval") ?? null;
+  const anchorDateStr = buildAnchorDate(anchorMonthVal, anchorDayVal, anchorYearVal);
+
+  // A next-due selection is tied to the anchor/schedule — when the user edits
+  // them, drop a previously selected date so a stale one is never submitted.
+  const scheduleChanged =
+    behaviorType !== bill.behavior_type ||
+    repeatKind   !== bill.repeat_kind ||
+    repeatIntervalVal !== (bill.repeat_interval ?? null) ||
+    anchorDateStr !== buildAnchorDate(initialAnchor.month, initialAnchor.day, initialAnchor.year);
+
+  useEffect(() => {
+    if (scheduleChanged) setNextDueDate(null);
+  }, [scheduleChanged]);
+
+  const repeatOptions = useMemo(() => {
+    if (behaviorType === "fixed_due_date") {
+      return [
+        { value: "monthly" as const, label: "Every month" },
+        { value: "yearly"  as const, label: "Every year" },
+        { value: "none"    as const, label: "One-time (no repeat)" },
+      ];
+    }
+    return [
+      { value: "monthly"        as const, label: "Every month",          needsInterval: false },
+      { value: "yearly"         as const, label: "Every year",           needsInterval: false },
+      { value: "every_x_days"   as const, label: "Every X days",         needsInterval: true  },
+      { value: "every_x_weeks"  as const, label: "Every X weeks",        needsInterval: true  },
+      { value: "every_x_months" as const, label: "Every X months",       needsInterval: true  },
+      { value: "none"           as const, label: "One-time (no repeat)", needsInterval: false },
+    ];
+  }, [behaviorType]);
 
   const onSubmit = async (data: UpdateBillFormData) => {
     setError(null);
     try {
-      // Null out fields not relevant to the selected behavior type
-      const payload: UpdateBillFormData = {
+      const anchor_date = buildAnchorDate(data.anchor_month, data.anchor_day, data.anchor_year);
+      const payload = {
         ...data,
-        validity_days:       data.behavior_type === "prepaid_validity" ? (data.validity_days       ?? null) : null,
-        check_interval_days: data.behavior_type === "wallet_balance"   ? (data.check_interval_days ?? null) : null,
-        minimum_balance:     data.behavior_type === "wallet_balance"   ? (data.minimum_balance     ?? null) : null,
-        due_day_offset:      data.behavior_type === "fixed_due_date"   ? (data.due_day_offset      ?? null) : null,
+        anchor_date:                anchor_date || null,
+        next_due_date:              nextDueDate,
+        due_day_offset:             data.behavior_type === "fixed_due_date" ? (data.due_day_offset ?? null) : null,
+        generation_day_offset:      null,
+        expected_payment_day_offset: null,
       };
 
-      await updateBill({ id: bill.id, input: payload as any });
+      // Strip non-DB fields (anchor_month/day/year are form-only)
+      const { anchor_month: _am, anchor_day: _ad, anchor_year: _ay, ...dbPayload } = payload as any;
+
+      await updateBill({ id: bill.id, input: dbPayload });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
       onClose();
@@ -137,7 +211,9 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
 
   return (
     <Modal visible={visible} onClose={onClose} variant="bottom">
-      <View className="max-h-[85vh]">
+      {/* 85vh inner wrapper would overflow the sheet (handle bar + bottom
+          inset are added by the Modal), pushing the action bar off-screen. */}
+      <View className="max-h-[75vh]">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
           <Text className="text-title text-primary font-semibold">
@@ -156,7 +232,7 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
         {/* Scrollable form */}
         <ScrollView
           className="px-4 pt-4"
-          contentContainerStyle={{ paddingBottom: 16 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -207,14 +283,14 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
               control={control}
               name="amount_expected"
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
+                <NumericInput
                   label="Expected amount"
                   placeholder="0"
                   keyboardType="decimal-pad"
                   returnKeyType="done"
                   onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value != null ? String(value) : ""}
+                  onChange={onChange}
+                  value={value ?? undefined}
                   error={errors.amount_expected?.message}
                   hint="Leave blank if it varies each cycle"
                   leadingIcon={
@@ -275,80 +351,12 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
               ))}
             </View>
 
-            {/* Conditional: prepaid validity days */}
-            {behaviorType === "prepaid_validity" && (
-              <Controller
-                control={control}
-                name="validity_days"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Validity period (days)"
-                    placeholder="e.g. 28"
-                    keyboardType="number-pad"
-                    returnKeyType="done"
-                    onBlur={onBlur}
-                    onChangeText={(t) => {
-                      const parsed = parseInt(t);
-                      onChange(isNaN(parsed) ? undefined : parsed);
-                    }}
-                    value={value != null ? String(value) : ""}
-                    error={errors.validity_days?.message}
-                  />
-                )}
-              />
-            )}
-
-            {/* Conditional: wallet fields */}
-            {behaviorType === "wallet_balance" && (
-              <>
-                <Controller
-                  control={control}
-                  name="check_interval_days"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      label="Check every (days)"
-                      placeholder="e.g. 30"
-                      keyboardType="number-pad"
-                      returnKeyType="next"
-                      onBlur={onBlur}
-                      onChangeText={(t) => {
-                        const parsed = parseInt(t);
-                        onChange(isNaN(parsed) ? undefined : parsed);
-                      }}
-                      value={value != null ? String(value) : ""}
-                      error={errors.check_interval_days?.message}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="minimum_balance"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      label="Alert below balance"
-                      placeholder="0"
-                      keyboardType="decimal-pad"
-                      onBlur={onBlur}
-                      onChangeText={(t) => {
-                        const parsed = parseFloat(t);
-                        onChange(isNaN(parsed) ? undefined : parsed);
-                      }}
-                      value={value != null ? String(value) : ""}
-                      leadingIcon={
-                        <Text className="text-body text-secondary font-medium">₹</Text>
-                      }
-                    />
-                  )}
-                />
-              </>
-            )}
-
             {/* Repeat frequency */}
             <View>
               <Text className="text-label text-primary font-medium mb-2">
                 Repeat frequency
               </Text>
-              {REPEAT_OPTIONS.map((opt) => (
+              {repeatOptions.map((opt) => (
                 <Pressable
                   key={opt.value}
                   onPress={() => {
@@ -382,7 +390,7 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
                 control={control}
                 name="repeat_interval"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
+                  <NumericInput
                     label={`Every how many ${
                       repeatKind === "every_x_days"   ? "days" :
                       repeatKind === "every_x_weeks"  ? "weeks" : "months"
@@ -391,38 +399,125 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
                     keyboardType="number-pad"
                     returnKeyType="done"
                     onBlur={onBlur}
-                    onChangeText={(t) => {
-                      const parsed = parseInt(t);
-                      onChange(isNaN(parsed) ? undefined : parsed);
-                    }}
-                    value={value != null ? String(value) : ""}
+                    onChange={onChange}
+                    value={value ?? undefined}
                     error={errors.repeat_interval?.message}
                   />
                 )}
               />
             )}
 
-            {/* Conditional: due day offset for fixed due date */}
-            {behaviorType === "fixed_due_date" && (
+            {/* Fixed due date: monthly → due_day_offset; yearly → DateAnchorPicker */}
+            {behaviorType === "fixed_due_date" && repeatKind === "monthly" && (
               <Controller
                 control={control}
                 name="due_day_offset"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
+                  <NumericInput
                     label="Due on day (of month)"
                     placeholder="e.g. 5"
                     keyboardType="number-pad"
                     returnKeyType="done"
                     onBlur={onBlur}
-                    onChangeText={(t) => {
-                      const parsed = parseInt(t);
-                      onChange(isNaN(parsed) ? undefined : parsed);
-                    }}
-                    value={value != null ? String(value) : ""}
+                    onChange={onChange}
+                    value={value ?? undefined}
                     error={errors.due_day_offset?.message}
                     hint="Enter 0 for end-of-cycle (last day)"
                   />
                 )}
+              />
+            )}
+
+            {behaviorType === "fixed_due_date" && repeatKind === "yearly" && (
+              <DateAnchorPicker
+                month={anchorMonthVal}
+                day={anchorDayVal}
+                year={anchorYearVal}
+                onMonthChange={handleAnchorMonthChange}
+                onDayChange={handleAnchorDayChange}
+                onYearChange={handleAnchorYearChange}
+                showYear={false}
+                dateLabel="Due date"
+                errors={{
+                  month: errors.anchor_month?.message,
+                  day:   errors.anchor_day?.message,
+                  year:  errors.anchor_year?.message,
+                }}
+              />
+            )}
+
+            {behaviorType === "fixed_due_date" && repeatKind === "none" && (
+              <DateAnchorPicker
+                month={anchorMonthVal}
+                day={anchorDayVal}
+                year={anchorYearVal}
+                onMonthChange={handleAnchorMonthChange}
+                onDayChange={handleAnchorDayChange}
+                onYearChange={handleAnchorYearChange}
+                showYear={true}
+                dateLabel="Due date"
+                order="DMY"
+                yearMin={DUE_DATE_YEAR_MIN}
+                yearMax={DUE_DATE_YEAR_MAX}
+                errors={{
+                  month: errors.anchor_month?.message,
+                  day:   errors.anchor_day?.message,
+                  year:  errors.anchor_year?.message,
+                }}
+              />
+            )}
+
+            {/* Prepaid/wallet: monthly/yearly/none → DateAnchorPicker */}
+            {isPrepaid && !needsInterval && (
+              <DateAnchorPicker
+                month={anchorMonthVal}
+                day={anchorDayVal}
+                year={anchorYearVal}
+                onMonthChange={handleAnchorMonthChange}
+                onDayChange={handleAnchorDayChange}
+                onYearChange={handleAnchorYearChange}
+                showYear={repeatKind === "none"}
+                dateLabel={repeatKind === "none" ? "Due date" : "Last payment date"}
+                order={repeatKind === "none" ? "DMY" : "MDY"}
+                yearMin={repeatKind === "none" ? DUE_DATE_YEAR_MIN : undefined}
+                yearMax={repeatKind === "none" ? DUE_DATE_YEAR_MAX : undefined}
+                errors={{
+                  month: errors.anchor_month?.message,
+                  day:   errors.anchor_day?.message,
+                  year:  errors.anchor_year?.message,
+                }}
+              />
+            )}
+
+            {/* Prepaid/wallet: every_x_* → DateAnchorPicker (anchor_date = start) */}
+            {isPrepaid && needsInterval && (
+              <DateAnchorPicker
+                month={anchorMonthVal}
+                day={anchorDayVal}
+                year={anchorYearVal}
+                onMonthChange={handleAnchorMonthChange}
+                onDayChange={handleAnchorDayChange}
+                onYearChange={handleAnchorYearChange}
+                showYear={true}
+                dateLabel="Last payment date"
+                errors={{
+                  month: errors.anchor_month?.message,
+                  day:   errors.anchor_day?.message,
+                  year:  errors.anchor_year?.message,
+                }}
+              />
+            )}
+
+            {/* Live preview for prepaid/wallet */}
+            {isPrepaid && (
+              <RecurrencePreview
+                behaviorType={behaviorType}
+                repeatKind={repeatKind as string}
+                repeatInterval={needsInterval ? repeatIntervalVal ?? undefined : undefined}
+                dueDayOffset={undefined}
+                anchorDate={anchorDateStr || undefined}
+                value={nextDueDate}
+                onChange={setNextDueDate}
               />
             )}
           </View>
@@ -430,7 +525,7 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
 
         {/* Action bar */}
         <Divider />
-        <View className="flex-row gap-3 px-4 py-3">
+        <View className="flex-row gap-3 px-4 pt-3 pb-4">
           <View className="flex-1">
             <Button title="Cancel" variant="secondary" onPress={onClose} fullWidth />
           </View>
@@ -439,101 +534,6 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
               title="Save changes"
               variant="accent"
               onPress={handleSubmit(onSubmit)}
-              loading={isPending}
-              fullWidth
-            />
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// ── Mark Paid sheet ───────────────────────────────────────────────────────────
-
-interface MarkPaidSheetProps {
-  visible:       boolean;
-  occurrence:    BillOccurrence;
-  defaultAmount: number;
-  onClose:       () => void;
-  onSuccess:     () => void;
-}
-
-function MarkPaidSheet({
-  visible,
-  occurrence,
-  defaultAmount,
-  onClose,
-  onSuccess,
-}: MarkPaidSheetProps) {
-  const [amount, setAmount]   = useState(String(defaultAmount || ""));
-  const [notes, setNotes]     = useState("");
-  const [error, setError]     = useState<string | null>(null);
-  const { mutateAsync, isPending } = useMarkPaid();
-
-  const handleMarkPaid = async () => {
-    const parsedAmount = parseFloat(amount);
-    if (!amount || isNaN(parsedAmount) || parsedAmount < 0) {
-      setError("Enter a valid amount.");
-      return;
-    }
-    setError(null);
-    try {
-      await mutateAsync({
-        occurrence_id:  occurrence.id,
-        paid_amount:    parsedAmount,
-        paid_at:        new Date().toISOString(),
-        payment_notes:  notes.trim() || null,
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onSuccess();
-      onClose();
-    } catch (e: any) {
-      setError(humanize(e, "unknown"));
-    }
-  };
-
-  return (
-    <Modal visible={visible} onClose={onClose} variant="bottom">
-      <View className="px-4 pt-4 pb-6 gap-4">
-        <Text className="text-title text-primary font-semibold">
-          Mark as paid
-        </Text>
-
-        {error && <AlertBadge message={error} variant="error" />}
-
-        <TextInput
-          label="Amount paid"
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-          returnKeyType="next"
-          autoFocus
-          leadingIcon={
-            <Text className="text-body text-secondary font-medium">₹</Text>
-          }
-          hint="Pre-filled with the expected amount"
-        />
-
-        <TextInput
-          label="Notes (optional)"
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Payment reference, transaction ID…"
-          multiline
-          numberOfLines={2}
-          maxCharacters={1000}
-        />
-
-        <View className="flex-row gap-3">
-          <View className="flex-1">
-            <Button title="Cancel" variant="secondary" onPress={onClose} fullWidth />
-          </View>
-          <View className="flex-1">
-            <Button
-              title="Confirm payment"
-              variant="accent"
-              onPress={handleMarkPaid}
               loading={isPending}
               fullWidth
             />
@@ -586,7 +586,7 @@ function ReminderRuleRow({ rule, billId }: { rule: BillReminderRule; billId: str
 
 // ── Occurrence history row ────────────────────────────────────────────────────
 
-function OccurrenceRow({ occurrence }: { occurrence: BillOccurrence }) {
+function OccurrenceRow({ occurrence, onDelete }: { occurrence: BillOccurrence, onDelete: () => void }) {
   const isPaid = occurrence.state === "paid";
 
   return (
@@ -615,7 +615,19 @@ function OccurrenceRow({ occurrence }: { occurrence: BillOccurrence }) {
           {formatCurrency(occurrence.paid_amount)}
         </Text>
       ) : null}
-      <BillStateChip state={occurrence.state} />
+      <View style={{ marginTop: 2 }}>
+        <BillStateChip state={occurrence.state} />
+      </View>
+      
+      {isPaid && (
+        <IconButton 
+          icon={<Ionicons name="trash-outline" size={16} color="#EF4444" />}
+          size="sm" 
+          variant="danger"
+          accessibilityLabel="Delete transaction"
+          onPress={onDelete} 
+        />
+      )}
     </View>
   );
 }
@@ -624,7 +636,8 @@ function OccurrenceRow({ occurrence }: { occurrence: BillOccurrence }) {
 
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [showMarkPaid, setShowMarkPaid] = useState(false);
+  const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
+  const [deleteTransactionTarget, setDeleteTransactionTarget] = useState<DeleteTransactionTarget | null>(null);
   const [showEditBill, setShowEditBill]   = useState(false);
 
   const { data: bill, isLoading, isError, error, refetch } = useBill(id);
@@ -632,11 +645,16 @@ export default function BillDetailScreen() {
   const { data: reminderRules = [] } = useReminderRules(id);
   const { mutateAsync: deleteBill, isPending: isDeleting } = useDeleteBill();
 
-  // Current (most actionable) occurrence
+  // Current (most actionable) occurrence — scan EARLIEST cycle first so a
+  // materialized overdue chain (explicit past next-due selection) surfaces the
+  // overdue row, while the default state has only the next future row anyway.
   const currentOccurrence = useMemo(
-    () => occurrences.find((o) =>
-      ["due_today", "overdue", "expected_payment", "generated", "upcoming"].includes(o.state)
-    ) ?? occurrences[0],
+    () =>
+      [...occurrences]
+        .sort((a, b) => (a.cycle_start ?? "").localeCompare(b.cycle_start ?? ""))
+        .find((o) =>
+          ["due_today", "overdue", "expected_payment", "generated", "upcoming"].includes(o.state)
+        ) ?? occurrences[0],
     [occurrences]
   );
 
@@ -777,7 +795,12 @@ export default function BillDetailScreen() {
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setShowMarkPaid(true);
+                setMarkPaidTarget({
+                  occurrence: currentOccurrence,
+                  billTitle: bill.title,
+                  amountExpected: currentOccurrence.amount ?? bill.amount_expected ?? null,
+                  behaviorType: bill.behavior_type,
+                });
               }}
               className="bg-success rounded-input flex-row items-center justify-center gap-2 py-4"
               style={({ pressed }) => ({
@@ -804,9 +827,9 @@ export default function BillDetailScreen() {
             {[
               { label: "Type",       value: formatBehaviorType(bill.behavior_type) },
               { label: "Frequency",  value: formatRepeatKind(bill.repeat_kind, bill.repeat_interval) },
-              bill.validity_days     ? { label: "Validity",    value: `${bill.validity_days} days`   } : null,
-              bill.minimum_balance   ? { label: "Min. balance", value: formatCurrency(bill.minimum_balance) } : null,
-              bill.check_interval_days ? { label: "Checked every", value: `${bill.check_interval_days} days` } : null,
+              bill.due_day_offset != null && bill.due_day_offset > 0
+                ? { label: "Due day", value: `${bill.due_day_offset}${ordinalSuffix(bill.due_day_offset)} of month` }
+                : null,
             ]
               .filter(Boolean)
               .map((row, idx, arr) => (
@@ -855,7 +878,19 @@ export default function BillDetailScreen() {
             <Surface level="resting" bordered rounded="card">
               {paidOccurrences.slice(0, 12).map((o, idx, arr) => (
                 <View key={o.id}>
-                  <OccurrenceRow occurrence={o} />
+                  <OccurrenceRow 
+                    occurrence={o} 
+                    onDelete={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setDeleteTransactionTarget({
+                        occurrence: o,
+                        bill: bill!,
+                        isOldest: idx === arr.length - 1,
+                        hasOlder: idx < arr.length - 1,
+                        previousCycleStart: idx < arr.length - 1 ? arr[idx + 1].cycle_start : null,
+                      });
+                    }}
+                  />
                   {idx < arr.length - 1 && <Divider inset={16} />}
                 </View>
               ))}
@@ -865,19 +900,22 @@ export default function BillDetailScreen() {
       </ScrollView>
 
       {/* ── Mark Paid sheet ────────────────────────────────────────────── */}
-      {currentOccurrence && (
-        <MarkPaidSheet
-          visible={showMarkPaid}
-          occurrence={currentOccurrence}
-          defaultAmount={
-            currentOccurrence.amount ?? bill.amount_expected ?? 0
-          }
-          onClose={() => setShowMarkPaid(false)}
-          onSuccess={() => {
-            // Optimistic: the occurrence list will refresh via RQ
-          }}
-        />
-      )}
+      <MarkPaidModal
+        target={markPaidTarget}
+        onClose={() => setMarkPaidTarget(null)}
+        onSuccess={() => {
+          // Optimistic: the occurrence list will refresh via RQ
+        }}
+      />
+      
+      {/* ── Delete Transaction modal ────────────────────────────────────── */}
+      <DeleteTransactionModal
+        target={deleteTransactionTarget}
+        onClose={() => setDeleteTransactionTarget(null)}
+        onSuccess={() => {
+          // Optimistic update handles this
+        }}
+      />
 
       {/* ── Edit Bill sheet ────────────────────────────────────────────── */}
       <EditBillSheet

@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../components/ui/Button";
 import { useAuthStore } from "../stores/auth-store";
 import { acceptInvite } from "../lib/supabase/profile";
+import { friendlyError } from "../lib/errors";
 import { Colors } from "../lib/theme";
 
 export default function AcceptInviteScreen() {
@@ -34,7 +35,7 @@ export default function AcceptInviteScreen() {
         setStatus("success");
       } catch (e: any) {
         setStatus("error");
-        setErrorMsg(e.message ?? "Failed to accept invitation.");
+        setErrorMsg(friendlyError(e));
       }
     })();
   }, [hid, user]);

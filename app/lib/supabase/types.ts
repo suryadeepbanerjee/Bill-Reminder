@@ -54,29 +54,36 @@ export interface Category {
 }
 
 export interface Bill {
-  id:                       string;
-  household_id:             string;
-  category_id:              string;
-  title:                    string;
-  provider_name:            string | null;
-  behavior_type:            BehaviorType;
-  amount_expected:          number | null;
-  currency:                 string;
-  repeat_kind:              RepeatKind;
-  repeat_interval:          number | null;
-  generation_day_offset:    number | null;
+  id:                          string;
+  household_id:                string;
+  category_id:                 string;
+  title:                       string;
+  provider_name:               string | null;
+  behavior_type:               BehaviorType;
+  amount_expected:             number | null;
+  currency:                    string;
+  repeat_kind:                 RepeatKind;
+  repeat_interval:             number | null;
+  // Fixed monthly anchor
+  generation_day_offset:       number | null;
   expected_payment_day_offset: number | null;
-  due_day_offset:           number | null;
-  validity_days:            number | null;
-  check_interval_days:      number | null;
-  minimum_balance:          number | null;
-  balance_notes:            string | null;
-  is_active:                boolean;
-  created_by:               string | null;
-  created_at:               string;
-  updated_at:               string;
+  due_day_offset:              number | null;
+  // Prepaid legacy
+  validity_days:               number | null;
+  // Wallet legacy
+  check_interval_days:         number | null;
+  minimum_balance:             number | null;
+  balance_notes:               string | null;
+  // Universal anchor date (see migrations/028 for full semantics)
+  anchor_date:                 string | null;
+  // Next due date override (see migrations/054) — NULL = auto (next future)
+  next_due_date:               string | null;
+  is_active:                   boolean;
+  created_by:                  string | null;
+  created_at:                  string;
+  updated_at:                  string;
   // Joined
-  categories?:              Category;
+  categories?:                 Category;
 }
 
 export interface BillOccurrence {
@@ -92,6 +99,7 @@ export interface BillOccurrence {
   paid_amount:          number | null;
   payment_notes:        string | null;
   receipt_path:         string | null;
+  deleted_at:           string | null;
   created_at:           string;
   updated_at:           string;
   // Joined
@@ -147,9 +155,16 @@ export type UpdateBillInput = Partial<Omit<Bill,
 >>;
 
 export interface MarkPaidInput {
-  occurrence_id:  string;
-  paid_amount:    number;
-  paid_at:        string;
-  payment_notes?: string | null;
-  receipt_path?:  string | null;
+  occurrence_id:           string;
+  paid_amount:             number;
+  paid_at:                 string;
+  payment_notes?:          string | null;
+  receipt_path?:           string | null;
+  shift_anchor_to_payment?: boolean;
+}
+
+export interface DeleteTransactionInput {
+  occurrence_id:   string;
+  anchor_action:   "keep" | "revert" | "custom";
+  custom_anchor?:  string | null; // ISO date string
 }

@@ -1,12 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   KeyboardAvoidingView,
-  Platform,
-  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -17,20 +15,23 @@ import * as Haptics from "expo-haptics";
 
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
+import { NumericInput } from "../components/ui/NumericInput";
 import { IconButton } from "../components/ui/IconButton";
 import { Divider } from "../components/ui/Divider";
 import { AlertBadge } from "../components/ui/AlertBadge";
 import { CategoryIconBadge } from "../components/bills/CategoryPill";
+import { DateAnchorPicker, buildAnchorDate } from "../components/ui/DateAnchorPicker";
+import { RecurrencePreview } from "../components/bills/RecurrencePreview";
 
 import { useCategoryPresets } from "../hooks/useCategories";
 import { useHousehold } from "../hooks/useHousehold";
 import { useCreateBill } from "../hooks/useBills";
 import { useCreateReminderRule } from "../hooks/useReminders";
+import { useTapGuard } from "../hooks/useTapGuard";
 import { useAuthStore } from "../stores/auth-store";
 import { defaultReminderRules } from "../lib/supabase/reminders";
 import { ensureHouseholdCategoryFromPreset } from "../lib/supabase/categories";
-import { createBillSchema, CreateBillFormData } from "../schemas/bill";
-import { Colors } from "../lib/theme";
+import { createBillSchema, CreateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "../schemas/bill";
 import { humanize } from "../lib/errors";
 import type { CategoryPreset } from "../lib/supabase/types";
 
@@ -41,11 +42,10 @@ type Step = 1 | 2 | 3;
 const STEP_LABELS: Record<Step, string> = {
   1: "Category",
   2: "Details",
-  3: "Recurrence",
+  3: "Schedule",
 };
 
 // ── Per-category placeholders ───────────────────────────────────────────────
-// Keyed by category_presets.key (see supabase/migrations/012_seed_category_presets.sql)
 
 const NAME_PLACEHOLDER_BY_KEY: Record<string, string> = {
   credit_card:     "e.g. HDFC Credit Card",
@@ -103,30 +103,53 @@ const BEHAVIOR_OPTIONS = [
     value: "fixed_due_date" as const,
     label: "Fixed due date",
     icon: "calendar-outline" as const,
-    description: "Bill is due on a specific day each cycle (electricity, rent, etc.)",
+    description: "Due on a specific day each cycle — electricity, rent, EMI, etc.",
   },
   {
     value: "prepaid_validity" as const,
-    label: "Prepaid / Validity",
+    label: "Prepaid / Recharge",
     icon: "time-outline" as const,
-    description: "You pay upfront and it's valid for N days (mobile recharge, etc.)",
+    description: "Pay upfront — mobile recharge, OTT, annual plans, etc.",
   },
   {
     value: "wallet_balance" as const,
     label: "Wallet / Balance",
     icon: "wallet-outline" as const,
-    description: "Balance-based service that needs periodic top-up (streaming wallet, etc.)",
+    description: "Balance-based — check periodically and top up when low.",
   },
 ];
 
-const REPEAT_OPTIONS = [
-  { value: "monthly" as const,        label: "Monthly",           needsInterval: false },
-  { value: "yearly" as const,         label: "Yearly",            needsInterval: false },
-  { value: "every_x_days" as const,   label: "Every X days",      needsInterval: true  },
-  { value: "every_x_weeks" as const,  label: "Every X weeks",     needsInterval: true  },
-  { value: "every_x_months" as const, label: "Every X months",    needsInterval: true  },
-  { value: "none" as const,           label: "One-time (no repeat)", needsInterval: false },
-];
+// ── Recurrence options per behaviour type ───────────────────────────────────
+
+function getRepeatOptions(bt: string) {
+  if (bt === "fixed_due_date") {
+    return [
+      { value: "monthly" as const, label: "Monthly",     icon: "calendar-outline" as const },
+      { value: "yearly"  as const, label: "Yearly",      icon: "calendar-outline" as const },
+      { value: "none"    as const, label: "One-time",    icon: "flash-outline"    as const },
+    ];
+  }
+  // Prepaid / Wallet
+  return [
+    { value: "monthly"        as const, label: "Monthly",          icon: "calendar-outline"  as const },
+    { value: "yearly"         as const, label: "Yearly",           icon: "calendar-outline"  as const },
+    { value: "every_x_days"   as const, label: "Every X days",     icon: "repeat-outline"    as const },
+    { value: "every_x_weeks"  as const, label: "Every X weeks",    icon: "repeat-outline"    as const },
+    { value: "every_x_months" as const, label: "Every X months",   icon: "repeat-outline"    as const },
+    { value: "none"           as const, label: "One-time",         icon: "flash-outline"     as const },
+  ];
+}
+
+function getStep3Title(bt: string): string {
+  if (bt === "wallet_balance") return "How often to check wallet?";
+  return "When is this bill due?";
+}
+
+function getStep3Subtitle(bt: string): string {
+  if (bt === "wallet_balance") return "Set the schedule for balance checks.";
+  if (bt === "prepaid_validity") return "Set when this prepaid cycle starts and repeats.";
+  return "We'll use this to predict when the next bill is due.";
+}
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 
@@ -162,9 +185,14 @@ function CategoryItem({
   selected: boolean;
   onSelect: () => void;
 }) {
+  // Per-cell guard: double-taps on the SAME category are ignored, but
+  // switching between different categories is never throttled.
+  const guard = useTapGuard(300);
+
   return (
     <Pressable
       onPress={() => {
+        if (!guard()) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onSelect();
       }}
@@ -178,7 +206,12 @@ function CategoryItem({
       }`}
       style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
     >
-      <CategoryIconBadge icon={preset.icon} color={preset.color} size={36} />
+      {selected && (
+        <View className="absolute top-1.5 right-1.5">
+          <Ionicons name="checkmark-circle" size={16} className="text-accent" />
+        </View>
+      )}
+      <CategoryIconBadge icon={preset.icon} color={preset.color} size={36} selected={selected} />
       <Text
         className="text-caption font-medium mt-1 text-center text-primary"
         numberOfLines={2}
@@ -204,9 +237,12 @@ function OptionButton({
   selected:    boolean;
   onPress:     () => void;
 }) {
+  const guard = useTapGuard(300);
+
   return (
     <Pressable
       onPress={() => {
+        if (!guard()) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
@@ -232,9 +268,7 @@ function OptionButton({
         />
       </View>
       <View className="flex-1">
-        <Text
-          className="text-label font-semibold text-primary"
-        >
+        <Text className="text-label font-semibold text-primary">
           {label}
         </Text>
         {description ? (
@@ -250,47 +284,96 @@ function OptionButton({
   );
 }
 
+// ── Repeat kind option (step 3) ───────────────────────────────────────────────
+
+function RepeatKindOption({
+  label,
+  icon,
+  selected,
+  onSelect,
+}: {
+  label:    string;
+  icon:     keyof typeof Ionicons.glyphMap;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const guard = useTapGuard(300);
+
+  return (
+    <Pressable
+      onPress={() => {
+        if (!guard()) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onSelect();
+      }}
+      className={`flex-row items-center gap-3 px-4 py-3.5 rounded-card border mb-2 ${
+        selected
+          ? "border-accent bg-accent/10"
+          : "border-border bg-surface"
+      }`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+    >
+      <View
+        className={`w-8 h-8 rounded-input items-center justify-center ${
+          selected
+            ? "bg-accent"
+            : "bg-surface border border-border"
+        }`}
+      >
+        <Ionicons
+          name={icon}
+          size={16}
+          className={selected ? "text-accent-text" : "text-primary"}
+        />
+      </View>
+      <Text
+        className={`text-body flex-1 ${
+          selected
+            ? "text-accent font-semibold"
+            : "text-primary"
+        }`}
+      >
+        {label}
+      </Text>
+      {selected && (
+        <Ionicons name="checkmark-circle" size={18} className="text-accent" />
+      )}
+    </Pressable>
+  );
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function AddBillScreen() {
   const [step, setStep]         = useState<Step>(1);
   const [error, setError]       = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [nextDueDate, setNextDueDate] = useState<string | null>(null);
 
   const { data: rawPresets = [], isLoading: presetsLoading } = useCategoryPresets();
-  
-  const presets = [...rawPresets].sort((a, b) => {
+
+  const presets = useMemo(() => {
     const order = [
-      "broadband",
-      "rent",
-      "credit_card",
-      "domain",
-      "education",
-      "electricity",
-      "emi",
-      "gas",
-      "gym",
-      "health",
-      "hosting",
-      "insurance",
-      "investments",
-      "loan",
-      "subscriptions",
-      "music",
-      "water",
-      "ott",
-      "mobile_recharge",
-      "cloud_services",
-      "other"
+      "broadband", "rent", "credit_card", "domain", "education",
+      "electricity", "emi", "gas", "gym", "health", "hosting",
+      "insurance", "investments", "loan", "subscriptions", "music",
+      "water", "ott", "mobile_recharge", "cloud_services", "other",
     ];
-    const indexA = order.indexOf(a.key);
-    const indexB = order.indexOf(b.key);
-    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-    if (indexA !== -1) return -1;
-    if (indexB !== -1) return 1;
-    return a.name.localeCompare(b.name);
-  }).map(preset => preset.key === "other" ? { ...preset, name: "Other (Custom)" } : preset);
-  
+    return [...rawPresets]
+      .sort((a, b) => {
+        const ia = order.indexOf(a.key);
+        const ib = order.indexOf(b.key);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .map((p) => (p.key === "other" ? { ...p, name: "Other (Custom)" } : p));
+  }, [rawPresets]);
+
   const { activeHousehold } = useHousehold();
   const { mutateAsync: createBill }         = useCreateBill();
   const { mutateAsync: createReminderRule } = useCreateReminderRule();
@@ -316,12 +399,24 @@ export default function AddBillScreen() {
   const selectedPresetKey = watch("category_id");
   const behaviorType      = watch("behavior_type");
   const repeatKind        = watch("repeat_kind");
-  const needsInterval     = ["every_x_days","every_x_weeks","every_x_months"].includes(repeatKind);
+  const anchorMonth       = watch("anchor_month");
+  const anchorDay         = watch("anchor_day");
+  const anchorYear        = watch("anchor_year");
+  const dueDayOffset      = watch("due_day_offset");
+  const repeatInterval    = watch("repeat_interval");
 
-  // Find the full preset object for the selected category
-  const selectedPreset = presets.find(p => p.id === selectedPresetKey);
+  const selectedPreset = presets.find((p) => p.id === selectedPresetKey);
+  const isPrepaidOrWallet = behaviorType === "prepaid_validity" || behaviorType === "wallet_balance";
+  const repeatOptions = useMemo(() => getRepeatOptions(behaviorType), [behaviorType]);
+
+  // Screen-level guards: rapid repeat taps on the primary actions (Next,
+  // Back, Close, Save) are swallowed. Long enough to absorb an impatient
+  // double-tap, short enough that deliberate presses never wait.
+  const guardAction = useTapGuard(300);
+  const guardSubmit = useTapGuard(400);
 
   const handleClose = () => {
+    if (!guardAction()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
   };
@@ -329,6 +424,7 @@ export default function AddBillScreen() {
   const titleValue = watch("title");
 
   const handleNext = useCallback(() => {
+    if (!guardAction()) return;
     if (step === 1 && !selectedPresetKey) {
       setError("Please select a category.");
       return;
@@ -342,9 +438,10 @@ export default function AddBillScreen() {
       setStep((s) => (s + 1) as Step);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [step, selectedPresetKey, titleValue]);
+  }, [step, selectedPresetKey, titleValue, guardAction]);
 
   const handleBack = () => {
+    if (!guardAction()) return;
     setError(null);
     if (step > 1) {
       setStep((s) => (s - 1) as Step);
@@ -353,6 +450,9 @@ export default function AddBillScreen() {
   };
 
   const onSubmit = async (data: CreateBillFormData) => {
+    // Hard guard against double-submit — two rapid taps on "Save bill"
+    // must never create two bills.
+    if (!guardSubmit()) return;
     if (!activeHousehold?.household.id) {
       setError("Household not found. Please try again.");
       return;
@@ -360,15 +460,21 @@ export default function AddBillScreen() {
     setError(null);
     setSubmitting(true);
     try {
-      // 1. Find or create the category in the household
-      const preset = presets.find(p => p.id === data.category_id);
+      // 1. Find or create the category
+      const preset = presets.find((p) => p.id === data.category_id);
       let categoryId = data.category_id;
       if (preset) {
         const cat = await ensureHouseholdCategoryFromPreset(activeHousehold.household.id, preset);
         categoryId = cat.id;
       }
 
-      // 2. Create the bill
+      // 2. Build anchor_date from components
+      const anchorDate = buildAnchorDate(data.anchor_month, data.anchor_day, data.anchor_year);
+
+      // 3. Determine repeat_interval for non-interval types
+      let finalRepeatInterval = data.repeat_interval ?? null;
+
+      // 4. Create the bill
       const bill = await createBill({
         household_id:    activeHousehold.household.id,
         category_id:     categoryId,
@@ -378,22 +484,29 @@ export default function AddBillScreen() {
         amount_expected: data.amount_expected  ?? null,
         currency:        data.currency         ?? "INR",
         repeat_kind:     data.repeat_kind,
-        repeat_interval: data.repeat_interval  ?? null,
+        repeat_interval: finalRepeatInterval,
         is_active:       true,
         created_by:      user?.id ?? null,
-        // Null out fields not relevant to the behavior type
-        validity_days:       data.behavior_type === "prepaid_validity" ? (data.validity_days       ?? null) : null,
-        check_interval_days: data.behavior_type === "wallet_balance"   ? (data.check_interval_days ?? null) : null,
-        minimum_balance:     data.behavior_type === "wallet_balance"   ? (data.minimum_balance     ?? null) : null,
-        balance_notes:       data.behavior_type === "wallet_balance"   ? (data.balance_notes       ?? null) : null,
+        anchor_date:     anchorDate,
+        // Next due date override (null = auto: first future occurrence)
+        next_due_date:   nextDueDate,
+        // Fixed due date fields
         generation_day_offset:       data.behavior_type === "fixed_due_date" ? (data.generation_day_offset       ?? -7) : null,
         expected_payment_day_offset: data.behavior_type === "fixed_due_date" ? (data.expected_payment_day_offset ?? -3) : null,
         due_day_offset:              data.behavior_type === "fixed_due_date" ? (data.due_day_offset               ?? 0)  : null,
+        // Deprecated
+        validity_days:       null,
+        check_interval_days: null,
+        minimum_balance:     null,
+        balance_notes:       null,
       });
 
-      // 3. Create default reminder rules
+      // Guarded against rapid re-entry (cooldown) — never proceed without a bill
+      if (!bill) return;
+
+      // 5. Create default reminder rules
       const rules = defaultReminderRules(bill.id);
-      await Promise.all(rules.map(rule => createReminderRule(rule)));
+      await Promise.all(rules.map((rule) => createReminderRule(rule)));
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bill/${bill.id}`);
@@ -409,12 +522,30 @@ export default function AddBillScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
   };
 
+  // ── Build preview anchor date string ──────────────────────────────────────
+  const previewAnchorDate = useMemo(
+    () => buildAnchorDate(anchorMonth, anchorDay, anchorYear),
+    [anchorMonth, anchorDay, anchorYear],
+  );
+
+  // A next-due selection is tied to the anchor — reset it when the anchor
+  // (or schedule) changes so a stale date is never silently submitted.
+  useEffect(() => {
+    setNextDueDate(null);
+  }, [previewAnchorDate, behaviorType, repeatKind, repeatInterval]);
+
+  const showPreview =
+    isPrepaidOrWallet &&
+    repeatKind !== "none" &&
+    anchorMonth != null &&
+    anchorDay != null &&
+    (["every_x_days", "every_x_weeks", "every_x_months"].includes(repeatKind)
+      ? repeatInterval != null && repeatInterval > 0
+      : true);
+
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        behavior="padding"
-        className="flex-1"
-      >
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         {/* ── Header ─────────────────────────────────────────────────── */}
         <View className="px-4 pt-2 pb-3 bg-canvas">
           <View className="flex-row items-center justify-between mb-3">
@@ -428,7 +559,6 @@ export default function AddBillScreen() {
             ) : (
               <View className="w-10" />
             )}
-
             <View className="items-center">
               <Text className="text-label text-primary font-semibold">
                 {STEP_LABELS[step]}
@@ -437,7 +567,6 @@ export default function AddBillScreen() {
                 Step {step} of 3
               </Text>
             </View>
-
             <IconButton
               icon={<Ionicons name="close" size={22} className="text-primary" />}
               onPress={handleClose}
@@ -445,7 +574,6 @@ export default function AddBillScreen() {
               variant="ghost"
             />
           </View>
-
           <StepIndicator current={step} total={3} />
         </View>
 
@@ -473,19 +601,12 @@ export default function AddBillScreen() {
               <Text className="text-body text-secondary mb-5">
                 Pick the category that best describes it.
               </Text>
-
               {presetsLoading ? (
                 <View className="items-center py-8">
                   <Text className="text-body text-secondary">Loading categories…</Text>
                 </View>
               ) : (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap:      "wrap",
-                    gap:           8,
-                  }}
-                >
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                   {presets.map((preset) => (
                     <View key={preset.id} style={{ width: "30.5%" }}>
                       <CategoryItem
@@ -508,13 +629,11 @@ export default function AddBillScreen() {
             <View className="gap-5">
               <View>
                 <Text className="text-title text-primary font-semibold mb-1">
-                  Bill details
+                  What's the bill called?
                 </Text>
-                {selectedPreset && (
-                  <Text className="text-body text-secondary">
-                    Adding a {selectedPreset.name.toLowerCase()} bill.
-                  </Text>
-                )}
+                <Text className="text-body text-secondary">
+                  Give it a name so you can recognise it at a glance.
+                </Text>
               </View>
 
               <Controller
@@ -565,14 +684,14 @@ export default function AddBillScreen() {
                 control={control}
                 name="amount_expected"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Expected amount (optional)"
+                  <NumericInput
+                    label="Expected amount"
                     placeholder="0"
                     keyboardType="decimal-pad"
                     returnKeyType="done"
                     onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value != null ? String(value) : ""}
+                    onChange={onChange}
+                    value={value ?? undefined}
                     error={errors.amount_expected?.message}
                     hint="Leave blank if it varies each cycle"
                     leadingIcon={
@@ -584,7 +703,7 @@ export default function AddBillScreen() {
 
               <View>
                 <Text className="text-label text-primary font-medium mb-2">
-                  Bill type
+                  What type of bill is this?
                 </Text>
                 {BEHAVIOR_OPTIONS.map((opt) => (
                   <OptionButton
@@ -593,178 +712,293 @@ export default function AddBillScreen() {
                     description={opt.description}
                     icon={opt.icon}
                     selected={behaviorType === opt.value}
-                    onPress={() => setValue("behavior_type", opt.value)}
+                    onPress={() => {
+                      setValue("behavior_type", opt.value);
+                      // Reset repeat_kind to monthly when switching behaviour
+                      setValue("repeat_kind", "monthly");
+                    }}
                   />
                 ))}
               </View>
-
-              {/* Prepaid: validity days */}
-              {behaviorType === "prepaid_validity" && (
-                <Controller
-                  control={control}
-                  name="validity_days"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      label="Validity period (days)"
-                      placeholder="e.g. 28"
-                      keyboardType="number-pad"
-                      returnKeyType="done"
-                      onBlur={onBlur}
-                      onChangeText={(t) => {
-                        const parsed = parseInt(t);
-                        onChange(isNaN(parsed) ? undefined : parsed);
-                      }}
-                      value={value != null ? String(value) : ""}
-                      error={errors.validity_days?.message}
-                      hint="How many days after payment is the service active?"
-                    />
-                  )}
-                />
-              )}
-
-              {/* Wallet: check interval + minimum balance */}
-              {behaviorType === "wallet_balance" && (
-                <>
-                  <Controller
-                    control={control}
-                    name="check_interval_days"
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <TextInput
-                        label="Check every (days)"
-                        placeholder="e.g. 30"
-                        keyboardType="number-pad"
-                        returnKeyType="next"
-                        onBlur={onBlur}
-                        onChangeText={(t) => {
-                          const parsed = parseInt(t);
-                          onChange(isNaN(parsed) ? undefined : parsed);
-                        }}
-                        value={value != null ? String(value) : ""}
-                        error={errors.check_interval_days?.message}
-                        hint="How often should we remind you to check the balance?"
-                      />
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="minimum_balance"
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <TextInput
-                        label="Alert below balance (optional)"
-                        placeholder="0"
-                        keyboardType="decimal-pad"
-                        onBlur={onBlur}
-                        onChangeText={(t) => {
-                          const parsed = parseFloat(t);
-                          onChange(isNaN(parsed) ? undefined : parsed);
-                        }}
-                        value={value != null ? String(value) : ""}
-                        leadingIcon={
-                          <Text className="text-body text-secondary font-medium">₹</Text>
-                        }
-                      />
-                    )}
-                  />
-                </>
-              )}
             </View>
           )}
 
-          {/* ── Step 3: Recurrence ──────────────────────────────────── */}
+          {/* ── Step 3: Schedule ──────────────────────────────────── */}
           {step === 3 && (
             <View className="gap-5">
               <View>
                 <Text className="text-title text-primary font-semibold mb-1">
-                  How often?
+                  {getStep3Title(behaviorType)}
                 </Text>
                 <Text className="text-body text-secondary">
-                  Set the payment frequency for this bill.
+                  {getStep3Subtitle(behaviorType)}
                 </Text>
               </View>
 
+              {/* ── Repeat kind selector ──────────────────────────── */}
               <View>
-                {REPEAT_OPTIONS.map((opt) => (
-                  <Pressable
+                <Text className="text-label text-primary font-medium mb-2">
+                  {isPrepaidOrWallet ? "How does this repeat?" : "How often?"}
+                </Text>
+                {repeatOptions.map((opt) => (
+                  <RepeatKindOption
                     key={opt.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setValue("repeat_kind", opt.value);
-                    }}
-                    className={`flex-row items-center justify-between px-4 py-3.5 border-b border-neutral-100 dark:border-neutral-800 ${
-                      repeatKind === opt.value ? "bg-accent/10" : ""
-                    }`}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                  >
-                    <Text
-                      className={`text-body ${
-                        repeatKind === opt.value
-                          ? "text-accent font-semibold"
-                          : "text-primary"
-                      }`}
-                    >
-                      {opt.label}
-                    </Text>
-                    {repeatKind === opt.value && (
-                      <Ionicons name="checkmark" size={18} className="text-accent" />
-                    )}
-                  </Pressable>
+                    label={opt.label}
+                    icon={opt.icon}
+                    selected={repeatKind === opt.value}
+                    onSelect={() => setValue("repeat_kind", opt.value)}
+                  />
                 ))}
               </View>
 
-              {needsInterval && (
-                <Controller
-                  control={control}
-                  name="repeat_interval"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      label={`Every how many ${
-                        repeatKind === "every_x_days"   ? "days" :
-                        repeatKind === "every_x_weeks"  ? "weeks" : "months"
-                      }?`}
-                      placeholder="e.g. 2"
-                      keyboardType="number-pad"
-                      returnKeyType="done"
-                      onBlur={onBlur}
-                      onChangeText={(t) => {
-                        const parsed = parseInt(t);
-                        onChange(isNaN(parsed) ? undefined : parsed);
-                      }}
-                      value={value != null ? String(value) : ""}
-                      error={errors.repeat_interval?.message}
-                    />
-                  )}
-                />
-              )}
-
-              {/* Fixed due date: day-of-month the bill is due */}
-              {behaviorType === "fixed_due_date" && (
+              {/* ── Fixed Due Date: Monthly ────────────────────────── */}
+              {behaviorType === "fixed_due_date" && repeatKind === "monthly" && (
                 <Controller
                   control={control}
                   name="due_day_offset"
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      label="Due on day (of month)"
-                      placeholder="e.g. 5 (5th of each month)"
+                    <NumericInput
+                      label="Which day of the month?"
+                      placeholder="e.g. 15"
                       keyboardType="number-pad"
                       returnKeyType="done"
                       onBlur={onBlur}
-                      onChangeText={(t) => {
-                        const parsed = parseInt(t);
-                        onChange(isNaN(parsed) ? undefined : parsed);
-                      }}
-                      value={value != null ? String(value) : ""}
+                      onChange={onChange}
+                      value={value ?? undefined}
                       error={errors.due_day_offset?.message}
-                      hint="Enter 0 to use end-of-cycle (last day)"
+                      hint="Enter 0 for the last day of the month"
                     />
                   )}
                 />
               )}
 
-              {/* Reminder note */}
+              {/* ── Fixed Due Date: Yearly ─────────────────────────── */}
+              {behaviorType === "fixed_due_date" && repeatKind === "yearly" && (
+                <View>
+                  <Text className="text-label text-primary font-medium mb-3">
+                    Which date each year?
+                  </Text>
+                  <Controller
+                    control={control}
+                    name="anchor_month"
+                    render={({ field: { onChange, value } }) => (
+                      <DateAnchorPicker
+                        showMonth
+                        showDay
+                        month={value}
+                        day={anchorDay}
+                        onMonthChange={onChange}
+                        onDayChange={(d) => setValue("anchor_day", d)}
+                        dateLabel="Due date"
+                        errors={{
+                          month: errors.anchor_month?.message,
+                          day:   errors.anchor_day?.message,
+                        }}
+                      />
+                    )}
+                  />
+                </View>
+              )}
+
+              {/* ── Fixed Due Date: One-time ───────────────────────── */}
+              {behaviorType === "fixed_due_date" && repeatKind === "none" && (
+                <View>
+                  <Text className="text-label text-primary font-medium mb-3">
+                    When is this bill due?
+                  </Text>
+                  <Controller
+                    control={control}
+                    name="anchor_month"
+                    render={({ field: { onChange, value } }) => (
+                      <DateAnchorPicker
+                        showMonth
+                        showDay
+                        showYear
+                        month={value}
+                        day={anchorDay}
+                        year={anchorYear}
+                        onMonthChange={onChange}
+                        onDayChange={(d) => setValue("anchor_day", d)}
+                        onYearChange={(y) => setValue("anchor_year", y)}
+                        dateLabel="Due date"
+                        order="DMY"
+                        yearMin={DUE_DATE_YEAR_MIN}
+                        yearMax={DUE_DATE_YEAR_MAX}
+                        errors={{
+                          month: errors.anchor_month?.message,
+                          day:   errors.anchor_day?.message,
+                          year:  errors.anchor_year?.message,
+                        }}
+                      />
+                    )}
+                  />
+                </View>
+              )}
+
+              {/* ── Prepaid / Wallet: Monthly ──────────────────────── */}
+              {isPrepaidOrWallet && repeatKind === "monthly" && (
+                <View>
+                  <Text className="text-label text-primary font-medium mb-3">
+                    Which day of each month?
+                  </Text>
+                  <Controller
+                    control={control}
+                    name="anchor_month"
+                    render={({ field: { onChange, value } }) => (
+                      <DateAnchorPicker
+                        showMonth
+                        showDay
+                        month={value}
+                        day={anchorDay}
+                        onMonthChange={onChange}
+                        onDayChange={(d) => setValue("anchor_day", d)}
+                        dateLabel="Last payment date"
+                        errors={{
+                          month: errors.anchor_month?.message,
+                          day:   errors.anchor_day?.message,
+                        }}
+                      />
+                    )}
+                  />
+                </View>
+              )}
+
+              {/* ── Prepaid / Wallet: Yearly ───────────────────────── */}
+              {isPrepaidOrWallet && repeatKind === "yearly" && (
+                <View>
+                  <Text className="text-label text-primary font-medium mb-3">
+                    Which date each year?
+                  </Text>
+                  <Controller
+                    control={control}
+                    name="anchor_month"
+                    render={({ field: { onChange, value } }) => (
+                      <DateAnchorPicker
+                        showMonth
+                        showDay
+                        month={value}
+                        day={anchorDay}
+                        onMonthChange={onChange}
+                        onDayChange={(d) => setValue("anchor_day", d)}
+                        dateLabel="Last payment date"
+                        errors={{
+                          month: errors.anchor_month?.message,
+                          day:   errors.anchor_day?.message,
+                        }}
+                      />
+                    )}
+                  />
+                </View>
+              )}
+
+              {/* ── Prepaid / Wallet: Every X Days/Weeks/Months ────── */}
+              {isPrepaidOrWallet &&
+                ["every_x_days", "every_x_weeks", "every_x_months"].includes(repeatKind) && (
+                <View className="gap-4">
+                  <Controller
+                    control={control}
+                    name="repeat_interval"
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <NumericInput
+                        label={`Every how many ${
+                          repeatKind === "every_x_days"   ? "days" :
+                          repeatKind === "every_x_weeks"  ? "weeks" : "months"
+                        }?`}
+                        placeholder="e.g. 5"
+                        keyboardType="number-pad"
+                        returnKeyType="done"
+                        onBlur={onBlur}
+                        onChange={onChange}
+                        value={value ?? undefined}
+                        error={errors.repeat_interval?.message}
+                      />
+                    )}
+                  />
+
+                  <View>
+                    <Text className="text-label text-primary font-medium mb-3">
+                      Starting from?
+                    </Text>
+                    <Controller
+                      control={control}
+                      name="anchor_month"
+                      render={({ field: { onChange, value } }) => (
+                        <DateAnchorPicker
+                          showMonth
+                          showDay
+                          showYear={repeatKind !== "every_x_months"}
+                          month={value}
+                          day={anchorDay}
+                          year={anchorYear}
+                          onMonthChange={onChange}
+                          onDayChange={(d) => setValue("anchor_day", d)}
+                          onYearChange={(y) => setValue("anchor_year", y)}
+                          dateLabel="Last payment date"
+                          errors={{
+                            month: errors.anchor_month?.message,
+                            day:   errors.anchor_day?.message,
+                            year:  errors.anchor_year?.message,
+                          }}
+                        />
+                      )}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {/* ── Prepaid / Wallet: One-time ─────────────────────── */}
+              {isPrepaidOrWallet && repeatKind === "none" && (
+                <View>
+                  <Text className="text-label text-primary font-medium mb-3">
+                    When is this due?
+                  </Text>
+                  <Controller
+                    control={control}
+                    name="anchor_month"
+                    render={({ field: { onChange, value } }) => (
+                      <DateAnchorPicker
+                        showMonth
+                        showDay
+                        showYear
+                        month={value}
+                        day={anchorDay}
+                        year={anchorYear}
+                        onMonthChange={onChange}
+                        onDayChange={(d) => setValue("anchor_day", d)}
+                        onYearChange={(y) => setValue("anchor_year", y)}
+                        dateLabel="Due date"
+                        order="DMY"
+                        yearMin={DUE_DATE_YEAR_MIN}
+                        yearMax={DUE_DATE_YEAR_MAX}
+                        errors={{
+                          month: errors.anchor_month?.message,
+                          day:   errors.anchor_day?.message,
+                          year:  errors.anchor_year?.message,
+                        }}
+                      />
+                    )}
+                  />
+                </View>
+              )}
+
+              {/* ── Live preview ────────────────────────────────────── */}
+              {showPreview && (
+                <RecurrencePreview
+                  behaviorType={behaviorType}
+                  repeatKind={repeatKind}
+                  repeatInterval={repeatInterval}
+                  dueDayOffset={dueDayOffset}
+                  anchorDate={previewAnchorDate}
+                  value={nextDueDate}
+                  onChange={setNextDueDate}
+                />
+              )}
+
+              {/* ── Reminder note ──────────────────────────────────── */}
               <View className="bg-neutral-100 dark:bg-neutral-800 rounded-card p-4 flex-row gap-2">
                 <Ionicons name="notifications-outline" size={18} className="text-primary" />
                 <Text className="text-caption text-secondary flex-1 leading-5">
-                  We'll create default reminders: 3 days before and on the due date. You can customise them later from the bill details.
+                  Reminders are set up automatically. You can customise them from the bill details.
                 </Text>
               </View>
             </View>

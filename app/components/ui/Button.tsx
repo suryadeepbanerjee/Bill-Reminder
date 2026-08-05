@@ -1,5 +1,6 @@
 import { Pressable, Text, ActivityIndicator, PressableProps, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { tryAcquireAction, releaseAction } from "../../lib/action-guard";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "accent";
 type ButtonSize    = "sm" | "md" | "lg";
@@ -12,6 +13,13 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
   fullWidth?: boolean;
+  /**
+   * Optional silent per-action dedupe key. When set, rapid repeat presses of
+   * the same key no-op (no visual change) — only the underlying action is
+   * deduped. Share the same key across entry points that trigger the SAME
+   * action; use distinct keys for distinct actions.
+   */
+  guardKey?: string;
 }
 
 const variants: Record<ButtonVariant, { container: string; text: string; indicator: string }> = {
@@ -57,6 +65,7 @@ export function Button({
   icon,
   iconPosition = "left",
   fullWidth  = false,
+  guardKey,
   onPress,
   ...props
 }: ButtonProps) {
@@ -71,7 +80,19 @@ export function Button({
     } else if (variant !== "ghost") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    onPress?.(e);
+
+    if (!guardKey) {
+      onPress?.(e);
+      return;
+    }
+
+    if (!tryAcquireAction(guardKey)) return;
+    const result = onPress?.(e);
+    if (result && typeof (result as any).then === "function") {
+      (result as Promise<unknown>).catch(() => {}).finally(() => releaseAction(guardKey));
+    } else {
+      releaseAction(guardKey);
+    }
   };
 
   return (

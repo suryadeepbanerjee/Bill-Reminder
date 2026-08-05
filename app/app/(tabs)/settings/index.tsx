@@ -23,7 +23,7 @@ import { createHousehold } from "../../../lib/supabase/profile";
 import { signOutGoogle }  from "../../../lib/auth/google";
 import { cancelAllReminders } from "../../../lib/notifications";
 import { Switch }         from "../../../components/ui/Switch";
-import { humanize } from "../../../lib/errors";
+import { humanize, friendlyError } from "../../../lib/errors";
 
 // ── Section header ────────────────────────────────────────────────────────────
 
@@ -454,7 +454,7 @@ export default function SettingsScreen() {
       setShowHouseholdDropdown(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not create household.");
+      Alert.alert("Error", friendlyError(e));
     } finally {
       setCreatingHousehold(false);
     }

@@ -4,9 +4,10 @@ import {
   fetchBillOccurrences,
   fetchCurrentOccurrence,
   markOccurrencePaid,
+  deleteOccurrenceTransaction,
 } from "../lib/supabase/occurrences";
 import { useHousehold } from "./useHousehold";
-import type { MarkPaidInput } from "../lib/supabase/types";
+import type { MarkPaidInput, DeleteTransactionInput } from "../lib/supabase/types";
 
 export function useDashboard() {
   const { activeHousehold } = useHousehold();
@@ -79,6 +80,21 @@ export function useMarkPaid() {
       if (context?.snapshot) {
         queryClient.setQueryData(["dashboard"], context.snapshot);
       }
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: DeleteTransactionInput) => deleteOccurrenceTransaction(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["occurrences"] });
+      queryClient.invalidateQueries({ queryKey: ["currentOccurrence"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      import("../lib/notifications").then(m => m.syncLocalReminders());
     },
   });
 }

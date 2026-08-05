@@ -139,7 +139,29 @@ export async function cancelAllReminders() {
 
 // ── Synchronization ─────────────────────────────────────────────────────────────
 
-export async function syncLocalReminders() {
+let syncQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Serializes sync runs — several triggers can fire in the same tick (auth
+ * restore, onSuccess invalidations, …). Without a queue, two concurrent runs
+ * both read the same "not yet scheduled" snapshot and both schedule the same
+ * reminder, producing duplicate local notifications.
+ */
+export function syncLocalReminders(): Promise<void> {
+  const run = syncQueue.then(() => doSyncLocalReminders());
+  syncQueue = run.catch(() => {});
+  return run;
+}
+
+const OCCURRENCE_PRIORITY: Record<string, number> = {
+  overdue: 0,
+  due_today: 1,
+  expected_payment: 2,
+  generated: 3,
+  upcoming: 4,
+};
+
+async function doSyncLocalReminders() {
   const hasPermission = await requestNotificationPermissions();
   if (!hasPermission) return;
 
@@ -157,42 +179,73 @@ export async function syncLocalReminders() {
     const householdId = member.household_id;
 
     const { occurrences, rules } = await fetchSyncData(householdId);
+
+    // One actionable occurrence per bill — the most urgent one. A bill whose
+    // chain still carries an older row (e.g. overdue) alongside the next
+    // cycle's row would otherwise emit a full reminder track per row, i.e.
+    // multiple notifications for the same bill.
+    const byBill = new Map<string, (typeof occurrences)[number]>();
+    for (const o of occurrences) {
+      const existing = byBill.get(o.bill_id);
+      const pNew     = OCCURRENCE_PRIORITY[o.state] ?? 99;
+      const pOld     = existing ? (OCCURRENCE_PRIORITY[existing.state] ?? 99) : 99;
+      if (!existing || pNew < pOld) byBill.set(o.bill_id, o);
+    }
+    const actionable = [...byBill.values()];
+
+    // Push-token check: when the user has a registered token, the SERVER push
+    // pipeline (reminder-materializer → reminder-dispatcher → push-sender)
+    // already delivers an expo push for every push/both rule. Scheduling the
+    // same reminders locally too is what causes "2 reminders for the same
+    // bill" (one server push + one local). With server push active, `desired`
+    // stays empty and the diff below cancels any local notifications, letting
+    // the server own the push channel. Without a token the app falls back to
+    // local scheduling so reminders still work in dev builds without EAS.
+    const { data: tokens, error: tokenError } = await supabase
+      .from("push_tokens")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .limit(1);
+    const serverPushActive = !tokenError && (tokens?.length ?? 0) > 0;
+
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
     const desired = new Map<string, ReminderPayload>();
 
-    for (const occurrence of occurrences) {
-      const billRules = rules.filter(r => r.bill_id === occurrence.bill_id);
-      for (const rule of billRules) {
-        if (rule.channel === "email") continue;
+    if (!serverPushActive) {
+      for (const occurrence of actionable) {
+        const billRules = rules.filter(r => r.bill_id === occurrence.bill_id);
+        for (const rule of billRules) {
+          if (rule.channel === "email") continue;
 
-        const anchorDateStr =
-          rule.anchor === "generation" ? occurrence.generation_date :
-          rule.anchor === "expected_payment" ? occurrence.expected_payment_date :
-          occurrence.due_date;
+          const anchorDateStr =
+            rule.anchor === "generation" ? occurrence.generation_date :
+            rule.anchor === "expected_payment" ? occurrence.expected_payment_date :
+            occurrence.due_date;
 
-        if (!anchorDateStr) continue;
+          if (!anchorDateStr) continue;
 
-        const triggerDate = new Date(anchorDateStr);
-        triggerDate.setHours(9, 0, 0, 0); // Default to 9:00 AM local time
-        triggerDate.setDate(triggerDate.getDate() + rule.offset_days);
+          const triggerDate = new Date(anchorDateStr);
+          triggerDate.setHours(9, 0, 0, 0); // Default to 9:00 AM local time
+          triggerDate.setDate(triggerDate.getDate() + rule.offset_days);
 
-        if (triggerDate.getTime() > Date.now()) {
-          const uniqueId = `${occurrence.id}_${rule.id}`;
-          
-          const anchorLabel = rule.anchor === "expected_payment" ? "expected payment" : rule.anchor === "generation" ? "generation" : "due date";
-          let body = `Your ${anchorLabel} for ${occurrence.bills.title} is today.`;
-          if (rule.offset_days < 0) body = `Your ${anchorLabel} for ${occurrence.bills.title} is in ${Math.abs(rule.offset_days)} days.`;
-          if (rule.offset_days > 0) body = `Your ${anchorLabel} for ${occurrence.bills.title} was ${rule.offset_days} days ago.`;
+          if (triggerDate.getTime() > Date.now()) {
+            const uniqueId = `${occurrence.id}_${rule.id}`;
+            
+            const anchorLabel = rule.anchor === "expected_payment" ? "expected payment" : rule.anchor === "generation" ? "generation" : "due date";
+            let body = `Your ${anchorLabel} for ${occurrence.bills.title} is today.`;
+            if (rule.offset_days < 0) body = `Your ${anchorLabel} for ${occurrence.bills.title} is in ${Math.abs(rule.offset_days)} days.`;
+            if (rule.offset_days > 0) body = `Your ${anchorLabel} for ${occurrence.bills.title} was ${rule.offset_days} days ago.`;
 
-          desired.set(uniqueId, {
-            billId: occurrence.bill_id,
-            occurrenceId: occurrence.id,
-            ruleId: rule.id,
-            title: `Bill Reminder: ${occurrence.bills.title}`,
-            body,
-            triggerDate,
-          });
+            desired.set(uniqueId, {
+              billId: occurrence.bill_id,
+              occurrenceId: occurrence.id,
+              ruleId: rule.id,
+              title: `Bill Reminder: ${occurrence.bills.title}`,
+              body,
+              triggerDate,
+            });
+          }
         }
       }
     }

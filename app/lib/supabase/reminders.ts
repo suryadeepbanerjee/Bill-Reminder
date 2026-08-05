@@ -1,4 +1,5 @@
 import { supabase } from "./client";
+import { guardAsync } from "../action-guard";
 import type { BillOccurrence, BillReminderRule, Bill } from "./types";
 
 export interface SyncData {
@@ -46,38 +47,44 @@ export async function fetchReminderRules(billId: string): Promise<BillReminderRu
 export async function createReminderRule(
   input: Omit<BillReminderRule, "id">
 ): Promise<BillReminderRule> {
-  const { data, error } = await supabase
-    .from("bill_reminder_rules")
-    .insert(input)
-    .select()
-    .single();
+  return guardAsync(`mut:create-reminder:${input.bill_id}:${JSON.stringify(input)}`, async () => {
+    const { data, error } = await supabase
+      .from("bill_reminder_rules")
+      .insert(input)
+      .select()
+      .single();
 
-  if (error) throw new Error(error.message);
-  return data as BillReminderRule;
+    if (error) throw new Error(error.message);
+    return data as BillReminderRule;
+  }) as Promise<BillReminderRule>;
 }
 
 export async function updateReminderRule(
   id:    string,
   input: Partial<Omit<BillReminderRule, "id" | "bill_id">>
 ): Promise<BillReminderRule> {
-  const { data, error } = await supabase
-    .from("bill_reminder_rules")
-    .update(input)
-    .eq("id", id)
-    .select()
-    .single();
+  return guardAsync(`mut:update-reminder:${id}:${JSON.stringify(input)}`, async () => {
+    const { data, error } = await supabase
+      .from("bill_reminder_rules")
+      .update(input)
+      .eq("id", id)
+      .select()
+      .single();
 
-  if (error) throw new Error(error.message);
-  return data as BillReminderRule;
+    if (error) throw new Error(error.message);
+    return data as BillReminderRule;
+  }) as Promise<BillReminderRule>;
 }
 
 export async function deleteReminderRule(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("bill_reminder_rules")
-    .delete()
-    .eq("id", id);
+  await guardAsync(`mut:delete-reminder:${id}`, async () => {
+    const { error } = await supabase
+      .from("bill_reminder_rules")
+      .delete()
+      .eq("id", id);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
+  });
 }
 
 export async function toggleReminderRule(id: string, enabled: boolean): Promise<BillReminderRule> {

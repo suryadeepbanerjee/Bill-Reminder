@@ -1,6 +1,7 @@
 import { Pressable, PressableProps, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../../lib/theme";
+import { tryAcquireAction, releaseAction } from "../../lib/action-guard";
 
 type IconButtonVariant = "default" | "ghost" | "filled" | "danger";
 type IconButtonSize    = "sm" | "md" | "lg";
@@ -11,6 +12,12 @@ interface IconButtonProps extends Omit<PressableProps, "style"> {
   size?: IconButtonSize;
   rounded?: boolean;
   accessibilityLabel: string;
+  /**
+   * Optional silent per-action dedupe key. When set, rapid repeat presses of
+   * the same key no-op (no visual change) — only the underlying action is
+   * deduped.
+   */
+  guardKey?: string;
 }
 
 const variantClasses: Record<IconButtonVariant, string> = {
@@ -34,6 +41,7 @@ export function IconButton({
   onPress,
   accessibilityLabel,
   disabled,
+  guardKey,
   ...props
 }: IconButtonProps) {
   const dim = sizeMap[size];
@@ -42,7 +50,19 @@ export function IconButton({
   const handlePress = (e: Parameters<NonNullable<PressableProps["onPress"]>>[0]) => {
     if (disabled) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onPress?.(e);
+
+    if (!guardKey) {
+      onPress?.(e);
+      return;
+    }
+
+    if (!tryAcquireAction(guardKey)) return;
+    const result = onPress?.(e);
+    if (result && typeof (result as any).then === "function") {
+      (result as Promise<unknown>).catch(() => {}).finally(() => releaseAction(guardKey));
+    } else {
+      releaseAction(guardKey);
+    }
   };
 
   return (
