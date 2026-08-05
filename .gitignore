@@ -55,6 +55,5 @@ website/node_modules/
 website/dist/
 website/.env
 
-app.zip
-
 .obsidian/
+AGENTS.md
