@@ -2,54 +2,56 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "../ui/Button";
 
-/* Bill row shown in the phone mockup — supports upcoming, overdue, paid, recurring */
+/* Bill row shown in the phone mockup */
 function BillCard({
-	emoji,
+	icon,
 	name,
+	subtitle,
 	amount,
-	category,
-	daysLeft,
-	paid,
-	overdue,
-	recurring,
+	statusText,
+	statusColor,
+	statusIcon,
+	actionText,
+	actionIcon,
+	actionColor,
 }: {
-	emoji: string;
+	icon: React.ReactNode;
 	name: string;
+	subtitle?: string;
 	amount: string;
-	category: string;
-	daysLeft?: number;
-	paid?: boolean;
-	overdue?: boolean;
-	recurring?: boolean;
+	statusText: string;
+	statusColor: "error" | "warning" | "secondary";
+	statusIcon?: React.ReactNode;
+	actionText?: string;
+	actionIcon?: React.ReactNode;
+	actionColor?: string;
 }) {
+	const colors = {
+		error: "text-error bg-error/10 border border-error/20",
+		warning: "text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20",
+		secondary: "text-secondary bg-surface border border-border",
+	};
+
 	return (
-		<div className="flex items-center gap-2.5 py-2.5 border-b border-border/50">
-			<div
-				className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 ${overdue ? "bg-error/10" : "bg-surface border border-border"}`}
-			>
-				{emoji}
+		<div className="flex items-center gap-2.5 p-2.5 bg-surface border border-border rounded-xl mb-1.5">
+			<div className="w-8 h-8 rounded-lg bg-canvas border border-border flex items-center justify-center text-secondary shrink-0">
+				{icon}
 			</div>
 			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-1.5">
-					<p className="text-xs font-semibold text-primary">{name}</p>
-					{recurring && (
-						<span className="inline-flex items-center gap-0.5 text-[8px] font-semibold text-secondary bg-surface border border-border rounded px-1 py-0.5">
-							↻ recurring
-						</span>
-					)}
+				<p className="text-[11px] font-bold text-primary truncate">{name}</p>
+				{subtitle && <p className="text-[9px] text-secondary truncate mb-1">{subtitle}</p>}
+				<div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${colors[statusColor]}`}>
+					{statusIcon && <span className="text-[8px]">{statusIcon}</span>}
+					<span className="text-[8px] font-semibold">{statusText}</span>
 				</div>
-				<p className="text-[10px] text-secondary mt-0.5">{category}</p>
 			</div>
-			<div className="text-right shrink-0">
-				<p className="text-xs font-bold text-primary mb-0.5 font-mono tabular-nums">{amount}</p>
-				{paid ? (
-					<p className="text-[10px] text-success font-medium">✓ Paid</p>
-				) : overdue ? (
-					<p className="text-[10px] text-error font-semibold">Overdue</p>
-				) : (
-					<p className={`text-[10px] font-medium ${daysLeft! <= 2 ? "text-warning" : "text-secondary"}`}>
-						{daysLeft === 0 ? "Due today" : `${daysLeft}d left`}
-					</p>
+			<div className="text-right shrink-0 flex flex-col items-end justify-between h-full">
+				<p className="text-[11px] font-bold text-primary tabular-nums mb-1">{amount}</p>
+				{actionText && (
+					<div className={`inline-flex items-center gap-0.5 ${actionColor || "text-success"}`}>
+						{actionIcon && <span className="text-[10px]">{actionIcon}</span>}
+						<span className="text-[9px] font-medium">{actionText}</span>
+					</div>
 				)}
 			</div>
 		</div>
@@ -135,61 +137,122 @@ function PhoneMockup() {
 			style={{ perspective: 1000 }}
 			className="relative z-10"
 		>
-			<div className="w-[264px] bg-canvas border border-border rounded-[32px] p-3 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] relative z-10">
-				<div className="rounded-[22px] overflow-hidden bg-canvas border border-border">
-					<div className="px-4 py-2.5 flex justify-between items-center bg-canvas">
-						<span className="text-[10px] text-primary font-semibold font-mono tabular-nums">9:41</span>
+			<div className="w-[264px] bg-canvas border border-border rounded-[32px] p-2.5 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] relative z-10">
+				<div className="rounded-[24px] overflow-hidden bg-canvas border border-border relative h-[530px] flex flex-col">
+					<div className="px-4 py-2 flex justify-between items-center bg-canvas shrink-0">
+						<span className="text-[9px] text-primary font-semibold font-mono tabular-nums">18:51</span>
 						<div className="flex gap-1 items-center">
-							<div className="w-3 h-1.5 bg-success rounded-sm opacity-80" />
+							<div className="flex gap-0.5 items-end h-2">
+								<div className="w-0.5 h-1 bg-primary rounded-sm" />
+								<div className="w-0.5 h-1.5 bg-primary rounded-sm" />
+								<div className="w-0.5 h-2 bg-primary rounded-sm" />
+								<div className="w-0.5 h-2 bg-primary/30 rounded-sm" />
+							</div>
+							<div className="w-3 h-1.5 bg-primary rounded-sm opacity-80 ml-1" />
 						</div>
 					</div>
-					<div className="px-3.5 pb-3.5 bg-canvas">
-						<div className="mb-3.5 flex items-start justify-between">
-							<div>
-								<p className="text-[10px] text-secondary mb-0.5">Good morning,</p>
-								<p className="text-[15px] font-bold text-primary tracking-tight">Surya 👋</p>
-							</div>
-							<div className="w-6 h-6 rounded-lg bg-surface border border-border flex items-center justify-center">
-								<svg width="12" height="12" viewBox="0 0 18 18" fill="none" className="text-secondary">
-									<path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="currentColor" />
-									<rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="currentColor" />
-									<circle cx="9" cy="13.5" r="1.2" fill="currentColor" />
-								</svg>
-							</div>
+					<div className="px-3.5 pb-3.5 bg-canvas flex-1 overflow-y-auto scrollbar-hide">
+						<div className="mb-3.5">
+							<p className="text-[9px] text-secondary mb-0.5">Good evening, Suryadeep</p>
+							<p className="text-[16px] font-bold text-primary tracking-tight">Your bills</p>
 						</div>
+						
 						<div className="flex gap-1.5 mb-3.5">
 							{[
-								{ label: "Due this month", value: "₹4,850", bg: "bg-surface border border-border", text: "text-primary" },
-								{ label: "Overdue", value: "₹1,200", bg: "bg-error/10 border border-error/20", text: "text-error" },
-								{ label: "Paid", value: "₹794", bg: "bg-success/10 border border-success/20", text: "text-success" },
+								{ label: "OVERDUE", value: "1", bg: "bg-[#2a1315] border-[#3b181a]", text: "text-[#ef4444]", icon: (
+									<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+								) },
+								{ label: "TODAY", value: "1", bg: "bg-[#252210] border-[#343018]", text: "text-[#eab308]", icon: (
+									<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+								) },
+								{ label: "UPCOMING", value: "2", bg: "bg-[#102418] border-[#183624]", text: "text-[#22c55e]", icon: (
+									<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+								) },
 							].map((c) => (
-								<div key={c.label} className={`flex-1 px-2 py-1.5 rounded-[10px] ${c.bg}`}>
-									<p className="text-[7px] text-secondary mb-1">{c.label}</p>
-									<p className={`text-[11.5px] font-bold font-mono tabular-nums ${c.text}`}>{c.value}</p>
+								<div key={c.label} className={`flex-1 px-1.5 py-1.5 rounded-lg border ${c.bg}`}>
+									<p className={`text-[7px] font-bold uppercase mb-0.5 flex items-center gap-1 ${c.text}`}>
+										{c.icon} {c.label}
+									</p>
+									<p className={`text-[15px] font-bold tabular-nums ${c.text}`}>{c.value}</p>
 								</div>
 							))}
 						</div>
-						<div className="flex gap-1.5 mb-3 overflow-hidden">
-							{["All", "Streaming", "Utilities", "Housing"].map((c, i) => (
-								<span
-									key={c}
-									className={`text-[9px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
-										i === 0 ? "bg-primary text-canvas" : "bg-surface border border-border text-secondary"
-									}`}
-								>
-									{c}
-								</span>
-							))}
+
+						<div className="bg-primary text-canvas px-3 py-3 rounded-[14px] flex items-center justify-between mb-4">
+							<div>
+								<p className="text-[9px] font-medium opacity-80 mb-0.5">Total owed now</p>
+								<p className="text-[17px] font-bold tabular-nums">₹1,198</p>
+							</div>
+							<div className="bg-[#1a1a1a] text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold border border-[#333]">
+								View all
+							</div>
 						</div>
-						<p className="text-[9px] text-secondary font-semibold tracking-wider uppercase mb-1">Upcoming</p>
-						<BillCard emoji="⚡" name="Electricity" amount="₹1,200" category="Utilities" overdue />
-						<BillCard emoji="📺" name="Netflix" amount="₹649" category="Streaming" daysLeft={2} recurring />
-						<BillCard emoji="🎵" name="Spotify" amount="₹119" category="Music" daysLeft={5} recurring />
-						<BillCard emoji="☁️" name="iCloud" amount="₹75" category="Storage" paid />
+
+						<p className="text-[9px] text-secondary font-semibold mb-2">Action Required · 2</p>
+						<BillCard 
+							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>}
+							name="Mobile" 
+							subtitle="BSNL" 
+							amount="₹899" 
+							statusText="11 days overdue" 
+							statusColor="error"
+							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>}
+							actionText="Mark paid"
+							actionIcon={<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>}
+						/>
+						<BillCard 
+							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>}
+							name="Amazon Prime" 
+							amount="₹299" 
+							statusText="Due today" 
+							statusColor="warning"
+							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>}
+							actionText="Mark paid"
+							actionIcon={<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>}
+						/>
+
+						<p className="text-[9px] text-secondary font-semibold mb-2 mt-3">Upcoming</p>
+						<BillCard 
+							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>}
+							name="College Fees" 
+							subtitle="IILM University" 
+							amount="₹1,00,000" 
+							statusText="In 2 days" 
+							statusColor="secondary"
+							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
+						/>
+						<BillCard 
+							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>}
+							name="Wifi" 
+							subtitle="Airtel" 
+							amount="₹706" 
+							statusText="In 5 days" 
+							statusColor="secondary"
+							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
+						/>
 					</div>
-				</div>
-				<div className="flex justify-center pt-2">
-					<div className="w-[60px] h-[3px] rounded-full bg-secondary/30" />
+
+					{/* Add Bill FAB */}
+					<div className="absolute bottom-16 right-3 bg-[#eab308] text-[#1a1a1a] px-3 py-2.5 rounded-full flex items-center gap-1.5 shadow-lg">
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+						<span className="text-[10px] font-bold pr-1">Add bill</span>
+					</div>
+
+					{/* Bottom Nav */}
+					<div className="px-4 py-2.5 bg-[#1a1a1a] border-t border-[#333] flex justify-between items-center shrink-0">
+						<div className="flex flex-col items-center gap-0.5 text-white">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+							<span className="text-[7px] font-medium">Home</span>
+						</div>
+						<div className="flex flex-col items-center gap-0.5 text-secondary">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+							<span className="text-[7px] font-medium">Bills</span>
+						</div>
+						<div className="flex flex-col items-center gap-0.5 text-secondary">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+							<span className="text-[7px] font-medium">Settings</span>
+						</div>
+					</div>
 				</div>
 			</div>
 			<CategoriesCard />

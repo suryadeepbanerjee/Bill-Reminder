@@ -112,9 +112,9 @@ async function processCallback(): Promise<void> {
       return;
     }
 
-    // Website OAuth (PKCE) — no 'type'. Session is set on the web client; just go home.
+    // Website OAuth (PKCE) — no 'type'. Session is set on the web client; go to the dashboard.
     if (!type) {
-      window.location.replace("/");
+      window.location.replace("/app/dashboard");
       return;
     }
 

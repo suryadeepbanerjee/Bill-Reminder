@@ -82,7 +82,7 @@ export default function SignIn() {
         sessionStorage.removeItem("pending_invite_hid");
         navigate(`/accept-invite?hid=${pendingHid}`);
       } else {
-        navigate("/");
+        navigate("/app/dashboard");
       }
     } catch { setError("Something went wrong. Please try again."); }
     finally { setLoading(false); }
