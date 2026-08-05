@@ -15,6 +15,7 @@ import {
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { useConfirm } from "../../components/ui/Confirm";
+import { InviteResendButton } from "../../components/household/InviteResendButton";
 import { useToast } from "../../components/ui/Toast";
 import { friendlyError } from "../../lib/errors";
 import type { HouseholdMember, Profile } from "../../lib/types";
@@ -130,6 +131,18 @@ export default function MembersPage() {
       setInviteError(friendlyError(e));
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleResend = async (member: HouseholdMember) => {
+    const email = member.invited_email ?? "";
+    if (!email || !householdId) return;
+    try {
+      await inviteToHousehold(householdId, email);
+      showToast(`Invitation sent to ${email}`, "success");
+      await loadMembers(householdId);
+    } catch (e) {
+      showToast(friendlyError(e), "error");
     }
   };
 
@@ -376,6 +389,13 @@ export default function MembersPage() {
                   >
                     <Trash2 size={16} />
                   </button>
+                )}
+
+                {isAdmin && !isMe && m.member.status === "invited" && (
+                  <InviteResendButton
+                    member={m.member}
+                    onResend={() => handleResend(m.member)}
+                  />
                 )}
               </div>
             );

@@ -66,7 +66,7 @@ export default function Modal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${size} bg-surface border border-border rounded-t-card sm:rounded-card shadow-raised max-h-[92vh] flex flex-col`}
+            className={`relative w-full ${sizeClasses[size]} bg-surface border border-border rounded-t-card sm:rounded-card shadow-raised max-h-[92vh] flex flex-col`}
           >
             {(title || dismissable) && (
               <div className="flex items-start justify-between px-6 pt-6 pb-3 shrink-0">

@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../components/ui/Button";
 import { TextInput } from "../../../components/ui/TextInput";
 import { Surface } from "../../../components/ui/Surface";
+import { InviteResendButton } from "../../../components/household/InviteResendButton";
 import { useAuthStore } from "../../../stores/auth-store";
 import { useHouseholdStore } from "../../../stores/household-store";
 import {
@@ -124,8 +125,21 @@ export default function MembersScreen() {
     }
   };
 
-  const handleRemoveMember = (memberId: string, memberName: string) => {
-    Alert.alert(
+  const handleResend = async (member: HouseholdMember) => {
+    const email = member.invited_email ?? "";
+    if (!email || !householdId) return;
+    try {
+      await inviteToHousehold(householdId, email);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const updated = await fetchHouseholdMembers(householdId);
+      setMembers(updated);
+    } catch (e: any) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Couldn't Resend", friendlyError(e));
+    }
+  };
+
+  const handleRemoveMember = (memberId: string, memberName: string) => {    Alert.alert(
       "Remove Member",
       `Are you sure you want to remove ${memberName} from the household?`,
       [
@@ -445,6 +459,13 @@ export default function MembersScreen() {
                         >
                           <Ionicons name="trash-outline" size={18} className="text-error" />
                         </Pressable>
+                      )}
+
+                      {isAdmin && !isMe && m.member.status === "invited" && (
+                        <InviteResendButton
+                          member={m.member}
+                          onResend={() => handleResend(m.member)}
+                        />
                       )}
                     </View>
                   );

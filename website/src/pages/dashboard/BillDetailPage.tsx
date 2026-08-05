@@ -72,6 +72,7 @@ export default function BillDetailPage() {
   const { data: bill, isLoading, isError, refetch } = useBill(id);
   const { data: occurrences } = useBillOccurrences(id);
   const { data: rules } = useReminderRules(id);
+  const deleteBill = useDeleteBill();
 
   const [showEdit, setShowEdit] = useState(false);
   const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
@@ -143,8 +144,6 @@ export default function BillDetailPage() {
       showToast("Failed to delete bill. Please try again.", "error");
     }
   };
-
-  const deleteBill = useDeleteBill();
 
   return (
     <div>

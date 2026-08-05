@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutGrid, Receipt, Settings, Plus, LogOut, ChevronDown,
-  Check, Users, Bell,
+  Check, Users, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/auth-store";
@@ -28,6 +28,7 @@ export default function AppShell({ children }: AppShellProps) {
   const { confirm } = useConfirm();
   const navigate = useNavigate();
   const [householdOpen, setHouseholdOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Your account";
 
@@ -52,7 +53,7 @@ export default function AppShell({ children }: AppShellProps) {
   };
 
   const linkClass = ({ isActive }: { isActive: boolean }): string =>
-    `flex items-center gap-3 px-3.5 py-2.5 rounded-input text-sm font-medium transition-all duration-150 ${
+    `flex items-center gap-3 ${sidebarCollapsed ? "justify-center px-2" : "px-3.5"} py-2.5 rounded-input text-sm font-medium transition-all duration-150 ${
       isActive
         ? "bg-accent/10 text-accent border border-accent/20"
         : "text-secondary hover:bg-input hover:text-primary border border-transparent"
@@ -61,29 +62,30 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-canvas">
       {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-border bg-surface">
-        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-              <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="white"/>
-              <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="white"/>
-              <circle cx="9" cy="13.5" r="1.2" fill="white"/>
-            </svg>
+      <aside className={`hidden lg:flex fixed inset-y-0 left-0 ${sidebarCollapsed ? "w-[76px]" : "w-64"} flex-col border-r border-border bg-surface transition-[width] duration-200`}>
+        <div className={`flex items-center h-16 border-b border-border ${sidebarCollapsed ? "justify-center px-0" : "gap-2.5 px-5"}`}>
+          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
+            <img src="/fevicon.png" alt="Bill Reminder" className="w-8 h-8 object-cover" />
           </div>
-          <span className="text-sm font-bold text-primary tracking-tight">Bill Reminder</span>
+          {!sidebarCollapsed && <span className="text-sm font-bold text-primary tracking-tight">Bill Reminder</span>}
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV.map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} className={linkClass} end={to === "/app/dashboard"}>
               <Icon size={17} />
-              {label}
+              {!sidebarCollapsed && label}
             </NavLink>
           ))}
 
           <NavLink to="/app/settings/members" className={linkClass}>
             <Users size={17} />
-            Household
+            {!sidebarCollapsed && "Household"}
+          </NavLink>
+
+          <NavLink to="/app/settings" className={linkClass} end>
+            <Settings size={17} />
+            {!sidebarCollapsed && "Settings"}
           </NavLink>
         </nav>
 
@@ -93,19 +95,23 @@ export default function AppShell({ children }: AppShellProps) {
             <button
               type="button"
               onClick={() => setHouseholdOpen((v) => !v)}
-              className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left"
+              className={`w-full flex items-center gap-2.5 py-3 text-left ${sidebarCollapsed ? "justify-center px-0" : "px-3.5"}`}
             >
               <span className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-[13px] font-bold text-accent shrink-0">
                 {(activeHousehold?.household.name[0] ?? "H").toUpperCase()}
               </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[13px] font-semibold text-primary truncate">
-                  {activeHousehold?.household.name ?? "…"}
-                </span>
-              </span>
-              <ChevronDown size={15} className={`text-secondary transition-transform ${householdOpen ? "rotate-180" : ""}`} />
+              {!sidebarCollapsed && (
+                <>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13px] font-semibold text-primary truncate">
+                      {activeHousehold?.household.name ?? "…"}
+                    </span>
+                  </span>
+                  <ChevronDown size={15} className={`text-secondary transition-transform ${householdOpen ? "rotate-180" : ""}`} />
+                </>
+              )}
             </button>
-            {householdOpen && (
+            {householdOpen && !sidebarCollapsed && (
               <div className="px-2 pb-2 border-t border-border pt-2 space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-secondary px-2 pb-1">
                   Your Households
@@ -143,14 +149,16 @@ export default function AppShell({ children }: AppShellProps) {
         </div>
 
         {/* User row + sign out */}
-        <div className="px-3 pb-4 border-t border-border pt-3 flex items-center gap-2.5">
+        <div className={`px-3 pb-4 border-t border-border pt-3 flex items-center gap-2.5 ${sidebarCollapsed ? "flex-col gap-1.5" : ""}`}>
           <span className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-sm font-bold text-accent shrink-0">
             {displayName[0]?.toUpperCase() ?? "?"}
           </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-primary truncate">{displayName}</p>
-            <p className="text-[11px] text-secondary truncate">{profile?.email ?? user?.email ?? ""}</p>
-          </div>
+          {!sidebarCollapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-primary truncate">{displayName}</p>
+              <p className="text-[11px] text-secondary truncate">{profile?.email ?? user?.email ?? ""}</p>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleSignOut}
@@ -160,29 +168,28 @@ export default function AppShell({ children }: AppShellProps) {
             <LogOut size={16} />
           </button>
         </div>
+
+        {/* Collapse toggle */}
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed((v) => !v)}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={`flex items-center gap-3 ${sidebarCollapsed ? "justify-center w-full px-2" : "px-5"} h-12 border-t border-border text-secondary hover:text-primary hover:bg-input transition-colors text-[13px] font-medium shrink-0`}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {!sidebarCollapsed && "Collapse sidebar"}
+        </button>
       </aside>
 
       {/* ── Mobile top bar ───────────────────────────────────────────────── */}
       <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-canvas/90 backdrop-blur border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
-              <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="white"/>
-              <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="white"/>
-              <circle cx="9" cy="13.5" r="1.2" fill="white"/>
-            </svg>
+          <div className="w-7 h-7 rounded-lg overflow-hidden">
+            <img src="/fevicon.png" alt="Bill Reminder" className="w-7 h-7 object-cover" />
           </div>
           <span className="text-sm font-bold text-primary tracking-tight">Bill Reminder</span>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => navigate("/app/settings")}
-            className="p-2 rounded-lg text-secondary"
-            aria-label="Settings"
-          >
-            <Settings size={19} />
-          </button>
           <button
             type="button"
             onClick={handleSignOut}
@@ -195,7 +202,7 @@ export default function AppShell({ children }: AppShellProps) {
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
-      <main className="lg:ml-64 pb-20 lg:pb-10">
+      <main className={`${sidebarCollapsed ? "lg:ml-[76px]" : "lg:ml-64"} pb-20 lg:pb-10 transition-[margin] duration-200`}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 lg:py-8">
           {children}
         </div>

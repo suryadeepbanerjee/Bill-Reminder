@@ -26,13 +26,15 @@ export interface Household {
 }
 
 export interface HouseholdMember {
-  id:           string;
-  household_id: string;
-  user_id:      string | null;
-  invited_email?: string | null;
-  role:         HouseholdRole;
-  status:       "invited" | "active" | "removed";
-  created_at:   string;
+  id:                 string;
+  household_id:       string;
+  user_id:            string | null;
+  invited_email?:     string | null;
+  role:               HouseholdRole;
+  status:             "invited" | "active" | "removed";
+  created_at:         string;
+  invite_count?:      number;
+  invite_last_sent_at?: string | null;
 }
 
 export interface CategoryPreset {

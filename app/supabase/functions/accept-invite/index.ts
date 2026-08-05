@@ -42,25 +42,40 @@ serve(async (req: Request) => {
     }
 
     // ── 2. Find the pending invite ─────────────────────────────────────────
-    const { data: invite, error: fetchError } = await adminClient
+    // Invites are email-scoped: match by user_id OR the invited email
+    const callerEmail = (caller.email ?? "").toLowerCase();
+
+    const { data: pendingInvites, error: fetchError } = await adminClient
       .from("household_members")
       .select("*")
       .eq("household_id", householdId)
-      .eq("user_id", caller.id)
-      .eq("status", "invited")
-      .single();
+      .eq("status", "invited");
 
-    if (fetchError || !invite) {
+    if (fetchError) {
+      throw new Error(`Failed to look up invitation: ${fetchError.message}`);
+    }
+
+    const invite =
+      pendingInvites?.find((m) => m.user_id === caller.id) ??
+      pendingInvites?.find(
+        (m) => (m.invited_email ?? "").toLowerCase() === callerEmail
+      );
+
+    if (!invite) {
+      const other = pendingInvites?.[0];
+      const message = other?.invited_email
+        ? `This invitation was sent to ${other.invited_email}. You're signed in as ${caller.email ?? "an unknown account"}. Sign in with the invited email to accept it.`
+        : "No pending invitation found for this household.";
       return new Response(
-        JSON.stringify({ error: "No pending invitation found for this household" }),
+        JSON.stringify({ error: message, sentTo: other?.invited_email ?? null }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ── 3. Activate membership ─────────────────────────────────────────────
+    // ── 3. Activate membership (rebind user_id if matched by email only) ────
     const { error: updateError } = await adminClient
       .from("household_members")
-      .update({ status: "active" })
+      .update({ status: "active", user_id: caller.id })
       .eq("id", invite.id);
 
     if (updateError) {

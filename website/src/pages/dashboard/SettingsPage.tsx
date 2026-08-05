@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronDown, ChevronUp, ChevronRight, Plus, Mail, Sun, Moon, Monitor,
+  Mail, Sun, Moon, ChevronRight,
   Share2, Receipt, Info, Shield, FileText, Trash2, LogOut, Users,
-  CheckCircle2, X,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/auth-store";
 import { useProfile, useUpdateProfile } from "../../hooks/useProfile";
 import { useHousehold } from "../../hooks/useHousehold";
 import { useBills } from "../../hooks/useBills";
-import { useHouseholdStore } from "../../stores/household-store";
 import { useTheme } from "../../components/ThemeProvider";
 import { useConfirm } from "../../components/ui/Confirm";
 import { useToast } from "../../components/ui/Toast";
@@ -19,7 +17,7 @@ import { TextInput } from "../../components/ui/TextInput";
 import Switch from "../../components/ui/Switch";
 import Modal from "../../components/ui/Modal";
 import AlertBadge from "../../components/ui/AlertBadge";
-import { createHousehold, deleteAccount } from "../../lib/api/household";
+import { deleteAccount } from "../../lib/api/household";
 import { friendlyError } from "../../lib/errors";
 
 /** GitHub mark — lucide dropped brand icons, so inline SVG. */
@@ -75,7 +73,6 @@ function SettingsRow({
 const THEME_OPTIONS = [
   { value: "light",  label: "Light",  icon: Sun },
   { value: "dark",   label: "Dark",   icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
 ] as const;
 
 function ThemeSelector() {
@@ -84,7 +81,7 @@ function ThemeSelector() {
   return (
     <div className="px-4 py-3">
       <p className="text-[11px] text-secondary mb-3">Appearance</p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {THEME_OPTIONS.map((opt) => {
           const isActive = theme === opt.value;
           const Icon = opt.icon;
@@ -306,41 +303,16 @@ export default function SettingsPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
-  const { activeHousehold, households } = useHousehold();
+  const { activeHousehold } = useHousehold();
   const { data: bills = [] } = useBills();
-  const setActiveHousehold = useHouseholdStore((s) => s.setActiveHousehold);
-  const setHouseholds = useHouseholdStore((s) => s.setHouseholds);
   const { reset } = useAuthStore();
   const { confirm } = useConfirm();
   const { showToast } = useToast();
 
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [creatingHousehold, setCreatingHousehold] = useState(false);
-  const [newHouseholdName, setNewHouseholdName] = useState("");
-  const [showNewHouseholdInput, setShowNewHouseholdInput] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const displayName = profile?.display_name ?? "Your account";
   const version = "1.0.0";
-
-  const handleCreateHousehold = async () => {
-    const name = newHouseholdName.trim();
-    if (!name || !user?.id) return;
-    setCreatingHousehold(true);
-    try {
-      const result = await createHousehold(name, user.id);
-      setHouseholds([...households, result]);
-      setActiveHousehold(result);
-      setNewHouseholdName("");
-      setShowNewHouseholdInput(false);
-      setShowDropdown(false);
-      showToast("Household created", "success");
-    } catch (e) {
-      showToast(friendlyError(e), "error");
-    } finally {
-      setCreatingHousehold(false);
-    }
-  };
 
   const handleSignOut = async () => {
     const ok = await confirm({
@@ -389,13 +361,9 @@ export default function SettingsPage() {
     <div className="max-w-xl mx-auto">
       <h1 className="text-2xl font-bold tracking-tight text-primary mb-6">Settings</h1>
 
-      {/* ── Profile card + household dropdown ─────────────────────────── */}
+      {/* ── Profile card ─────────────────────────────────────────────── */}
       <div className="bg-surface border border-border rounded-card overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowDropdown((p) => !p)}
-          className="w-full flex items-center gap-4 px-4 py-4 hover:bg-input transition-colors"
-        >
+        <div className="w-full flex items-center gap-4 px-4 py-4">
           <span className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-accent text-lg font-semibold shrink-0">
             {displayName.charAt(0).toUpperCase()}
           </span>
@@ -406,83 +374,7 @@ export default function SettingsPage() {
               <span className="block text-xs text-secondary truncate">{activeHousehold.household.name}</span>
             )}
           </span>
-          {showDropdown ? <ChevronUp size={20} className="text-secondary shrink-0" /> : <ChevronDown size={20} className="text-secondary shrink-0" />}
-        </button>
-
-        {showDropdown && (
-          <div className="bg-primary/5 border-t border-border px-3 py-3 space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] text-secondary font-bold uppercase tracking-widest">Your Households</span>
-              <button
-                type="button"
-                onClick={() => { setShowDropdown(false); navigate("/app/settings/members"); }}
-                className="text-xs text-accent font-semibold hover:underline"
-              >
-                Manage
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              {households.map((h) => {
-                const isActive = h.household.id === activeHousehold?.household.id;
-                return (
-                  <button
-                    key={h.household.id}
-                    type="button"
-                    onClick={() => { setActiveHousehold(h); setShowDropdown(false); }}
-                    className={`w-full flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors ${
-                      isActive ? "bg-surface border border-border shadow-sm" : "hover:bg-input"
-                    }`}
-                  >
-                    <span className={`text-sm truncate ${isActive ? "text-primary font-bold" : "text-primary/80 font-medium"}`}>
-                      {h.household.name}
-                    </span>
-                    {isActive && <CheckCircle2 size={16} className="text-accent shrink-0" />}
-                  </button>
-                );
-              })}
-
-              {showNewHouseholdInput ? (
-                <div className="space-y-2 mt-1">
-                  <TextInput
-                    placeholder="e.g. Family Home"
-                    value={newHouseholdName}
-                    onChange={(e) => setNewHouseholdName(e.target.value)}
-                    autoFocus
-                    onKeyDown={(e) => { if (e.key === "Enter") handleCreateHousehold(); }}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="accent"
-                      fullWidth
-                      onClick={handleCreateHousehold}
-                      loading={creatingHousehold}
-                      disabled={!newHouseholdName.trim()}
-                    >
-                      Create
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      fullWidth
-                      onClick={() => { setShowNewHouseholdInput(false); setNewHouseholdName(""); }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowNewHouseholdInput(true)}
-                  className="w-full flex items-center gap-2 py-2.5 px-3 rounded-lg border border-dashed border-border hover:border-accent/40 transition-colors"
-                >
-                  <Plus size={16} className="text-accent" />
-                  <span className="text-sm font-medium text-accent">New household</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* ── Edit profile ───────────────────────────────────────────────── */}

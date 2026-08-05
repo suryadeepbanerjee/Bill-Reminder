@@ -95,6 +95,11 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
       return FALLBACKS.session;
     }
 
+    // Invite resend rate-limit messages (server-generated, safe to show verbatim)
+    if (lower.includes("before sending another invite") || lower.includes("invites sent to this email")) {
+      return raw;
+    }
+
     // Rate limiting
     if (lower.includes("rate limit") || lower.includes("too many") || lower.includes("security purposes") || lower.includes("once every")) {
       return "Too many attempts. Please wait a few minutes and try again.";

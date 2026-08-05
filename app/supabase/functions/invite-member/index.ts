@@ -6,6 +6,51 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ── Invite resend policy ─────────────────────────────────────────────────────
+// 2 minute cooldown between sends, max 3 resends (4 total sends),
+// then a 1 hour lockout measured from the last successful send.
+const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
+const MAX_SENDS          = 4; // initial invite + 3 resends
+const LOCKOUT_MS         = 60 * 60 * 1000;
+
+function json(body: Record<string, unknown>, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/* Return a 429 Response when a resend is not allowed yet, else null. */
+function resendLimitCheck(inviteCount: number, lastSentMs: number, now: number): Response | null {
+  const sinceLast = now - lastSentMs; // ms since last send
+
+  if (inviteCount >= MAX_SENDS && sinceLast < LOCKOUT_MS) {
+    const waitMin = Math.max(1, Math.ceil((LOCKOUT_MS - sinceLast) / 60000));
+    return json(
+      {
+        error: "Too many invites sent to this email. Please try again after 1 hour.",
+        retryAfterMs: LOCKOUT_MS - sinceLast,
+        inviteCount,
+      },
+      429
+    );
+  }
+
+  if (sinceLast < RESEND_COOLDOWN_MS) {
+    const waitSec = Math.max(1, Math.ceil((RESEND_COOLDOWN_MS - sinceLast) / 1000));
+    return json(
+      {
+        error: `Please wait ${waitSec}s before sending another invite.`,
+        retryAfterMs: RESEND_COOLDOWN_MS - sinceLast,
+        inviteCount,
+      },
+      429
+    );
+  }
+
+  return null;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -15,15 +60,12 @@ serve(async (req: Request) => {
     const { householdId, email } = await req.json();
 
     if (!householdId || !email) {
-      return new Response(
-        JSON.stringify({ error: "householdId and email are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "householdId and email are required" }, 400);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendKey   = Deno.env.get("RESEND_API_KEY")!;
+    const resendKey   = Deno.env.get("RESEND_API_KEY");
     const authHeader  = req.headers.get("Authorization") ?? "";
 
     // Client with the caller's JWT (for RLS)
@@ -37,10 +79,7 @@ serve(async (req: Request) => {
     // ── 1. Verify caller is admin of this household ────────────────────────
     const { data: { user: caller } } = await userClient.auth.getUser();
     if (!caller) {
-      return new Response(
-        JSON.stringify({ error: "Not authenticated" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Not authenticated" }, 401);
     }
 
     const { data: callerMember } = await adminClient
@@ -52,10 +91,7 @@ serve(async (req: Request) => {
       .single();
 
     if (!callerMember || callerMember.role !== "admin") {
-      return new Response(
-        JSON.stringify({ error: "Only admins can invite members" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Only admins can invite members" }, 403);
     }
 
     // ── 2. Look up the target user by email in auth.users ──────────────────
@@ -72,50 +108,57 @@ serve(async (req: Request) => {
     );
 
     if (!targetUser) {
-      return new Response(
-        JSON.stringify({
-          error: "No account found with this email. They must create an account first.",
-        }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return json(
+        { error: "No account found with this email. They must create an account first." },
+        404
       );
     }
 
     // ── 3. Check if already a member ───────────────────────────────────────
     const { data: existing } = await adminClient
       .from("household_members")
-      .select("id, status")
+      .select("id, status, invite_count, invite_last_sent_at")
       .eq("household_id", householdId)
       .eq("user_id", targetUser.id)
       .single();
 
+    const nowIso = new Date().toISOString();
+
     if (existing) {
       if (existing.status === "active") {
-        return new Response(
-          JSON.stringify({ error: "This user is already a member of this household" }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return json({ error: "This user is already a member of this household" }, 409);
       }
-      if (existing.status === "invited") {
-        return new Response(
-          JSON.stringify({ error: "This user already has a pending invitation" }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      // Re-invite removed member
+
+      // Invited or removed → resend path with rate limiting
+      const inviteCount = existing.invite_count ?? 1;
+      const lastSentMs  = existing.invite_last_sent_at
+        ? new Date(existing.invite_last_sent_at).getTime()
+        : Date.now();
+
+      const blocked = resendLimitCheck(inviteCount, lastSentMs, Date.now());
+      if (blocked) return blocked;
+
       await adminClient
         .from("household_members")
-        .update({ status: "invited", invited_email: email })
+        .update({
+          status:             "invited",
+          invited_email:      email,
+          invite_count:       inviteCount + 1,
+          invite_last_sent_at: nowIso,
+        })
         .eq("id", existing.id);
     } else {
-      // ── 4. Insert the invite row ───────────────────────────────────────
+      // ── 4. Insert the invite row ─────────────────────────────────────────
       const { error: insertError } = await adminClient
         .from("household_members")
         .insert({
-          household_id: householdId,
-          user_id:      targetUser.id,
-          invited_email: email,
-          role:         "editor",
-          status:       "invited",
+          household_id:        householdId,
+          user_id:             targetUser.id,
+          invited_email:       email,
+          role:                "editor",
+          status:              "invited",
+          invite_count:        1,
+          invite_last_sent_at: nowIso,
         });
 
       if (insertError) {
@@ -123,7 +166,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── 5. Fetch household name for the email ─────────────────────────────
+    // ── 5. Fetch household name for the email ──────────────────────────────
     const { data: household } = await adminClient
       .from("households")
       .select("name")
@@ -144,11 +187,14 @@ serve(async (req: Request) => {
       ?? caller.email?.split("@")[0]
       ?? "Someone";
 
-    // ── 6. Send invite email via Resend ───────────────────────────────────
-    if (resendKey) {
-      const webUrl = `https://billreminder.suryadeepbanerjee.in/accept-invite?hid=${householdId}`;
+    // ── 6. Send invite email via Resend ────────────────────────────────────
+    if (!resendKey) {
+      throw new Error("Email service is not configured. Please set RESEND_API_KEY.");
+    }
 
-      const html = `
+    const webUrl = `https://billreminder.suryadeepbanerjee.in/accept-invite?hid=${householdId}`;
+
+    const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -191,30 +237,35 @@ serve(async (req: Request) => {
 </body>
 </html>`;
 
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${resendKey}`,
-          "Content-Type":  "application/json",
-        },
-        body: JSON.stringify({
-          from:    "Bill Reminder <billalert@billreminder.suryadeepbanerjee.in>",
-          to:      [email],
-          subject: `${callerName} invited you to "${householdName}" on Bill Reminder`,
-          html,
-        }),
-      });
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({
+        from:    "Bill Reminder <billalert@billreminder.suryadeepbanerjee.in>",
+        to:      [email],
+        subject: `${callerName} invited you to "${householdName}" on Bill Reminder`,
+        html,
+      }),
+    });
+
+    if (!resp.ok) {
+      let detail = "";
+      try {
+        const j = await resp.json();
+        detail = j?.message ?? JSON.stringify(j);
+      } catch {
+        detail = await resp.text();
+      }
+      console.error("Resend email failed:", resp.status, detail);
+      throw new Error("The invitation was saved, but the email could not be sent. Please check the email service configuration.");
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: `Invitation sent to ${email}` }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ success: true, message: `Invitation sent to ${email}` }, 200);
   } catch (err: any) {
     console.error("invite-member error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message ?? "Internal error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: err.message ?? "Internal error" }, 500);
   }
 });

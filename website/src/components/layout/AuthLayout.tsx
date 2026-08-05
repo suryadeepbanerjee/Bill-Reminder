@@ -14,12 +14,8 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       {/* Top nav */}
       <div className="flex items-center justify-between max-w-[1360px] mx-auto w-full px-5 py-4.5">
         <Link to="/" className="flex items-center gap-2 no-underline text-secondary font-semibold text-sm tracking-tight hover:text-primary transition-colors">
-          <div className="w-[26px] h-[26px] rounded-lg bg-accent flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
-              <path d="M9 2C6.79 2 5 3.68 5 5.75V11H13V5.75C13 3.68 11.21 2 9 2Z" fill="var(--color-accent-text)"/>
-              <rect x="4" y="10.5" width="10" height="1.25" rx="0.625" fill="var(--color-accent-text)"/>
-              <circle cx="9" cy="13.5" r="1.2" fill="var(--color-accent-text)"/>
-            </svg>
+          <div className="w-[26px] h-[26px] rounded-lg overflow-hidden">
+            <img src="/fevicon.png" alt="Bill Reminder" className="w-[26px] h-[26px] object-cover" />
           </div>
           Bill Reminder
         </Link>
