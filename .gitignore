@@ -56,3 +56,5 @@ website/dist/
 website/.env
 
 app.zip
+
+.obsidian/
