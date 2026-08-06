@@ -166,25 +166,44 @@ export function CaptchaHost() {
             </Pressable>
           </View>
 
-          {!loaded && (
-            <View style={{ height: 200, alignItems: "center", justifyContent: "center", gap: 12 }}>
+          {!challenge && (
+            <View
+              style={{
+                alignItems: "center",
+                paddingVertical: 28,
+                paddingHorizontal: 24,
+              }}
+            >
               <View
                 style={{
-                  width: 44,
-                  height: 44,
+                  width: 40,
+                  height: 40,
                   borderRadius: 12,
                   backgroundColor: "rgba(217,170,32,0.12)",
                   borderWidth: 1,
-                  borderColor: "rgba(217,170,32,0.35)",
+                  borderColor: "rgba(217,170,32,0.25)",
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 2,
                 }}
               >
-                <Ionicons name="shield-checkmark" size={22} color={Colors.accent[400]} />
+                <Ionicons name="shield-checkmark" size={20} color={Colors.accent[400]} />
               </View>
-              <ActivityIndicator size="small" color={Colors.accent[500]} />
-              <Text style={{ color: "#A3A3A3", fontSize: 13 }}>Verifying you're human…</Text>
+              <ActivityIndicator
+                size="large"
+                color={Colors.accent[500]}
+                style={{ marginTop: 14 }}
+              />
+              <Text
+                style={{
+                  marginTop: 12,
+                  color: "#A3A3A3",
+                  fontSize: 13,
+                  textAlign: "center",
+                }}
+              >
+                Verifying you're human…
+              </Text>
             </View>
           )}
 
@@ -192,7 +211,11 @@ export function CaptchaHost() {
             key={nonce}
             source={{ html: buildHtml(CAPTCHA_SITE_KEY, nonce) }}
             style={[
-              { width: "100%", height: 320, backgroundColor: "transparent" },
+              {
+                width: "100%",
+                height: challenge ? 260 : 0,
+                backgroundColor: "transparent",
+              },
               !loaded && { display: "none" },
             ]}
             originWhitelist={["*"]}

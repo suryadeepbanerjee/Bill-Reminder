@@ -131,6 +131,9 @@ function ensureCaptchaStyles(): void {
  * sits below the label. When an interactive puzzle actually renders, the card
  * grows to fit it, the spinner hides and the label switches copy.
  */
+/** Widget height (px) when an interactive challenge has settled in. */
+const CHALLENGE_HEIGHT_LIMIT = 320;
+
 function getToken(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     ensureCaptchaStyles();
@@ -211,7 +214,7 @@ function getToken(): Promise<string> {
     ].join(";");
     widget.style.marginTop = "0px";
 
-    let challengeTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let challengeTimer: number | null = null;
     let expanded = false;
     const widgetObserver =
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
