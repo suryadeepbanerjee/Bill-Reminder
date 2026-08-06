@@ -39,13 +39,6 @@ const queryClient = new QueryClient({
   },
 });
 
-function LoadingScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080810" }}>
-      <ActivityIndicator size="large" color="#D1A920" />
-    </View>
-  );
-}
 
 export default function RootLayout() {
   const { setSession, setLoading, isLoading } = useAuthStore();
@@ -111,14 +104,11 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isLoading) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <LoadingScreen />
-      </QueryClientProvider>
-    );
-  }
-
+  // Always render the full navigator tree so the navigation context is
+  // available even during the initial session-restore (cold start).  Keeping
+  // <Stack> mounted means deep-link handlers, notification taps, and
+  // onAuthStateChange callbacks can safely call router.* at any point without
+  // triggering "Couldn't find a navigation context".
   return (
     <QueryClientProvider client={queryClient}>
       <View style={{ flex: 1 }} className={resolved === "dark" ? "dark" : ""}>
@@ -139,6 +129,20 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
+        {/* Overlay the loading screen until the session has been restored.
+            Rendered on top of Stack so it covers all screens, and dismissed
+            automatically once isLoading → false (no Stack remount needed). */}
+        {isLoading && (
+          <View
+            style={{
+              position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+              alignItems: "center", justifyContent: "center",
+              backgroundColor: "#080810",
+            }}
+          >
+            <ActivityIndicator size="large" color="#D1A920" />
+          </View>
+        )}
       </View>
     </QueryClientProvider>
   );

@@ -440,3 +440,7 @@ verify_jwt = false
 
 [functions.push-sender]
 verify_jwt = false
+
+# accept-invite-by-code — public; the invite row UUID in the link IS the token
+[functions.accept-invite-by-code]
+verify_jwt = false

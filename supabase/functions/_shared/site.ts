@@ -9,7 +9,9 @@ export function billUrl(billId: string): string {
   return `${SITE_URL}/bill/${encodeURIComponent(billId)}`;
 }
 
-/** Canonical link to a household invite (accept-invite page). */
-export function inviteUrl(householdId: string): string {
-  return `${SITE_URL}/accept-invite?hid=${encodeURIComponent(householdId)}`;
+/** Canonical link to a household invite (accept-invite page).
+ * `inviteCode` is the household_members.id — a UUIDv4 one-time token
+ * that lets the recipient accept without signing in first. */
+export function inviteUrl(householdId: string, inviteCode: string): string {
+  return `${SITE_URL}/accept-invite?code=${encodeURIComponent(inviteCode)}&hid=${encodeURIComponent(householdId)}`;
 }

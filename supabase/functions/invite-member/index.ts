@@ -173,6 +173,7 @@ serve(async (req: Request) => {
       .single();
 
     const nowIso = new Date().toISOString();
+    let inviteCode: string;
 
     if (existing) {
       if (existing.status === "active") {
@@ -197,9 +198,11 @@ serve(async (req: Request) => {
           invite_last_sent_at: nowIso,
         })
         .eq("id", existing.id);
+
+      inviteCode = existing.id;
     } else {
       // ── 4. Insert the invite row ─────────────────────────────────────────
-      const { error: insertError } = await adminClient
+      const { data: newMember, error: insertError } = await adminClient
         .from("household_members")
         .insert({
           household_id:        householdId,
@@ -209,14 +212,19 @@ serve(async (req: Request) => {
           status:              "invited",
           invite_count:        1,
           invite_last_sent_at: nowIso,
-        });
+        })
+        .select("id")
+        .single();
 
       if (insertError) {
         throw new Error(`Failed to create invite: ${insertError.message}`);
       }
+
+      inviteCode = newMember!.id;
     }
 
     // ── 5. Fetch household name for the email ──────────────────────────────
+    const webUrl = inviteUrl(householdId, inviteCode!);
     const { data: household } = await adminClient
       .from("households")
       .select("name")

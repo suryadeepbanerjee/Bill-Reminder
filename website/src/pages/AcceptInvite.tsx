@@ -8,67 +8,87 @@ import Footer from "../components/layout/Footer";
 
 type Status = "loading" | "accepting" | "success" | "error" | "need_login";
 
+const supabaseUrl   = import.meta.env.VITE_SUPABASE_URL as string;
+const supabaseAnon  = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
 export default function AcceptInvite() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const hid = searchParams.get("hid");
-  const [status, setStatus] = useState<Status>("loading");
-  const [errorMsg, setErrorMsg] = useState("");
+  const code = searchParams.get("code");   // invite row ID — one-time token
+  const hid  = searchParams.get("hid");    // household ID for verification
+
+  const [status, setStatus]         = useState<Status>("loading");
+  const [errorMsg, setErrorMsg]     = useState("");
   const [mismatchEmail, setMismatchEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    // ── New flow: code present → no login required ──────────────────────────
+    if (code && hid) {
+      setStatus("accepting");
+      fetch(`${supabaseUrl}/functions/v1/accept-invite-by-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": supabaseAnon,
+        },
+        body: JSON.stringify({ code, householdId: hid }),
+      })
+        .then(async (res) => {
+          const body = await res.json();
+          if (!res.ok) {
+            setStatus("error");
+            setErrorMsg(body.error ?? "Failed to accept invitation.");
+            return;
+          }
+          setStatus("success");
+        })
+        .catch((e) => {
+          setStatus("error");
+          setErrorMsg(friendlyError(e));
+        });
+      return;
+    }
+
+    // ── Legacy / fallback: only hid, no code → require login ───────────────
     if (!hid) {
       setStatus("error");
-      setErrorMsg("Invalid invitation link.");
+      setErrorMsg("Invalid invitation link. Please ask for a new invite.");
       return;
     }
 
     (async () => {
       try {
-        // Check if user is logged in
         const { data: { session } } = await supabase.auth.getSession();
-
         if (!session) {
-          // Not logged in — redirect to sign-in, come back after
           setStatus("need_login");
           return;
         }
-
-        // Logged in — auto-accept the invite
         setStatus("accepting");
-
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
         const res = await fetch(`${supabaseUrl}/functions/v1/accept-invite`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            "apikey": supabaseAnon,
           },
           body: JSON.stringify({ householdId: hid }),
         });
-
         const body = await res.json();
-
         if (!res.ok) {
-          if (body.sentTo) {
-            setMismatchEmail(body.sentTo);
-          }
+          if (body.sentTo) setMismatchEmail(body.sentTo);
           setStatus("error");
           setErrorMsg(body.error ?? "Failed to accept invitation.");
           return;
         }
-
         setStatus("success");
       } catch (e: any) {
         setStatus("error");
         setErrorMsg(friendlyError(e));
       }
     })();
-  }, [hid]);
+  }, [code, hid]);
 
   const handleSignIn = () => {
-    // Store hid in sessionStorage so we can resume after sign-in
     if (hid) sessionStorage.setItem("pending_invite_hid", hid);
     navigate("/sign-in");
   };
@@ -95,7 +115,8 @@ export default function AcceptInvite() {
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           style={{ textAlign: "center", maxWidth: 480 }}
         >
-          {status === "loading" && (
+          {/* ── Loading / Accepting spinners ── */}
+          {(status === "loading" || status === "accepting") && (
             <>
               <motion.div
                 initial={{ opacity: 0, scale: 0.92 }}
@@ -106,64 +127,17 @@ export default function AcceptInvite() {
                 🏠
               </motion.div>
               <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, color: "var(--ink)", marginBottom: 14 }}>
-                You're Invited!
+                {status === "loading" ? "You're Invited!" : "Joining household…"}
               </h1>
               <p style={{ fontSize: 15, color: "var(--ink-2)", lineHeight: 1.7, marginBottom: 24 }}>
-                Checking invitation...
+                {status === "loading" ? "Checking invitation…" : "Please wait while we add you to the household."}
               </p>
-              <div className="spinner" style={{ width: 24, height: 24, border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+              <div style={{ width: 24, height: 24, border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
               <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
             </>
           )}
 
-          {status === "accepting" && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6 }}
-                style={{ fontSize: 48, marginBottom: 16 }}
-              >
-                🏠
-              </motion.div>
-              <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, color: "var(--ink)", marginBottom: 14 }}>
-                Joining household...
-              </h1>
-              <p style={{ fontSize: 15, color: "var(--ink-2)", lineHeight: 1.7, marginBottom: 24 }}>
-                Please wait while we accept your invitation.
-              </p>
-              <div style={{ width: 24, height: 24, border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
-              <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-            </>
-          )}
-
-          {status === "need_login" && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6 }}
-                style={{ fontSize: 48, marginBottom: 16 }}
-              >
-                🔐
-              </motion.div>
-              <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, color: "var(--ink)", marginBottom: 14 }}>
-                Sign in required
-              </h1>
-              <p style={{ fontSize: 15, color: "var(--ink-2)", lineHeight: 1.7, marginBottom: 32, maxWidth: 360, margin: "0 auto 32px" }}>
-                You need to sign in to accept this household invitation. If you don't have an account, create one first.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-                <button onClick={handleSignIn} className="btn-primary" style={{ minWidth: 200 }}>
-                  Sign in to accept
-                </button>
-                <a href="/" className="btn-outline" style={{ minWidth: 200, textDecoration: "none" }}>
-                  Go to Homepage
-                </a>
-              </div>
-            </>
-          )}
-
+          {/* ── Success ── */}
           {status === "success" && (
             <>
               <motion.div
@@ -178,7 +152,7 @@ export default function AcceptInvite() {
                 Welcome to the household!
               </h1>
               <p style={{ fontSize: 15, color: "var(--ink-2)", lineHeight: 1.7, marginBottom: 32, maxWidth: 360, margin: "0 auto 32px" }}>
-                You've joined the household. Open the Bill Reminder app to see and manage shared bills.
+                You've successfully joined the household. Open the Bill Reminder app to see and manage shared bills.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
                 <a href={`bill-reminder://accept-invite?hid=${encodeURIComponent(hid ?? "")}`} className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
@@ -191,6 +165,35 @@ export default function AcceptInvite() {
             </>
           )}
 
+          {/* ── Need login (legacy links without code) ── */}
+          {status === "need_login" && (
+            <>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                style={{ fontSize: 48, marginBottom: 16 }}
+              >
+                🔐
+              </motion.div>
+              <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, color: "var(--ink)", marginBottom: 14 }}>
+                Sign in required
+              </h1>
+              <p style={{ fontSize: 15, color: "var(--ink-2)", lineHeight: 1.7, marginBottom: 32, maxWidth: 360, margin: "0 auto 32px" }}>
+                This invite link is outdated. Please ask the household admin to resend the invitation, or sign in and accept from the app.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
+                <button onClick={handleSignIn} className="btn-primary" style={{ minWidth: 200 }}>
+                  Sign in to accept
+                </button>
+                <a href="/" className="btn-outline" style={{ minWidth: 200, textDecoration: "none" }}>
+                  Go to Homepage
+                </a>
+              </div>
+            </>
+          )}
+
+          {/* ── Error ── */}
           {status === "error" && (
             <>
               <motion.div
@@ -225,12 +228,6 @@ export default function AcceptInvite() {
                 )}
               </div>
             </>
-          )}
-
-          {hid && status !== "loading" && status !== "accepting" && (
-            <div style={{ marginTop: 32, fontSize: 11, color: "var(--ink-4)" }}>
-              Invitation ID: <code style={{ fontSize: 11 }}>{hid}</code>
-            </div>
           )}
         </motion.div>
       </main>
