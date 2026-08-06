@@ -313,7 +313,7 @@ export default function Hero() {
 			<div className="container mx-auto px-6 relative z-10">
 				<div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-16 lg:gap-8">
 					{/* ── Left: Copy ── */}
-					<div className="max-w-[560px] text-left">
+					<div className="max-w-[560px] text-left lg:-translate-x-[-30px]">
 						<motion.div
 							initial={{ opacity: 0, y: 16 }}
 							animate={{ opacity: 1, y: 0 }}
