@@ -58,4 +58,7 @@ website/dist/
 website/.env
 
 .obsidian/
+
 AGENTS.md
+
+docs
