@@ -160,7 +160,7 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
   }
 
   const fallback = FALLBACKS[context] ?? FALLBACKS.unknown;
-  return `${fallback} (DEBUG RAW: ${raw})`;
+  return fallback;
 }
 
 /** Extract a string message from any error-like value. */

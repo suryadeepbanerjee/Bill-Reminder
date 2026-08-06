@@ -51,14 +51,21 @@ function __brTurnstileReady() {
   try {
     window.turnstile.render(document.body, {
       sitekey: "${siteKey}",
-      size: "invisible",
+      // appearance:interaction-only = silent for clean traffic;
+      // shows an interactive challenge when Cloudflare flags the
+      // client as suspicious (WebView, VPN, etc.) instead of failing.
+      appearance: "interaction-only",
       theme: "dark",
       callback: function (token) { post("token", { token: token }); },
+      "before-interactive-callback": function () {
+        // Cloudflare wants interaction — notify RN host to expand the WebView
+        // before the puzzle renders so it is visible and tappable.
+        post("challenge");
+      },
       "error-callback": function () { post("error", { message: "challenge failed" }); },
       "expired-callback": function () { post("error", { message: "challenge expired" }); },
     });
-    // Invisible mode keeps the page at zero height until an interactive puzzle
-    // actually appears; when it does, expand so the puzzle is tappable.
+    // Also watch for layout growth in case before-interactive-callback fires late.
     var _obs = new ResizeObserver(function () {
       if (document.body.scrollHeight > 100) {
         _obs.disconnect();

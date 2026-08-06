@@ -227,8 +227,7 @@ export default function AddBillPage() {
     if (step === 3) {
       const ok = await trigger();
       if (!ok) {
-        const firstError = Object.values(form.formState.errors)[0] as any;
-        setError(firstError?.message || "Please fill all required fields correctly.");
+        setError("Please fill all required fields correctly.");
         return;
       }
     }
@@ -293,10 +292,8 @@ export default function AddBillPage() {
     }
   };
 
-  const onInvalid = (errors: any) => {
-    console.error("Form Validation Failed:", errors);
-    const firstError = Object.values(errors)[0] as any;
-    setError(firstError?.message || "Please fill all required fields correctly.");
+  const onInvalid = () => {
+    setError("Please fill all required fields correctly.");
   };
 
   return (

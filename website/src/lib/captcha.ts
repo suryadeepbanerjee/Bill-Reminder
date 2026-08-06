@@ -27,10 +27,14 @@ export const isCaptchaEnabled = SITE_KEY.length > 0;
 interface TurnstileOptions {
   sitekey: string;
   theme?: "light" | "dark" | "auto";
-  size?: "normal" | "compact" | "invisible";
+  size?: "normal" | "compact";
+  // "interaction-only" = silent for clean traffic, shows challenge for suspicious IPs (VPN etc.)
+  appearance?: "always" | "execute" | "interaction-only";
   callback?: (token: string) => void;
   "error-callback"?: () => void;
   "expired-callback"?: () => void;
+  "before-interactive-callback"?: () => void;
+  "unsupported-browser"?: () => void;
 }
 
 interface TurnstileApi {
@@ -211,8 +215,9 @@ function getToken(): Promise<string> {
     label.className = "br-captcha-label";
     label.textContent = "Verifying you're human…";
 
-    // Invisible mode keeps the container empty (0-height) until an interactive
-    // puzzle is needed, so no dead space lingers below the label.
+    // appearance:interaction-only keeps the container hidden until Cloudflare
+    // decides an interactive challenge is needed (e.g. VPN/suspicious IP).
+    // The ResizeObserver expands the card to show it when that happens.
     const widget = document.createElement("div");
     widget.setAttribute("aria-hidden", "true");
     widget.style.cssText = [
@@ -268,7 +273,10 @@ function getToken(): Promise<string> {
 
     window.turnstile?.render(widget, {
       sitekey: SITE_KEY,
-      size: "invisible",
+      // appearance:interaction-only = passes silently for clean traffic;
+      // when Cloudflare flags suspicious traffic (VPN, proxy, etc.) it shows
+      // an interactive challenge inside the widget div instead of rejecting.
+      appearance: "interaction-only",
       theme: "dark",
       callback: (token) => {
         // Verification succeeded — keep the card up in a "Confirming…" state
@@ -278,6 +286,16 @@ function getToken(): Promise<string> {
         label.textContent = "Confirming…";
         heldOverlay = { close: cleanup };
         resolve(token);
+      },
+      "before-interactive-callback": () => {
+        // Cloudflare needs the user to interact — expand the widget now
+        // so the puzzle is visible and tappable before the ResizeObserver fires.
+        if (!expanded) {
+          expanded = true;
+          widget.style.height = `${CHALLENGE_HEIGHT_LIMIT}px`;
+          spinner.style.display = "none";
+          label.textContent = "Complete the security check";
+        }
       },
       "error-callback": () => {
         cleanup();

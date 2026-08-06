@@ -362,7 +362,7 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0;">
                                     <tr>
                                         <td align="center" style="padding:0;">
-                                            <a href="{{actionUrl}}" target="_blank" class="cta-btn" style="
+                                            <a href="https://billreminder.suryadeepbanerjee.in" target="_blank" class="cta-btn" style="
                                                 display:inline-block;
                                                 background-color:#b69318;
                                                 color:#000000;
