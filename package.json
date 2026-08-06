@@ -5,5 +5,9 @@
 		"website",
 		"app",
 		"packages/*"
-	]
+	],
+	"optionalDependencies": {
+		"@rollup/rollup-linux-x64-gnu": "4.62.3",
+		"@rollup/rollup-linux-x64-musl": "4.62.3"
+	}
 }
