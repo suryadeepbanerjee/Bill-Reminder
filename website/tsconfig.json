@@ -1,4 +1,8 @@
 {
+  // NOTE: do NOT add a "references" entry for ../packages/shared here.
+  // It ships raw .ts (exports ./index.ts, no build step); a composite/noEmit
+  // reference is invalid (TS6310) and shared is already type-checked as part
+  // of this program via the @shared/* alias and @bill-reminder/shared package.
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -23,8 +27,5 @@
     }
   },
   "include": ["src"],
-  "references": [
-    { "path": "./tsconfig.node.json" },
-    { "path": "../packages/shared" }
-  ]
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
