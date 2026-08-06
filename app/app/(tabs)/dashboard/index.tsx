@@ -5,6 +5,7 @@ import {
   ScrollView,
   RefreshControl,
   Pressable,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -379,7 +380,7 @@ export default function DashboardScreen() {
                 count={data.today.length}
                 icon="today-outline"
                 iconColor="text-accent"
-                bg="bg-accent/10 border border-accent/20"
+                bg={Platform.OS === 'web' ? "bg-accent/20 border border-accent/40" : "bg-accent/10 border border-accent/20"}
                 onPress={() => router.push("/(tabs)/bills")}
               />
               <SummaryPill

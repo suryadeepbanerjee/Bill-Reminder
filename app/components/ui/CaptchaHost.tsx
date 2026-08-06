@@ -16,7 +16,9 @@ import {
   CAPTCHA_SITE_KEY,
   isCaptchaEnabled,
   subscribeCaptchaActive,
+  subscribeCaptchaRequest,
   completeCaptcha,
+  closeCaptchaOverlay,
 } from "../../lib/captcha";
 import { Colors } from "../../lib/theme";
 
@@ -78,17 +80,19 @@ export function CaptchaHost() {
   const [active, setActive] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [challenge, setChallenge] = useState(false);
+  const [done, setDone] = useState(false);
   const [nonce, setNonce] = useState(() => Date.now());
 
   useEffect(() => subscribeCaptchaActive(setActive), []);
+  useEffect(() => subscribeCaptchaRequest(setNonce), []);
 
   // Every activation gets a fresh widget run (nonce changes the html source
   // so the WebView reloads and Turnstile issues a brand-new token).
   useEffect(() => {
     if (active) {
-      setNonce(Date.now());
       setLoaded(false);
       setChallenge(false);
+      setDone(false);
     }
   }, [active]);
 
@@ -100,7 +104,8 @@ export function CaptchaHost() {
       return;
     }
     if (msg.type === "token" && typeof msg.token === "string" && msg.token) {
-      completeCaptcha(msg.token);
+      setDone(true);
+      completeCaptcha(msg.token, undefined, true);
     } else if (msg.type === "error") {
       completeCaptcha(undefined, msg.message ?? "CAPTCHA failed");
     } else if (msg.type === "timeout") {
@@ -166,7 +171,7 @@ export function CaptchaHost() {
             </Pressable>
           </View>
 
-          {!challenge && (
+          {(!challenge || done) && (
             <View
               style={{
                 alignItems: "center",
@@ -202,7 +207,7 @@ export function CaptchaHost() {
                   textAlign: "center",
                 }}
               >
-                Verifying you're human…
+                {done ? "Confirming…" : "Verifying you're human…"}
               </Text>
             </View>
           )}

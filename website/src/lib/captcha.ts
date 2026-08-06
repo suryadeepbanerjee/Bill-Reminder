@@ -125,13 +125,26 @@ function ensureCaptchaStyles(): void {
  * Cloudflare requires is presented on-screen and solvable (invisible widgets
  * render interactive challenges inside their container — an off-screen
  * container would make the puzzle invisible and the attempt would time out).
- * The overlay closes automatically when the token arrives.
  *
  * Height behaviour: the invisible container stays flat (0px) so no dead space
  * sits below the label. When an interactive puzzle actually renders, the card
  * grows to fit it, the spinner hides and the label switches copy.
+ *
+ * The overlay stays mounted after the token arrives (label → "Confirming…")
+ * so it never vanishes before the guarded auth call finishes — the caller
+ * closes it with `closeCaptchaOverlay()`. Errors/timeouts tear it down here.
  */
-/** Widget height (px) when an interactive challenge has settled in. */
+
+/** Overlay left open after a successful token, awaiting the auth call. */
+let heldOverlay: { close: () => void } | null = null;
+
+/** Close the "Confirming…" overlay once the wrapped auth call has settled. */
+export function closeCaptchaOverlay(): void {
+  heldOverlay?.close();
+  heldOverlay = null;
+}
+
+/** Maximum widget height when an interactive challenge has settled. */
 const CHALLENGE_HEIGHT_LIMIT = 320;
 
 function getToken(): Promise<string> {
@@ -258,7 +271,12 @@ function getToken(): Promise<string> {
       size: "invisible",
       theme: "dark",
       callback: (token) => {
-        cleanup();
+        // Verification succeeded — keep the card up in a "Confirming…" state
+        // until the wrapped auth call finishes, so the box never vanishes
+        // before the next step appears. `closeCaptchaOverlay()` tears it down.
+        window.clearTimeout(timeout);
+        label.textContent = "Confirming…";
+        heldOverlay = { close: cleanup };
         resolve(token);
       },
       "error-callback": () => {
@@ -280,6 +298,9 @@ export async function captchaOptions(): Promise<CaptchaOptions> {
   if (!window.turnstile) {
     throw new Error("CAPTCHA widget is not ready");
   }
+  // A stale "Confirming…" overlay (e.g. from a retry) must go before we open
+  // a fresh token attempt.
+  closeCaptchaOverlay();
   return { captchaToken: await getToken() };
 }
 
@@ -330,5 +351,5 @@ export function withCaptcha<T extends { error: unknown }>(
     const denied = await runGuard(action, token);
     if (denied) return { error: new Error(denied) } as T;
     return null;
-  });
+  }).finally(() => closeCaptchaOverlay());
 }

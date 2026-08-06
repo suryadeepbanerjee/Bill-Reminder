@@ -26,13 +26,27 @@ interface PendingRequest {
 
 let pending: PendingRequest | null = null;
 const activeListeners = new Set<(active: boolean) => void>();
+const requestListeners = new Set<(seq: number) => void>();
+let requestSeq = 0;
+
+/** True while a resolved token keeps the overlay open ("Confirming…"). */
+let heldOverlay = false;
 
 /** CaptchaHost subscribes here to show/hide its modal overlay. */
 export function subscribeCaptchaActive(listener: (active: boolean) => void): () => void {
   activeListeners.add(listener);
-  listener(Boolean(pending));
+  listener(Boolean(pending) || heldOverlay);
   return () => {
     activeListeners.delete(listener);
+  };
+}
+
+/** CaptchaHost subscribes here to remount its WebView when a new token is asked. */
+export function subscribeCaptchaRequest(listener: (seq: number) => void): () => void {
+  requestListeners.add(listener);
+  listener(requestSeq);
+  return () => {
+    requestListeners.delete(listener);
   };
 }
 
@@ -49,22 +63,45 @@ export function requestCaptchaToken(): Promise<string> {
     if (pending) {
       pending.reject(new Error("CAPTCHA request superseded"));
     }
+    heldOverlay = false;
+    requestSeq += 1;
+    requestListeners.forEach((listener) => listener(requestSeq));
     pending = { resolve, reject };
     setActive(true);
   });
 }
 
-/** Called by CaptchaHost when the widget finishes (token or failure/timeout). */
-export function completeCaptcha(token?: string, errorMessage?: string): void {
+/**
+ * Called by CaptchaHost when the widget finishes.
+ * With holdOpen, a successful token resolves the request but keeps the modal
+ * in its "Confirming…" state so it doesn't vanish before auth completes —
+ * `closeCaptchaOverlay()` dismisses it afterwards.
+ */
+export function completeCaptcha(token?: string, errorMessage?: string, holdOpen = false): void {
   const request = pending;
+  if (token && holdOpen) {
+    pending = null;
+    heldOverlay = true;
+    request?.resolve(token);
+    // Keep the modal up: setActive stays true.
+    return;
+  }
   pending = null;
-  setActive(false);
+  heldOverlay = false;
+  setActive(Boolean(pending) || heldOverlay);
   if (!request) return;
   if (token) {
     request.resolve(token);
   } else {
     request.reject(new Error(errorMessage ?? "CAPTCHA failed"));
   }
+}
+
+/** Dismiss the "Confirming…" overlay once the wrapped auth call has settled. */
+export function closeCaptchaOverlay(): void {
+  if (!heldOverlay) return;
+  heldOverlay = false;
+  setActive(Boolean(pending) || heldOverlay);
 }
 
 /** CAPTCHA options for a Supabase auth call — `{}` when not configured. */
@@ -120,5 +157,5 @@ export function withCaptcha<T extends { error: unknown }>(
     const denied = await runGuard(action, token);
     if (denied) return { error: new Error(denied) } as T;
     return null;
-  });
+  }).finally(() => closeCaptchaOverlay());
 }
