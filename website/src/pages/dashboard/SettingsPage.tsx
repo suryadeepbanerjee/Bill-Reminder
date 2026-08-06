@@ -181,7 +181,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
     setError(null);
     setSending(true);
     try {
-      const { error: otpError } = await withCaptcha((o) =>
+      const { error: otpError } = await withCaptcha("otp_request", (o) =>
         supabase.auth.signInWithOtp({ email: user?.email ?? "", options: o })
       );
       if (otpError) throw otpError;
@@ -203,7 +203,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
     setError(null);
     setVerifying(true);
     try {
-      const { error: verifyError } = await withCaptcha((o) =>
+      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
         supabase.auth.verifyOtp({
           email: user?.email ?? "",
           token: otp,

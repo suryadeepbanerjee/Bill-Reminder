@@ -6,6 +6,9 @@
 		"app",
 		"packages/*"
 	],
+	"devDependencies": {
+		"@types/react": "^19.1.0"
+	},
 	"optionalDependencies": {
 		"@rollup/rollup-linux-x64-gnu": "4.62.3",
 		"@rollup/rollup-linux-x64-musl": "4.62.3",

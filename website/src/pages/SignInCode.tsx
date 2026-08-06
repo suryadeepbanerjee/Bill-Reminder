@@ -76,7 +76,7 @@ export default function SignInCode() {
 
   // ── Send OTP ──────────────────────────────────────────────────────────────
   const sendOtp = async (target: string): Promise<boolean> => {
-    const { error } = await withCaptcha((o) =>
+    const { error } = await withCaptcha("otp_request", (o) =>
       supabase.auth.signInWithOtp({
         email: target,
         options: { shouldCreateUser: false, ...o },
@@ -106,7 +106,7 @@ export default function SignInCode() {
     setOtpCode("");
     setSendLoading(true);
     try {
-      const { error } = await withCaptcha((o) =>
+      const { error } = await withCaptcha("otp_request", (o) =>
         supabase.auth.signInWithOtp({
           email: email.trim(),
           options: { shouldCreateUser: false, ...o },
@@ -130,7 +130,7 @@ export default function SignInCode() {
     }
     setVerifyLoading(true);
     try {
-      const { error } = await withCaptcha((o) =>
+      const { error } = await withCaptcha("otp_verify", (o) =>
         supabase.auth.verifyOtp({
           email: email.trim(),
           token: code,

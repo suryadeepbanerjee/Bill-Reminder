@@ -51,7 +51,7 @@ export default function VerifyEmailScreen() {
       //   • Any other error  → fall through to resend (don't block the user)
       const pending = tempAuth.get();
       if (pending && pending.email === email) {
-        const { error: signInErr } = await withCaptcha((o) =>
+        const { error: signInErr } = await withCaptcha("signin", (o) =>
           supabase.auth.signInWithPassword({
             email:    pending.email,
             password: pending.password,
@@ -76,7 +76,7 @@ export default function VerifyEmailScreen() {
       }
 
       // ── Step 3: resend ───────────────────────────────────────────────────
-      const { error: resendError } = await withCaptcha((o) =>
+      const { error: resendError } = await withCaptcha("resend_verify", (o) =>
         supabase.auth.resend({
           type:    "signup",
           email,

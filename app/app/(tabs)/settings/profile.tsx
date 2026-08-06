@@ -121,7 +121,7 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
     try {
       // Step 1: Verify old email OTP
       if (!oldEmailVerified) {
-        const { error: verifyError } = await withCaptcha((o) =>
+        const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
           supabase.auth.verifyOtp({
             email: currentEmail,
             token: oldOtp.trim(),
@@ -134,9 +134,9 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
       }
 
       // Step 2: Verify new email OTP
-      const { error: verifyError2 } = await withCaptcha((o) =>
-        supabase.auth.verifyOtp({
-          email: email.trim(),
+const { error: verifyError2 } = await withCaptcha("otp_verify", (o) =>
+          supabase.auth.verifyOtp({
+            email: email.trim(),
           token: newOtp.trim(),
           type: "email_change",
           options: o,
@@ -275,7 +275,7 @@ function PasswordSection({ profileEmail }: { profileEmail: string | null }) {
     setError(null);
     setIsLoading(true);
     try {
-      const { error: authError } = await withCaptcha((o) =>
+      const { error: authError } = await withCaptcha("recover", (o) =>
         supabase.auth.resetPasswordForEmail(email, o)
       );
       if (authError) throw authError;
@@ -295,7 +295,7 @@ function PasswordSection({ profileEmail }: { profileEmail: string | null }) {
     setError(null);
     try {
       if (!isOtpVerified) {
-        const { error: verifyError } = await withCaptcha((o) =>
+        const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
           supabase.auth.verifyOtp({
             email: email,
             token: otp.trim(),

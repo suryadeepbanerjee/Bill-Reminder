@@ -38,7 +38,7 @@ export default function SignInOtpScreen() {
     }
     setSendLoading(true);
     try {
-      const { error } = await withCaptcha((o) =>
+      const { error } = await withCaptcha("otp_request", (o) =>
         supabase.auth.signInWithOtp({
           email: email.trim(),
           options: { shouldCreateUser: false, ...o },
@@ -64,7 +64,7 @@ export default function SignInOtpScreen() {
     setOtpCode("");
     setSendLoading(true);
     try {
-      const { error } = await withCaptcha((o) =>
+      const { error } = await withCaptcha("otp_request", (o) =>
         supabase.auth.signInWithOtp({
           email: email.trim(),
           options: { shouldCreateUser: false, ...o },
@@ -110,7 +110,7 @@ export default function SignInOtpScreen() {
 
     setVerifyLoading(true);
     try {
-      const { error } = await withCaptcha((o) =>
+      const { error } = await withCaptcha("otp_verify", (o) =>
         supabase.auth.verifyOtp({
           email: email.trim(),
           token: code,

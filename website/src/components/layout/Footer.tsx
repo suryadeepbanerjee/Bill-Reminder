@@ -62,10 +62,20 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="h-px bg-border" />
         <div className="mt-6 flex justify-between items-center flex-wrap gap-3">
-          <p className="text-xs text-secondary/70">
-            © {year} Bill Reminder — Built with care in India
-          </p>
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p className="text-xs text-secondary/70">
+              © {year} Suryadeep Banerjee
+            </p>
+            <a
+              href="mailto:official@suryadeepbanerjee.in"
+              className="text-xs text-secondary/70 hover:text-primary transition-colors no-underline"
+            >
+              official@suryadeepbanerjee.in
+            </a>
+          </div>
+          <div className="flex gap-3 items-center flex-wrap">
+            <Link to="/privacy" className="text-xs text-secondary/70 hover:text-primary transition-colors no-underline">Privacy</Link>
+            <Link to="/terms" className="text-xs text-secondary/70 hover:text-primary transition-colors no-underline">Terms</Link>
             <span className="text-[11px] font-mono text-secondary/70 bg-surface px-2 py-0.5 rounded-md border border-border">
               MIT License
             </span>

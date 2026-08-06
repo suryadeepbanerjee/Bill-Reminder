@@ -125,6 +125,25 @@ serve(async (req: Request) => {
       return json(req,{ error: "Only admins can invite members" }, 403);
     }
 
+    // ── 1b. Abuse gate — per-account + per-IP cap on invite sends ─────────
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const { data: gate, error: gateError } = await adminClient.rpc("rate_gate_check", {
+      p_action:         "invite",
+      p_actor:          `${ip}|${caller.id}`,
+      p_limit:          20,
+      p_window_seconds: 60 * 60,
+    });
+
+    if (gateError) {
+      throw new Error(`Rate gate failed: ${gateError.message}`);
+    }
+    if (!gate?.[0]?.allowed) {
+      return json(req,
+        { error: "Too many invites sent from this account. Please try again later." },
+        429
+      );
+    }
+
     // ── 2. Look up the target user by email in auth.users ──────────────────
     const { data: authUsers, error: listError } = await adminClient.auth.admin.listUsers({
       filter: `email=${email}`,

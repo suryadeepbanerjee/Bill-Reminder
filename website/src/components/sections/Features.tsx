@@ -81,6 +81,32 @@ const features = [
 			</svg>
 		),
 	},
+	{
+		title: "Email & Push Alerts",
+		body: "Choose how you're reminded — email, push notification, or both — before every due date. Alerts arrive even when the app is closed.",
+		icon: (
+			<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+				/>
+			</svg>
+		),
+	},
+	{
+		title: "Cross-Platform",
+		body: "Android, iOS and web — one account that travels with you. Add a bill on your phone, pay it from your laptop, all in sync.",
+		icon: (
+			<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					d="M9.75 17L9 20l-1 1h8l-1-1-.75-3m-5.5-5H21v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7m11-9h9v5h-3v3h-3V8H10l-3 3-3-3v-3h9V2z"
+				/>
+			</svg>
+		),
+	},
 ];
 
 export default function Features() {

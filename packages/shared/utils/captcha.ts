@@ -38,11 +38,15 @@ export function isCaptchaError(error: unknown): boolean {
 }
 
 /**
- * Wrap a Supabase auth call with CAPTCHA.
+ * Wrap a Supabase auth call with CAPTCHA + the abuse-prevention gate.
  *
  * 1. Generates a captchaToken (no-op when CAPTCHA isn't configured).
- * 2. Runs the call with `options.captchaToken` attached.
- * 3. If the server rejects the token (stale/expired single-use token),
+ * 2. Runs `preflight` — our turnstile-guard edge function verifies the
+ *    token and applies per-IP/per-account rate limits. A guard rejection
+ *    short-circuits and its friendly `{ error }` result is returned as-is,
+ *    so screens just render `result.error` like any auth error.
+ * 3. Runs `execute` with `options.captchaToken` attached.
+ * 4. If the server rejects the token (stale/expired single-use token),
  *    retries ONCE with a fresh token.
  *
  * Returns exactly what `execute` returns, so existing call sites that
@@ -51,13 +55,23 @@ export function isCaptchaError(error: unknown): boolean {
 export async function runWithCaptcha<T extends { error: unknown }>(
   execute: (options: CaptchaOptions) => Promise<T>,
   getCaptchaOptions: () => Promise<CaptchaOptions>,
+  preflight: (token: string | undefined) => Promise<T | null> = async () => null,
 ): Promise<T> {
-  const first = await execute(await getCaptchaOptions());
+  const attempt = async (): Promise<T> => {
+    const opts = await getCaptchaOptions();
+    const blocked = await preflight(opts.captchaToken);
+    if (blocked) return blocked;
+    return execute(opts);
+  };
+
+  const first = await attempt();
 
   if (isCaptchaError(first.error)) {
     // CAPTCHA tokens are single-use and short-lived — refresh and retry once.
     const fresh = await getCaptchaOptions();
     if (fresh.captchaToken) {
+      const blocked = await preflight(fresh.captchaToken);
+      if (blocked) return blocked;
       return execute(fresh);
     }
   }

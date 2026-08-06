@@ -246,7 +246,7 @@ function DeleteAccountSheet({
     setError(null);
     setSending(true);
     try {
-      const { error: otpError } = await withCaptcha((o) =>
+      const { error: otpError } = await withCaptcha("otp_request", (o) =>
         supabase.auth.signInWithOtp({ email: user?.email ?? "", options: o })
       );
       if (otpError) throw otpError;
@@ -265,7 +265,7 @@ function DeleteAccountSheet({
     setError(null);
     setSending(true);
     try {
-      const { error: otpError } = await withCaptcha((o) =>
+      const { error: otpError } = await withCaptcha("otp_request", (o) =>
         supabase.auth.signInWithOtp({ email: user?.email ?? "", options: o })
       );
       if (otpError) throw otpError;
@@ -286,7 +286,7 @@ function DeleteAccountSheet({
     setVerifying(true);
     try {
       // 1. Verify the OTP
-      const { error: verifyError } = await withCaptcha((o) =>
+      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
         supabase.auth.verifyOtp({
           email: user?.email ?? "",
           token: otp,

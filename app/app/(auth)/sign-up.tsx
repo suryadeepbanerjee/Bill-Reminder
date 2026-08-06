@@ -61,7 +61,7 @@ export default function SignUpScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      const { data: authData, error: authError } = await withCaptcha((o) =>
+      const { data: authData, error: authError } = await withCaptcha("signup", (o) =>
         supabase.auth.signUp({
           email:    data.email,
           password: data.password,

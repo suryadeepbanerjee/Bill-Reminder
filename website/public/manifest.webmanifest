@@ -1,7 +1,7 @@
 {
-  "name": "Bill Reminder - Never Miss Another Payment",
+  "name": "Bill Reminder",
   "short_name": "Bill Reminder",
-  "description": "Free, offline-first bill and subscription tracker with smart payment reminders, secure cloud sync, and household sharing.",
+  "description": "Cross-platform bill and subscription tracker. Manage subscriptions, utility bills, mobile recharges, rent, EMIs and recurring payments with smart reminders, email and push notifications, secure cloud sync and payment history.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

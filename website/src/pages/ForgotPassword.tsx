@@ -23,7 +23,7 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
-      const { error: authError } = await withCaptcha((o) =>
+      const { error: authError } = await withCaptcha("recover", (o) =>
         supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth/callback`,
           ...o,

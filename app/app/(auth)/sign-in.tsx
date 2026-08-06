@@ -38,7 +38,7 @@ export default function SignInScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      const { error: authError } = await withCaptcha((o) =>
+      const { error: authError } = await withCaptcha("signin", (o) =>
         supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,

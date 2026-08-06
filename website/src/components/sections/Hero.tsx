@@ -333,17 +333,24 @@ export default function Hero() {
 
 							<h1
 								id="hero-heading"
-								className="text-[clamp(2.6rem,5.5vw,4.5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-5"
+								className="text-[clamp(2.6rem,5.5vw,4.5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-4"
 								style={{ textWrap: "balance" as any }}
 							>
-								Never miss another
-								<br />
-								<span className="bg-gradient-to-r from-accent to-accent/60 bg-clip-text text-transparent">bill again.</span>
+								Bill Reminder
 							</h1>
 
+							<p
+								className="text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold text-primary/85 tracking-tight leading-snug mb-3"
+								style={{ textWrap: "balance" as any }}
+							>
+								Never miss another payment.
+							</p>
+
 							<p className="text-[clamp(15px,2vw,17px)] text-primary/70 leading-relaxed max-w-[60ch] mb-9">
-								Bill Reminder helps you stay ahead of recurring payments with intelligent reminders, offline support, cloud sync, and a
-								clean experience designed to eliminate late fees and forgotten bills.
+								Bill Reminder is a cross-platform application that helps you manage subscriptions, utility bills, mobile
+								recharges, rent, EMIs and other recurring payments. It pairs smart reminders and email + push
+								notifications with secure cloud sync, payment history, offline support and private-by-design
+								authentication — so you never pay a late fee again.
 							</p>
 
 							<div className="flex gap-4 flex-wrap">
