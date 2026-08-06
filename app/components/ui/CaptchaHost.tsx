@@ -1,8 +1,8 @@
 /**
- * CaptchaHost — mounts the native hCaptcha WebView.
+ * CaptchaHost — mounts the native Turnstile WebView.
  *
- * Rendered ONCE in the root layout. Invisible hCaptcha widget; when a token
- * is requested it slides in a centered modal card (hCaptcha's interactive
+ * Rendered ONCE in the root layout. Invisible Turnstile widget; when a token
+ * is requested it slides in a centered modal card (Turnstile's interactive
  * challenge, when required, renders inside this WebView so users can solve
  * it). Silent checks resolve in under a second. The page posts the token (or
  * an error) back via ReactNativeWebView.postMessage → completeCaptcha().
@@ -30,7 +30,7 @@ function buildHtml(siteKey: string, nonce: number): string {
 <style>
   html, body { height: 100%; margin: 0; padding: 0; background: transparent; }
 </style>
-<script src="https://js.hcaptcha.com/1/api.js?onload=__brHCaptchaReady&render=explicit" async defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit" async defer></script>
 </head>
 <body>
 <script>
@@ -41,19 +41,20 @@ function post(type, extra) {
     window.ReactNativeWebView.postMessage(JSON.stringify(payload));
   }
 }
-function __brHCaptchaReady() {
-  if (!window.hcaptcha) {
+function __brTurnstileReady() {
+  if (!window.turnstile) {
     post("error", { message: "widget unavailable" });
     return;
   }
   try {
-    window.hcaptcha.render(document.body, {
+    window.turnstile.render(document.body, {
       sitekey: "${siteKey}",
       size: "invisible",
+      theme: "dark",
       callback: function (token) { post("token", { token: token }); },
       "error-callback": function () { post("error", { message: "challenge failed" }); },
+      "expired-callback": function () { post("error", { message: "challenge expired" }); },
     });
-    window.hcaptcha.execute();
   } catch (e) {
     post("error", { message: "init failed" });
   }

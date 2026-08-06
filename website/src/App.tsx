@@ -37,10 +37,11 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Applies the stored theme, but keeps the landing page (`/`) permanently dark. */
+/** Marketing site is permanently dark; only the dashboard follows the user's theme. */
 function RouteAwareTheme({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
-  return <ThemeProvider forceDark={pathname === "/"}>{children}</ThemeProvider>;
+  const forceDark = !pathname.startsWith("/app") && !pathname.startsWith("/bill/");
+  return <ThemeProvider forceDark={forceDark}>{children}</ThemeProvider>;
 }
 
 /** Restores the Supabase session once for the whole app (needed on public pages too). */

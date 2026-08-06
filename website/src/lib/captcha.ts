@@ -1,9 +1,10 @@
 /**
- * Web CAPTCHA helper (Vite + hCaptcha).
+ * Web CAPTCHA helper (Vite + Cloudflare Turnstile).
  *
- * Loads hCaptcha's script once and runs it in invisible mode
- * (`render: explicit` + `execute(siteKey, { async: true })`). Interactive
- * challenges render in hCaptcha's standard modal — native web UX.
+ * Loads Turnstile's script once and runs it in invisible mode
+ * (`render: explicit`). Silent challenges resolve without interaction;
+ * when an interactive challenge is needed Turnstile presents it in its own
+ * overlay — native web UX.
  *
  * Public API matches the native helper in app/lib/captcha.ts:
  *   captchaOptions() / withCaptcha()
@@ -23,33 +24,46 @@ const SITE_KEY =
 
 export const isCaptchaEnabled = SITE_KEY.length > 0;
 
-interface HCaptchaApi {
-  execute(siteKey: string, options: { async: true }): Promise<string>;
+interface TurnstileOptions {
+  sitekey: string;
+  theme?: "light" | "dark" | "auto";
+  size?: "normal" | "compact" | "invisible";
+  callback?: (token: string) => void;
+  "error-callback"?: () => void;
+  "expired-callback"?: () => void;
+}
+
+interface TurnstileApi {
+  render(container: HTMLElement, options: TurnstileOptions): string;
+  remove(container: string | HTMLElement): void;
+  reset(container: string | HTMLElement): void;
+  execute(container: string | HTMLElement): void;
 }
 
 declare global {
   interface Window {
-    hcaptcha?: HCaptchaApi;
-    __brHCaptchaReady?: () => void;
+    turnstile?: TurnstileApi;
+    __brTurnstileReady?: () => void;
   }
 }
 
 let scriptPromise: Promise<void> | null = null;
 
-function loadHcaptchaScript(): Promise<void> {
+function loadTurnstileScript(): Promise<void> {
   if (!isCaptchaEnabled) {
     return Promise.reject(new Error("CAPTCHA not configured"));
   }
   if (!scriptPromise) {
     scriptPromise = new Promise<void>((resolve, reject) => {
-      if (document.getElementById("hcaptcha-script")) {
+      if (document.getElementById("turnstile-script")) {
         resolve();
         return;
       }
-      window.__brHCaptchaReady = () => resolve();
+      window.__brTurnstileReady = () => resolve();
       const script = document.createElement("script");
-      script.id = "hcaptcha-script";
-      script.src = "https://js.hcaptcha.com/1/api.js?onload=__brHCaptchaReady&render=explicit";
+      script.id = "turnstile-script";
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit";
       script.async = true;
       script.onerror = () => {
         scriptPromise = null;
@@ -61,18 +75,56 @@ function loadHcaptchaScript(): Promise<void> {
   return scriptPromise;
 }
 
-/** Generate a fresh single-use captcha token. */
-async function getToken(): Promise<string> {
-  await loadHcaptchaScript();
-  if (!window.hcaptcha) {
-    throw new Error("CAPTCHA widget is not ready");
-  }
-  return window.hcaptcha.execute(SITE_KEY, { async: true });
+const TOKEN_TIMEOUT_MS = 60000;
+
+/**
+ * Generate a fresh single-use Turnstile token.
+ *
+ * Renders an invisible widget on an off-screen container; the challenge
+ * starts automatically on render and the token arrives via `callback`.
+ * Tokens are single-use, so a fresh widget is created per call and removed
+ * when the callback fires.
+ */
+function getToken(): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const container = document.createElement("div");
+    container.style.cssText =
+      "position:absolute;left:-9999px;top:-9999px;width:300px;height:65px;";
+    document.body.appendChild(container);
+
+    const finish = (err?: Error) => {
+      window.clearTimeout(timeout);
+      window.turnstile?.remove(container);
+      if (container.parentNode) container.parentNode.removeChild(container);
+      if (err) reject(err);
+    };
+
+    const timeout = window.setTimeout(
+      () => finish(new Error("CAPTCHA timed out")),
+      TOKEN_TIMEOUT_MS,
+    );
+
+    window.turnstile?.render(container, {
+      sitekey: SITE_KEY,
+      size: "invisible",
+      theme: "dark",
+      callback: (token) => {
+        finish();
+        resolve(token);
+      },
+      "error-callback": () => finish(new Error("CAPTCHA challenge failed")),
+      "expired-callback": () => finish(new Error("CAPTCHA token expired")),
+    });
+  });
 }
 
 /** CAPTCHA options for a Supabase auth call — `{}` when not configured. */
 export async function captchaOptions(): Promise<CaptchaOptions> {
   if (!isCaptchaEnabled) return {};
+  await loadTurnstileScript();
+  if (!window.turnstile) {
+    throw new Error("CAPTCHA widget is not ready");
+  }
   return { captchaToken: await getToken() };
 }
 

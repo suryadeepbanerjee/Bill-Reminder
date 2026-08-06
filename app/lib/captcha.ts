@@ -2,10 +2,10 @@
  * Native CAPTCHA helper (Expo).
  *
  * Token generation runs in a hidden WebView (see components/ui/CaptchaHost)
- * loading hCaptcha's JS widget in invisible mode. This module is the
+ * loading Turnstile's JS widget in invisible mode. This module is the
  * coordination point:
  *   - `requestCaptchaToken()` queues a token request and tells CaptchaHost to
- *     show itself; the WebView runs hCaptcha and posts the token back.
+ *     show itself; the WebView runs Turnstile and posts the token back.
  *   - `completeCaptcha()` resolves/rejects the pending request.
  *   - `captchaOptions()` / `withCaptcha()` are the public API screens use —
  *     identical shape to the web helper in website/src/lib/captcha.ts.

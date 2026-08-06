@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@bill-reminder/shared": "*",
     "@expo/vector-icons": "^15.0.3",
     "@hookform/resolvers": "^3.9.0",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "@supabase/supabase-js": "^2.49.0",
     "@tanstack/react-query": "^5.62.0",
-    "@bill-reminder/shared": "*",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.0",
     "expo-auth-session": "~7.0.0",

@@ -55,7 +55,7 @@ export async function runWithCaptcha<T extends { error: unknown }>(
   const first = await execute(await getCaptchaOptions());
 
   if (isCaptchaError(first.error)) {
-    // hCaptcha tokens are single-use and short-lived — refresh and retry once.
+    // CAPTCHA tokens are single-use and short-lived — refresh and retry once.
     const fresh = await getCaptchaOptions();
     if (fresh.captchaToken) {
       return execute(fresh);
