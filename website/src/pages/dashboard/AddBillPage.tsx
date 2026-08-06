@@ -521,6 +521,7 @@ export default function AddBillPage() {
               }}
               showMonth
               showDay
+              error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
             />
           )}
 
@@ -539,6 +540,7 @@ export default function AddBillPage() {
               order="DMY"
               yearMin={DUE_DATE_YEAR_MIN}
               yearMax={DUE_DATE_YEAR_MAX}
+              error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
             />
           )}
 
@@ -552,6 +554,7 @@ export default function AddBillPage() {
               }}
               showMonth
               showDay
+              error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
             />
           )}
 
@@ -567,6 +570,7 @@ export default function AddBillPage() {
               showMonth
               showDay
               showYear
+              error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
             />
           )}
 
@@ -580,6 +584,7 @@ export default function AddBillPage() {
               }}
               showMonth
               showDay
+              error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
             />
           )}
 
@@ -598,6 +603,7 @@ export default function AddBillPage() {
               order="DMY"
               yearMin={DUE_DATE_YEAR_MIN}
               yearMax={DUE_DATE_YEAR_MAX}
+              error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
             />
           )}
 

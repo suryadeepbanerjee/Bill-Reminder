@@ -174,6 +174,7 @@ export interface DateAnchorPickerProps {
   order?:     "MDY" | "DMY";
   yearMin?:   number;
   yearMax?:   number;
+  error?:     string;
 }
 
 export default function DateAnchorPicker({
@@ -186,6 +187,7 @@ export default function DateAnchorPicker({
   order = "MDY",
   yearMin,
   yearMax,
+  error,
 }: DateAnchorPickerProps) {
   const { month, day, year } = value;
 
@@ -255,6 +257,9 @@ export default function DateAnchorPicker({
         <>
           {months}{days}{years}
         </>
+      )}
+      {error && (
+        <p className="text-red-500 text-xs mt-2 font-medium">{error}</p>
       )}
     </div>
   );
