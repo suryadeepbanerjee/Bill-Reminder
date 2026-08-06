@@ -266,7 +266,7 @@ export default function Hero() {
 		<section
 			id="hero"
 			aria-labelledby="hero-heading"
-			className="relative mx-auto w-full pt-[100px] pb-16 px-6 md:px-8
+			className="relative mx-auto w-full pt-[140px] md:pt-[160px] pb-16 px-6 md:px-8
       min-h-[calc(100vh-40px)] overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_45%,var(--color-canvas)_100%)]
       dark:bg-[linear-gradient(to_bottom,#000,var(--color-canvas)_38%,#1c1e24_70%,var(--color-canvas)_100%)]
@@ -311,7 +311,7 @@ export default function Hero() {
 			</div>
 
 			<div className="container mx-auto px-6 relative z-10">
-				<div className="flex flex-col lg:flex-row items-center justify-center gap-16 lg:gap-24">
+				<div className="flex flex-col lg:flex-row items-center justify-center gap-20 lg:gap-32">
 					{/* ── Left: Copy ── */}
 					<div className="max-w-[560px] text-left">
 						<motion.div

@@ -43,15 +43,15 @@ function clientIp(req: Request): string {
 }
 
 async function verifyTurnstile(
-  token: string,
-  remoteIp: string
+  token: string
 ): Promise<{ ok: boolean; codes?: string[] }> {
   const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
   if (!secret) return { ok: true }; // guard not configured (local dev)
   if (!token) return { ok: false, codes: ["missing-input-response"] };
 
+  // NOTE: remoteip is intentionally NOT sent — a mismatched proxy IP is a
+  // known cause of false `invalid-input-response` rejects behind CDNs.
   const form = new URLSearchParams({ secret, response: token });
-  if (remoteIp && remoteIp !== "unknown") form.set("remoteip", remoteIp);
 
   const resp = await fetch(TURNSTILE_VERIFY_URL, {
     method: "POST",
@@ -83,7 +83,7 @@ serve(async (req: Request) => {
 
     // ── 1. Bot gate ────────────────────────────────────────────────────────
     const ip = clientIp(req);
-    const verify = await verifyTurnstile(captchaToken, ip);
+    const verify = await verifyTurnstile(captchaToken);
     if (!verify.ok) {
       console.warn(`turnstile-guard captcha rejected action=${action} codes=${verify.codes?.join(",")}`);
       return json(
