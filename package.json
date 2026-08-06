@@ -1,0 +1,9 @@
+{
+  "name": "bill-reminder-monorepo",
+  "private": true,
+  "workspaces": [
+    "website",
+    "app",
+    "packages/*"
+  ]
+}

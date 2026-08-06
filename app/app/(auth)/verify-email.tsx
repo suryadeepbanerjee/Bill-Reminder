@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { humanize } from "@shared/utils/errors";
+import { withCaptcha } from "../../lib/captcha";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -50,10 +51,13 @@ export default function VerifyEmailScreen() {
       //   • Any other error  → fall through to resend (don't block the user)
       const pending = tempAuth.get();
       if (pending && pending.email === email) {
-        const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email:    pending.email,
-          password: pending.password,
-        });
+        const { error: signInErr } = await withCaptcha((o) =>
+          supabase.auth.signInWithPassword({
+            email:    pending.email,
+            password: pending.password,
+            options: o,
+          })
+        );
 
         if (!signInErr) {
           // Sign-in succeeded → email WAS confirmed.
@@ -72,11 +76,13 @@ export default function VerifyEmailScreen() {
       }
 
       // ── Step 3: resend ───────────────────────────────────────────────────
-      const { error: resendError } = await supabase.auth.resend({
-        type:    "signup",
-        email,
-        options: { emailRedirectTo: webRedirectUri },
-      });
+      const { error: resendError } = await withCaptcha((o) =>
+        supabase.auth.resend({
+          type:    "signup",
+          email,
+          options: { emailRedirectTo: webRedirectUri, ...o },
+        })
+      );
 
       if (resendError) {
         const msg = resendError.message.toLowerCase();

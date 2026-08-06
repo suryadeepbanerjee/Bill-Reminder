@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { takePendingPath } from "../lib/pending-path";
 
 /*
  * AuthCallback — handles every Supabase auth redirect.
@@ -112,9 +113,10 @@ async function processCallback(): Promise<void> {
       return;
     }
 
-    // Website OAuth (PKCE) — no 'type'. Session is set on the web client; go to the dashboard.
+    // Website OAuth (PKCE) — no 'type'. Session is set on the web client;
+    // resume a pending deep-link destination if the user had one.
     if (!type) {
-      window.location.replace("/app/dashboard");
+      window.location.replace(takePendingPath() ?? "/app/dashboard");
       return;
     }
 

@@ -3,6 +3,7 @@ import { View, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase/client";
+import { takePendingRoute } from "../lib/pending-route";
 import { Colors } from "../lib/theme";
 
 /**
@@ -56,7 +57,8 @@ export default function CallbackScreen() {
           if (type === "recovery") {
             router.replace("/(auth)/update-password");
           } else {
-            router.replace("/(tabs)/dashboard");
+            // Resume a pending deep-link destination (e.g. a bill from an email).
+            router.replace(takePendingRoute() ?? "/(tabs)/dashboard");
           }
           return;
         }

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { takePendingPath } from "../lib/pending-path";
+import { withCaptcha } from "../lib/captcha";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -64,7 +66,9 @@ export default function SignIn() {
     setError(null);
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: err } = await withCaptcha((o) =>
+        supabase.auth.signInWithPassword({ email, password, options: o })
+      );
       if (err) {
         const msg = err.message.toLowerCase();
         if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
@@ -76,14 +80,14 @@ export default function SignIn() {
         }
         return;
       }
-      // After sign-in, check if there's a pending invite to accept
+      // After the sign-in, resume a pending invite or deep-link destination.
       const pendingHid = sessionStorage.getItem("pending_invite_hid");
       if (pendingHid) {
         sessionStorage.removeItem("pending_invite_hid");
         navigate(`/accept-invite?hid=${pendingHid}`);
-      } else {
-        navigate("/app/dashboard");
+        return;
       }
+      navigate(takePendingPath() ?? "/app/dashboard");
     } catch { setError("Something went wrong. Please try again."); }
     finally { setLoading(false); }
   };

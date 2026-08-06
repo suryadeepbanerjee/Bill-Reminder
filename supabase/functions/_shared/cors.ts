@@ -3,12 +3,14 @@
 // "Access-Control-Allow-Origin: *". Native (Expo) and server-side callers
 // are unaffected — CORS is a browser-only mechanism.
 //
-// The website is the only browser client:
-//   https://billreminder.suryadeepbanerjee.in
+// The website is the only browser client — origin taken from _shared/site.ts
+// so the canonical domain stays defined in ONE place.
 // Local Vite dev server origins are allowed for testing.
 
+import { SITE_URL } from "./site.ts";
+
 export const ALLOWED_ORIGINS = [
-  "https://billreminder.suryadeepbanerjee.in",
+  SITE_URL,
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ];

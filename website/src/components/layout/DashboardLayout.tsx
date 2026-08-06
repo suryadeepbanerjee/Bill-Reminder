@@ -1,6 +1,7 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import AppShell from "./AppShell";
 import { useAuthStore } from "../../stores/auth-store";
+import { savePendingPath } from "../../lib/pending-path";
 
 function SplashScreen() {
   return (
@@ -15,15 +16,20 @@ function SplashScreen() {
   );
 }
 
-export default function DashboardLayout() {
+/**
+ * Auth-gated app shell.
+ * When a signed-out user lands on a protected route, remember where they were
+ * heading so sign-in can return them there (deep-link destination preservation).
+ */
+export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) return <SplashScreen />;
-  if (!user) return <Navigate to="/sign-in" replace />;
+  if (!user) {
+    savePendingPath(location);
+    return <Navigate to="/sign-in" replace />;
+  }
 
-  return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  );
+  return <AppShell>{children ?? <Outlet />}</AppShell>;
 }

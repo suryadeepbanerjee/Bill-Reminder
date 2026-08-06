@@ -8,6 +8,8 @@ import { supabase } from "../../lib/supabase/client";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { signInSchema, SignInFormData } from "@shared/schemas/../";
 import { humanize } from "@shared/utils/errors";
+import { takePendingRoute } from "../../lib/pending-route";
+import { withCaptcha } from "../../lib/captcha";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { PasswordField } from "../../components/ui/PasswordField";
@@ -36,15 +38,19 @@ export default function SignInScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email:    data.email,
-        password: data.password,
-      });
+      const { error: authError } = await withCaptcha((o) =>
+        supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+          options: o,
+        })
+      );
       if (authError) {
         setError(humanize(authError, "auth"));
         return;
       }
-      router.replace("/(tabs)/dashboard");
+      // Resume a pending deep-link destination (e.g. a bill from an email).
+      router.replace(takePendingRoute() ?? "/(tabs)/dashboard");
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {

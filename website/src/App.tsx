@@ -93,6 +93,17 @@ export default function App() {
                   <Route path="settings/members" element={<MembersPage />} />
                 </Route>
 
+                {/* Deep link — canonical bill URL. Same guard/shell as /app;
+                    signed-out users are sent to sign-in and returned here. */}
+                <Route
+                  path="/bill/:id"
+                  element={
+                    <DashboardLayout>
+                      <BillDetailPage />
+                    </DashboardLayout>
+                  }
+                />
+
                 {/* 404 — must be last */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

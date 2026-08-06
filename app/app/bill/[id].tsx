@@ -17,6 +17,8 @@ import { useBill, useUpdateBill }         from "../../hooks/useBills";
 import { useDeleteBill }                 from "../../hooks/useBills";
 import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
+import { useAuthStore }       from "../../stores/auth-store";
+import { savePendingRoute }   from "../../lib/pending-route";
 
 import { Header }          from "../../components/ui/Header";
 import { Surface }         from "../../components/ui/Surface";
@@ -640,7 +642,8 @@ export default function BillDetailScreen() {
   const [deleteTransactionTarget, setDeleteTransactionTarget] = useState<DeleteTransactionTarget | null>(null);
   const [showEditBill, setShowEditBill]   = useState(false);
 
-  const { data: bill, isLoading, isError, error, refetch } = useBill(id);
+  const { user, isLoading: authLoading } = useAuthStore();
+  const { data: bill, isLoading, isError, error, refetch } = useBill(id, Boolean(user));
   const { data: occurrences = [] } = useBillOccurrences(id);
   const { data: reminderRules = [] } = useReminderRules(id);
   const { mutateAsync: deleteBill, isPending: isDeleting } = useDeleteBill();
@@ -686,6 +689,43 @@ export default function BillDetailScreen() {
     );
   }, [bill?.title, deleteBill, id]);
 
+  // Deep link opened while signed out — offer sign-in and return here after.
+  if (authLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
+        <Header title="Bill details" showBack />
+        <LoadingSkeleton variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
+        <Header title="Bill details" showBack />
+        <View className="flex-1 items-center justify-center px-8 gap-4">
+          <View className="w-14 h-14 rounded-full bg-accent/10 items-center justify-center">
+            <Ionicons name="log-in-outline" size={28} color={Colors.accent[500]} />
+          </View>
+          <Text className="text-label text-primary font-semibold text-center">
+            Sign in required
+          </Text>
+          <Text className="text-body text-secondary text-center">
+            You need to sign in to view this bill.
+          </Text>
+          <Button
+            title="Sign in"
+            variant="accent"
+            onPress={() => {
+              savePendingRoute(`/bill/${id}`);
+              router.replace("/(auth)/sign-in");
+            }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
@@ -695,7 +735,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  if (isError || !bill) {
+  if (isError) {
     return (
       <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
         <Header title="Bill details" showBack />
@@ -703,6 +743,16 @@ export default function BillDetailScreen() {
           message="Failed to load bill."
           onRetry={refetch}
         />
+      </SafeAreaView>
+    );
+  }
+
+  if (!bill) {
+    // Deep link to a bill that doesn't exist (deleted or bad link).
+    return (
+      <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
+        <Header title="Bill details" showBack />
+        <ErrorView message="This bill could not be found. It may have been deleted or the link may be incorrect." />
       </SafeAreaView>
     );
   }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { withCaptcha } from "../lib/captcha";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -74,10 +75,12 @@ export default function SignInCode() {
 
   // ── Send OTP ──────────────────────────────────────────────────────────────
   const sendOtp = async (target: string): Promise<boolean> => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: target,
-      options: { shouldCreateUser: false },
-    });
+    const { error } = await withCaptcha((o) =>
+      supabase.auth.signInWithOtp({
+        email: target,
+        options: { shouldCreateUser: false, ...o },
+      })
+    );
     if (error) { setEmailError(error.message); return false; }
     return true;
   };
@@ -102,10 +105,12 @@ export default function SignInCode() {
     setOtpCode("");
     setSendLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { shouldCreateUser: false },
-      });
+      const { error } = await withCaptcha((o) =>
+        supabase.auth.signInWithOtp({
+          email: email.trim(),
+          options: { shouldCreateUser: false, ...o },
+        })
+      );
       if (error) { setOtpError(error.message); return; }
       setOtpSuccess("New code sent — check your inbox.");
       startCooldown();
@@ -124,11 +129,14 @@ export default function SignInCode() {
     }
     setVerifyLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: code,
-        type:  "email",
-      });
+      const { error } = await withCaptcha((o) =>
+        supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: code,
+          type:  "email",
+          options: o,
+        })
+      );
       if (error) {
         const msg = error.message.toLowerCase();
         if (msg.includes("expired") || msg.includes("otp") || msg.includes("invalid")) {

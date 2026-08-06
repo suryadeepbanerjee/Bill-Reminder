@@ -104,11 +104,21 @@ export default function BillDetailPage() {
     );
   }
 
-  if (isError || !bill) {
+  if (isError) {
     return (
       <div>
         <Header title="Bill details" onBack={() => navigate(-1)} />
         <ErrorView message="Failed to load bill." onRetry={refetch} />
+      </div>
+    );
+  }
+
+  if (!bill) {
+    // Deep link to a bill that doesn't exist (deleted or bad link).
+    return (
+      <div>
+        <Header title="Bill details" onBack={() => navigate(-1)} />
+        <ErrorView message="This bill could not be found. It may have been deleted or the link may be incorrect." />
       </div>
     );
   }

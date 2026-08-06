@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.billreminder.app",
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_UPLOAD_KEY_SHA256_FROM_GOOGLE_PLAY_CONSOLE"
+      ]
+    }
+  }
+]

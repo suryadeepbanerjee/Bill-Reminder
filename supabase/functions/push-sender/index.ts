@@ -22,7 +22,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { reminderId, userId, title, body } = await req.json();
+    const { reminderId, userId, title, body, billId } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -52,13 +52,15 @@ serve(async (req: Request) => {
       );
     }
 
-    // Send push notification via Expo
+    // Send push notification via Expo.
+    // data.billId lets the app route the tap to the bill's details screen
+    // (see app/lib/notifications.ts — response listener).
     const messages = tokens.map((t) => ({
       to: t.expo_push_token,
       sound: "default",
       title,
       body,
-      data: { reminderId },
+      data: { reminderId, billId: billId ?? null },
     }));
 
     const response = await fetch("https://exp.host/--/api/v2/push/send", {

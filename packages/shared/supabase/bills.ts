@@ -10,7 +10,7 @@ const BILL_SELECT = `
 
 export interface BillsApi {
   fetchBills(householdId: string): Promise<Bill[]>;
-  fetchBillById(id: string): Promise<Bill>;
+  fetchBillById(id: string): Promise<Bill | null>;
   createBill(input: CreateBillInput): Promise<Bill>;
   updateBill(id: string, input: UpdateBillInput): Promise<Bill>;
   deleteBill(id: string): Promise<void>;
@@ -35,15 +35,20 @@ export function createBillsApi(supabase: SupabaseClient): BillsApi {
       return (data ?? []) as Bill[];
     },
 
-    async fetchBillById(id: string): Promise<Bill> {
+    /**
+     * Resolves `null` when the bill doesn't exist (deep link to a deleted or
+     * unknown bill) so the UI can show a friendly "not found" state instead
+     * of treating it as a fetch failure.
+     */
+    async fetchBillById(id: string): Promise<Bill | null> {
       const { data, error } = await supabase
         .from("bills")
         .select(BILL_SELECT)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw new Error(error.message);
-      return data as Bill;
+      return (data as Bill) ?? null;
     },
 
     async createBill(input: CreateBillInput): Promise<Bill> {

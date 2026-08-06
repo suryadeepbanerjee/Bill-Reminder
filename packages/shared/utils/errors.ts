@@ -36,6 +36,7 @@ const SAFE_MESSAGES = new Set([
   "Failed to load bill.",
   "Something went wrong. Please try again.",
   "Invalid verification code. Please try again.",
+  "We couldn't verify you're human. Please try again.",
 ]);
 
 /** Generic fallback messages by context. */
@@ -77,6 +78,12 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
     // Network errors
     if (lower.includes("network") || lower.includes("internet") || lower.includes("fetch")) {
       return FALLBACKS.network;
+    }
+
+    // CAPTCHA rejections — before the token/code checks so "Captcha token
+    // expired" never surfaces as a wrong-code message.
+    if (lower.includes("captcha") || lower.includes("hcaptcha") || lower.includes("turnstile")) {
+      return "We couldn't verify you're human. Please try again.";
     }
 
     // Verification code issues — must come before generic token/session checks

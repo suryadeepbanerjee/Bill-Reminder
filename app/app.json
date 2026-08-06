@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.billreminder.app"
+      "bundleIdentifier": "com.billreminder.app",
+      "associatedDomains": ["applinks:billreminder.suryadeepbanerjee.in"]
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +24,24 @@
       },
       "package": "com.billreminder.app",
       "googleServicesFile": "./google-services.json",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "billreminder.suryadeepbanerjee.in",
+              "pathPrefix": "/bill/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",

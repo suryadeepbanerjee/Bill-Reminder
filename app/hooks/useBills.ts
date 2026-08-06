@@ -20,11 +20,11 @@ export function useBills() {
   });
 }
 
-export function useBill(billId: string | undefined) {
+export function useBill(billId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: ["bill", billId],
     queryFn:  () => fetchBillById(billId!),
-    enabled:  Boolean(billId),
+    enabled:  Boolean(billId) && enabled,
   });
 }
 

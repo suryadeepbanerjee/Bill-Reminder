@@ -4,6 +4,9 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // Expose EXPO_PUBLIC_* env vars (alongside VITE_*) so the CAPTCHA site key
+  // can be configured the same way on web and mobile.
+  envPrefix: ["VITE_", "EXPO_PUBLIC_"],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

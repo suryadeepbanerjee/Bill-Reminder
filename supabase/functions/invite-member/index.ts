@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { inviteUrl } from "../_shared/site.ts";
 
 // ── Invite resend policy ─────────────────────────────────────────────────────
 // 2 minute cooldown between sends, max 3 resends (4 total sends),
@@ -222,7 +223,7 @@ serve(async (req: Request) => {
       throw new Error("Email service is not configured. Please set RESEND_API_KEY.");
     }
 
-    const webUrl = `https://billreminder.suryadeepbanerjee.in/accept-invite?hid=${householdId}`;
+    const webUrl = inviteUrl(householdId);
     const safeCallerName   = escapeHtml(callerName);
     const safeHousehold    = escapeHtml(householdName);
     const safeSubjectName  = escapeHtml(callerName);

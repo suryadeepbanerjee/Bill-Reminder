@@ -77,6 +77,7 @@ serve(async (req: Request) => {
             body: {
               reminderId: reminder.id,
               userId: reminder.user_id,
+              billId: bill.id,
               title,
               body,
             },

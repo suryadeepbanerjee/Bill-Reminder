@@ -6,6 +6,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { SITE_URL, billUrl } from "../_shared/site.ts";
 import { renderNotificationEmail } from "./templates/notification.ts";
 
 /* H-4: HTML-escape user-controlled values before they reach the email
@@ -69,7 +70,7 @@ serve(async (req: Request) => {
 			amount: escapeHtml(amount || "Check details"),
 			dueDate: escapeHtml(dueDate || "Check details"),
 			status: status || "upcoming",
-			actionUrl: `https://billreminder.suryadeepbanerjee.in/bill/${billId}`,
+			actionUrl: billId ? billUrl(billId) : SITE_URL,
 		});
 
 		// Send email via Resend

@@ -8,6 +8,7 @@
     "@react-native-google-signin/google-signin": "^16.1.4",
     "@supabase/supabase-js": "^2.49.0",
     "@tanstack/react-query": "^5.62.0",
+    "@bill-reminder/shared": "workspace:*",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.0",
     "expo-auth-session": "~7.0.0",

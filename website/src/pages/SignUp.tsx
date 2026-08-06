@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { withCaptcha } from "../lib/captcha";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -70,13 +71,16 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const { data, error: authError } = await supabase.auth.signUp({
-        email, password,
-        options: {
-          data: { display_name: name.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+      const { data, error: authError } = await withCaptcha((o) =>
+        supabase.auth.signUp({
+          email, password,
+          options: {
+            data: { display_name: name.trim() },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            ...o,
+          },
+        })
+      );
 
       if (authError) {
         if (authError.message.toLowerCase().includes("rate limit")) {
