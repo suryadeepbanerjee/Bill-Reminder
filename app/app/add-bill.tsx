@@ -31,9 +31,9 @@ import { useTapGuard } from "../hooks/useTapGuard";
 import { useAuthStore } from "../stores/auth-store";
 import { defaultReminderRules } from "../lib/supabase/reminders";
 import { ensureHouseholdCategoryFromPreset } from "../lib/supabase/categories";
-import { createBillSchema, CreateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "../schemas/bill";
-import { humanize } from "../lib/errors";
-import type { CategoryPreset } from "../lib/supabase/types";
+import { createBillSchema, CreateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas/../";
+import { humanize } from "@shared/utils/errors";
+import type { CategoryPreset } from "@shared/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

@@ -10,8 +10,8 @@ import { TextInput } from "../../components/ui/TextInput";
 import Modal from "../../components/ui/Modal";
 import AlertBadge from "../../components/ui/AlertBadge";
 import { useToast } from "../../components/ui/Toast";
-import { friendlyError } from "../../lib/errors";
-import type { Profile } from "../../lib/types";
+import { friendlyError } from "@shared/utils/errors";
+import type { Profile } from "@shared/types";
 
 function Header() {
   const navigate = useNavigate();

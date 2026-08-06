@@ -1,0 +1,24 @@
+{
+  "name": "@bill-reminder/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared code for the Bill Reminder monorepo: schemas, types, constants, validation, recurrence helpers, and the client-bound Supabase data layer.",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./constants": "./constants/index.ts",
+    "./schemas": "./schemas/index.ts",
+    "./schemas/*": "./schemas/*",
+    "./types": "./types/index.ts",
+    "./utils": "./utils/index.ts",
+    "./utils/*": "./utils/*",
+    "./validation": "./validation/index.ts",
+    "./recurrence": "./recurrence/index.ts",
+    "./supabase": "./supabase/index.ts",
+    "./supabase/*": "./supabase/*"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "zod": "^3.24.0"
+  }
+}

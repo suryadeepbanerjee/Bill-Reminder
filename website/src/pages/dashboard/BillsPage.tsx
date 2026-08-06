@@ -10,7 +10,7 @@ import LoadingSkeleton from "../../components/ui/LoadingSkeleton";
 import ErrorView from "../../components/ui/ErrorView";
 import EmptyState from "../../components/ui/EmptyState";
 import FAB from "../../components/ui/FAB";
-import type { Bill, DashboardOccurrence } from "../../lib/types";
+import type { Bill, DashboardOccurrence } from "@shared/types";
 
 type FilterKey = "all" | "overdue" | "due_today" | "upcoming" | "paid";
 

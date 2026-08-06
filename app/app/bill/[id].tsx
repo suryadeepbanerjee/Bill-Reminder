@@ -44,11 +44,11 @@ import {
   formatOverdueLabel,
   formatRepeatKind,
   formatBehaviorType,
-} from "../../lib/utils";
+} from "@shared/utils/format";
 import { Colors }                         from "../../lib/theme";
-import { humanize }                       from "../../lib/errors";
-import { updateBillSchema, UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "../../schemas/bill";
-import type { Bill, BillOccurrence, BillReminderRule } from "../../lib/supabase/types";
+import { humanize }                       from "@shared/utils/errors";
+import { updateBillSchema, UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas";
+import type { Bill, BillOccurrence, BillReminderRule } from "@shared/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

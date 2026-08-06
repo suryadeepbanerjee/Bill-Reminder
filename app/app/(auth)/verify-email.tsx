@@ -7,7 +7,7 @@ import { tempAuth } from "../../lib/tempAuth";
 import { Button } from "../../components/ui/Button";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { AlertBadge } from "../../components/ui/AlertBadge";
-import { humanize } from "../../lib/errors";
+import { humanize } from "@shared/utils/errors";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 

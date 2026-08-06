@@ -1,6 +1,6 @@
 import { memo, useEffect, useState, useCallback } from "react";
-import { getInviteResendState, formatWaitMs } from "../../lib/invite-resend";
-import type { HouseholdMember } from "../../lib/types";
+import { getInviteResendState, formatWaitMs } from "@shared/utils/invite-resend";
+import type { HouseholdMember } from "@shared/types";
 
 type Props = {
   member: HouseholdMember;

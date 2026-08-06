@@ -7,7 +7,7 @@ import { Button } from "../ui/Button";
 import { AlertBadge } from "../ui/AlertBadge";
 import { DateAnchorPicker } from "../ui/DateAnchorPicker";
 import { useDeleteTransaction } from "../../hooks/useOccurrences";
-import type { BillOccurrence, Bill } from "../../lib/supabase/types";
+import type { BillOccurrence, Bill } from "@shared/types";
 
 export interface DeleteTransactionTarget {
   occurrence: BillOccurrence;

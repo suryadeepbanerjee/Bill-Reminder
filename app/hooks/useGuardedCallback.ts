@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { tryAcquireAction, releaseAction } from "../lib/action-guard";
+import { tryAcquireAction, releaseAction } from "@shared/utils/action-guard";
 
 /**
  * Wraps any callback (sync or async) with a silent per-action dedupe guard.

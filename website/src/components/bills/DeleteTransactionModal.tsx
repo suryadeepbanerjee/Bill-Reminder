@@ -5,7 +5,7 @@ import { Button } from "../ui/Button";
 import AlertBadge from "../ui/AlertBadge";
 import DateAnchorPicker from "../ui/DateAnchorPicker";
 import { useDeleteTransaction } from "../../hooks/useOccurrences";
-import type { Bill, BillOccurrence } from "../../lib/types";
+import type { Bill, BillOccurrence } from "@shared/types";
 
 export interface DeleteTransactionTarget {
   occurrence:        BillOccurrence;

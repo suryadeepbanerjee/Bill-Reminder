@@ -24,7 +24,7 @@
  */
 
 import { routingQueue } from "expo-router/build/global-state/routing";
-import { tryAcquireAction, releaseAction } from "./action-guard";
+import { tryAcquireAction, releaseAction } from "@shared/utils/action-guard";
 
 const NAV_COOLDOWN_MS = 600;
 

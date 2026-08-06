@@ -18,7 +18,7 @@ import Switch from "../../components/ui/Switch";
 import Modal from "../../components/ui/Modal";
 import AlertBadge from "../../components/ui/AlertBadge";
 import { deleteAccount } from "../../lib/api/household";
-import { friendlyError } from "../../lib/errors";
+import { friendlyError } from "@shared/utils/errors";
 
 /** GitHub mark — lucide dropped brand icons, so inline SVG. */
 function GithubIcon() {

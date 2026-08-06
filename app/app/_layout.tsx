@@ -15,7 +15,7 @@ import { supabase } from "../lib/supabase/client";
 // Side-effect: patches expo-router's routing queue so every navigation call
 // (router.*, Link, Redirect) is deduped per destination — silent, cooldown-based.
 import "../lib/guarded-navigation";
-import { releaseAllActions } from "../lib/action-guard";
+import { releaseAllActions } from "@shared/utils/action-guard";
 
 SplashScreen.preventAutoHideAsync();
 

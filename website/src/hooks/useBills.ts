@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBills, fetchBillById, createBill, updateBill, deleteBill } from "../lib/api/bills";
 import { useHousehold } from "./useHousehold";
-import type { CreateBillInput, UpdateBillInput } from "../lib/types";
+import type { CreateBillInput, UpdateBillInput } from "@shared/types";
 
 export function useBills() {
   const { activeHousehold } = useHousehold();

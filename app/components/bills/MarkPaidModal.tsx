@@ -19,8 +19,8 @@ import { Button }      from "../ui/Button";
 import { AlertBadge }  from "../ui/AlertBadge";
 import { DateAnchorPicker } from "../ui/DateAnchorPicker";
 import { useMarkPaid } from "../../hooks/useOccurrences";
-import { humanize }    from "../../lib/errors";
-import type { BillOccurrence } from "../../lib/supabase/types";
+import { humanize }    from "@shared/utils/errors";
+import type { BillOccurrence } from "@shared/types";
 
 export interface MarkPaidTarget {
   /** The occurrence being paid */

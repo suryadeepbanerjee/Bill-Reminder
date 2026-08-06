@@ -23,7 +23,7 @@ import { createHousehold } from "../../../lib/supabase/profile";
 import { signOutGoogle }  from "../../../lib/auth/google";
 import { cancelAllReminders } from "../../../lib/notifications";
 import { Switch }         from "../../../components/ui/Switch";
-import { humanize, friendlyError } from "../../../lib/errors";
+import { humanize, friendlyError } from "@shared/utils/errors";
 
 // ── Section header ────────────────────────────────────────────────────────────
 

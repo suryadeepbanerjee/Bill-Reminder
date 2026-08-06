@@ -8,7 +8,7 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { MONTH_NAMES } from "../../schemas/bill";
+import { MONTH_NAMES } from "@shared/schemas/../";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

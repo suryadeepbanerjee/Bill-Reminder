@@ -1,7 +1,7 @@
 import { memo, useEffect, useState, useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
-import { getInviteResendState, formatWaitMs } from "../../lib/invite-resend";
-import type { HouseholdMember } from "../../lib/supabase/types";
+import { getInviteResendState, formatWaitMs } from "@shared/utils/invite-resend";
+import type { HouseholdMember } from "@shared/types";
 
 type Props = {
   member: HouseholdMember;

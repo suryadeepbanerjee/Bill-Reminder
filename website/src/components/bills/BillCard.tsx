@@ -2,8 +2,8 @@ import { memo } from "react";
 import { CheckCircle2 } from "lucide-react";
 import CategoryIconBadge from "./CategoryIconBadge";
 import BillStateChip from "./BillStateChip";
-import { formatCurrency, formatRelativeDate } from "../../lib/utils";
-import type { Bill, BillOccurrence, OccurrenceState } from "../../lib/types";
+import { formatCurrency, formatRelativeDate } from "@shared/utils/format";
+import type { Bill, BillOccurrence, OccurrenceState } from "@shared/types";
 
 function getDisplayState(
   state: OccurrenceState,

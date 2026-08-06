@@ -1,7 +1,7 @@
 import { Pressable, PressableProps, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../../lib/theme";
-import { tryAcquireAction, releaseAction } from "../../lib/action-guard";
+import { tryAcquireAction, releaseAction } from "@shared/utils/action-guard";
 
 type IconButtonVariant = "default" | "ghost" | "filled" | "danger";
 type IconButtonSize    = "sm" | "md" | "lg";

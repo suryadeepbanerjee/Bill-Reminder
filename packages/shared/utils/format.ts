@@ -1,7 +1,9 @@
-// Shared utility functions for formatting and display logic.
-// Pure functions — no side effects. Ported from app/lib/utils.ts.
+/**
+ * Shared utility functions for formatting and display logic.
+ * Pure functions — no side effects, no imports from React/RN.
+ */
 
-// ── Currency formatting ──────────────────────────────────────────────────────
+// ── Currency formatting (tabular figures, per spec) ──────────────────────────
 
 export function formatCurrency(
   amount: number | null | undefined,
@@ -38,17 +40,6 @@ export function formatDateShort(date: string | Date | null | undefined): string 
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
-/** "15 Jan 2026" style — used by RecurrencePreview */
-export function formatDateDisplay(date: string | null | undefined): string {
-  if (!date) return "—";
-  const d = typeof date === "string" ? new Date(date + "T00:00:00") : new Date(date);
-  return d.toLocaleDateString("en-IN", {
-    day:   "numeric",
-    month: "short",
-    year:  "numeric",
-  });
-}
-
 export function formatRelativeDate(date: string | Date | null | undefined): string {
   if (!date) return "—";
   const d       = typeof date === "string" ? new Date(date + "T00:00:00") : date;
@@ -71,6 +62,7 @@ export function daysUntil(date: string | Date | null | undefined): number | null
   if (!date) return null;
   const d   = typeof date === "string" ? new Date(date + "T00:00:00") : date;
   const now = new Date();
+  // Compare date-only parts (strip time)
   const dDay   = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((dDay.getTime() - nowDay.getTime()) / (1000 * 60 * 60 * 24));
@@ -110,7 +102,11 @@ export function formatBehaviorType(type: string): string {
   }
 }
 
-// ── Misc ──────────────────────────────────────────────────────────────────────
+// ── Misc helpers ──────────────────────────────────────────────────────────────
+
+export function formatDateDisplay(date: string | null | undefined): string {
+  return formatDate(date);
+}
 
 export function ordinalSuffix(n: number): string {
   const s = ["th", "st", "nd", "rd"];

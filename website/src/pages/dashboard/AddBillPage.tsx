@@ -6,7 +6,7 @@ import {
   Calendar, Clock, Wallet, Repeat, Zap, X, Check, ChevronLeft,
   CalendarClock, CalendarDays, BellRing,
 } from "lucide-react";
-import { createBillSchema, type CreateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "../../schemas/bill";
+import { createBillSchema, type CreateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas/bill";
 import { useCategoryPresets } from "../../hooks/useCategories";
 import { useHousehold } from "../../hooks/useHousehold";
 import { useAuthStore } from "../../stores/auth-store";
@@ -23,7 +23,7 @@ import { Button } from "../../components/ui/Button";
 import AlertBadge from "../../components/ui/AlertBadge";
 import CategoryIconBadge from "../../components/bills/CategoryIconBadge";
 import RecurrencePreview from "../../components/bills/RecurrencePreview";
-import { friendlyError } from "../../lib/errors";
+import { friendlyError } from "@shared/utils/errors";
 import { useToast } from "../../components/ui/Toast";
 
 // ── Per-category placeholders ───────────────────────────────────────────────

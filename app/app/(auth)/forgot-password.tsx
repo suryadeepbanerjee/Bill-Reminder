@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 
 import { supabase } from "../../lib/supabase/client";
-import { forgotPasswordSchema, ForgotPasswordFormData } from "../../schemas/auth";
-import { humanize } from "../../lib/errors";
+import { forgotPasswordSchema, ForgotPasswordFormData } from "@shared/schemas/../";
+import { humanize } from "@shared/utils/errors";
 
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";

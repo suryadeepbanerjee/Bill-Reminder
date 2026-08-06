@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../components/ui/Button";
 import { useAuthStore } from "../stores/auth-store";
 import { acceptInvite } from "../lib/supabase/profile";
-import { friendlyError } from "../lib/errors";
+import { friendlyError } from "@shared/utils/errors";
 import { Colors } from "../lib/theme";
 
 export default function AcceptInviteScreen() {

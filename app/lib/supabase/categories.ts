@@ -1,67 +1,12 @@
 import { supabase } from "./client";
-import type { Category, CategoryPreset } from "./types";
+import { createCategoriesApi } from "@shared/supabase/categories";
+import type { Category, CategoryPreset } from "@shared/types";
 
-export async function fetchCategoryPresets(): Promise<CategoryPreset[]> {
-  const { data, error } = await supabase
-    .from("category_presets")
-    .select("*")
-    .order("name");
+const api = createCategoriesApi(supabase);
 
-  if (error) throw new Error(error.message);
-  return (data ?? []) as CategoryPreset[];
-}
+export const fetchCategoryPresets: typeof api.fetchCategoryPresets = api.fetchCategoryPresets;
+export const fetchHouseholdCategories: typeof api.fetchHouseholdCategories = api.fetchHouseholdCategories;
+export const createCategory: typeof api.createCategory = api.createCategory;
+export const ensureHouseholdCategoryFromPreset: typeof api.ensureHouseholdCategoryFromPreset = api.ensureHouseholdCategoryFromPreset;
 
-export async function fetchHouseholdCategories(householdId: string): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .eq("household_id", householdId)
-    .order("name");
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Category[];
-}
-
-export async function createCategory(input: {
-  household_id: string;
-  name:         string;
-  icon:         string;
-  color:        string;
-  preset_key?:  string | null;
-}): Promise<Category> {
-  const { data, error } = await supabase
-    .from("categories")
-    .insert(input)
-    .select()
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Category;
-}
-
-/**
- * Ensures a category exists for the given preset in the household.
- * If a matching category already exists, returns it.
- * Otherwise creates one from the preset data.
- */
-export async function ensureHouseholdCategoryFromPreset(
-  householdId: string,
-  preset:      CategoryPreset
-): Promise<Category> {
-  const { data: existing } = await supabase
-    .from("categories")
-    .select("*")
-    .eq("household_id", householdId)
-    .eq("preset_key", preset.key)
-    .maybeSingle();
-
-  if (existing) return existing as Category;
-
-  return createCategory({
-    household_id: householdId,
-    name:         preset.name,
-    icon:         preset.icon,
-    color:        preset.color,
-    preset_key:   preset.key,
-  });
-}
+export type { Category, CategoryPreset };

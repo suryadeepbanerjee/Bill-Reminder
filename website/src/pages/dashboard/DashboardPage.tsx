@@ -11,8 +11,8 @@ import EmptyState from "../../components/ui/EmptyState";
 import SectionHeader from "../../components/ui/SectionHeader";
 import FAB from "../../components/ui/FAB";
 import { useToast } from "../../components/ui/Toast";
-import { formatCurrency, getGreeting } from "../../lib/utils";
-import type { DashboardOccurrence } from "../../lib/types";
+import { formatCurrency, getGreeting } from "@shared/utils/format";
+import type { DashboardOccurrence } from "@shared/types";
 
 function SummaryPill({
   label, count, Icon, iconClass, bg, onClick,

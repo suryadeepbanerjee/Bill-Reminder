@@ -2,14 +2,14 @@ import { memo } from "react";
 import { Pressable, View, Text } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { Bill, BillOccurrence, OccurrenceState } from "../../lib/supabase/types";
+import { Bill, BillOccurrence, OccurrenceState } from "@shared/types";
 import { CategoryIconBadge } from "./CategoryPill";
 import { BillStateChip } from "./BillStateChip";
 import {
   formatCurrency,
   formatRelativeDate,
   formatOverdueLabel,
-} from "../../lib/utils";
+} from "@shared/utils/format";
 
 function getDisplayState(occurrence: BillOccurrence): OccurrenceState {
   if (occurrence.state === "paid" || occurrence.state === "archived") return occurrence.state;

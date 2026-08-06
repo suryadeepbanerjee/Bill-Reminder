@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Household, HouseholdMember } from "../lib/types";
+import type { Household, HouseholdMember } from "@shared/types";
 
 const STORAGE_KEY = "br_active_household";
 

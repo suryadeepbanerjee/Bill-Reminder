@@ -44,7 +44,7 @@ The website is configured to be deployed on Vercel.
 *(All Vercel configurations and routing rules are defined in `website/vercel.json`)*
 
 ### Backend (Supabase)
-All Edge Functions, database migrations, types, and email templates are located in `/app/supabase`.
+All Edge Functions, database migrations, types, and email templates are located in `/supabase` (repository root, shared by both `/app` and `/website`).
 
 ## Authentication Flow
 

@@ -170,7 +170,7 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
                         <tr>
                             <td class="body-cell" style="
                                 background-color:#0a0a0a;
-                                padding:32px 36px;
+                                padding:32px 36px 0px;
                                 border-left:1px solid #222222;
                                 border-right:1px solid #222222;
                             ">
@@ -362,7 +362,7 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0;">
                                     <tr>
                                         <td align="center" style="padding:0;">
-                                            <a href="{{actionUrl}}" target="_blank" class="cta-btn" style="
+                                            <a href="https://billreminder.suryadeepbanerjee.in" target="_blank" class="cta-btn" style="
                                                 display:inline-block;
                                                 background-color:#b69318;
                                                 color:#000000;
@@ -417,7 +417,7 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
                                     color:#444444;
                                     letter-spacing:0.4px;
                                 ">
-                                    © {{year}} Bill Reminder
+                                    © 2026 Bill Reminder
                                 </p>
                             </td>
                         </tr>

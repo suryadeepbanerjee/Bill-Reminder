@@ -9,7 +9,7 @@ import {
 import { useBill, useUpdateBill, useDeleteBill } from "../../hooks/useBills";
 import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
-import { updateBillSchema, type UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "../../schemas/bill";
+import { updateBillSchema, type UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas/bill";
 import LoadingSkeleton from "../../components/ui/LoadingSkeleton";
 import ErrorView from "../../components/ui/ErrorView";
 import Modal from "../../components/ui/Modal";
@@ -30,12 +30,12 @@ import { useRecurrencePreview } from "../../hooks/useRecurrencePreview";
 import { buildPreviewParams } from "../../lib/api/recurrence";
 import { useToast } from "../../components/ui/Toast";
 import { useConfirm } from "../../components/ui/Confirm";
-import { friendlyError } from "../../lib/errors";
+import { friendlyError } from "@shared/utils/errors";
 import {
   formatCurrency, formatDate, formatRelativeDate, formatOverdueLabel,
   formatBehaviorType, formatRepeatKind, ordinalSuffix,
-} from "../../lib/utils";
-import type { BillOccurrence } from "../../lib/types";
+} from "@shared/utils/format";
+import type { BillOccurrence } from "@shared/types";
 
 const ACTIONABLE_STATES = ["due_today", "overdue", "expected_payment", "generated"];
 

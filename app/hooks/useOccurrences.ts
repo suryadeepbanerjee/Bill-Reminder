@@ -7,7 +7,7 @@ import {
   deleteOccurrenceTransaction,
 } from "../lib/supabase/occurrences";
 import { useHousehold } from "./useHousehold";
-import type { MarkPaidInput, DeleteTransactionInput } from "../lib/supabase/types";
+import type { MarkPaidInput, DeleteTransactionInput } from "@shared/types";
 
 export function useDashboard() {
   const { activeHousehold } = useHousehold();

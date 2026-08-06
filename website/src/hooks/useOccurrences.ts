@@ -7,7 +7,7 @@ import {
   deleteOccurrenceTransaction,
 } from "../lib/api/occurrences";
 import { useHousehold } from "./useHousehold";
-import type { MarkPaidInput, DeleteTransactionInput } from "../lib/types";
+import type { MarkPaidInput, DeleteTransactionInput } from "@shared/types";
 
 export function useDashboard() {
   const { activeHousehold } = useHousehold();

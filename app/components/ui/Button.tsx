@@ -1,6 +1,6 @@
 import { Pressable, Text, ActivityIndicator, PressableProps, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { tryAcquireAction, releaseAction } from "../../lib/action-guard";
+import { tryAcquireAction, releaseAction } from "@shared/utils/action-guard";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "accent";
 type ButtonSize    = "sm" | "md" | "lg";

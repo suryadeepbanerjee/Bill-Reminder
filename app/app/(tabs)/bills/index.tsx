@@ -23,7 +23,7 @@ import { ErrorView }                 from "../../../components/ui/ErrorView";
 import { EmptyState }                from "../../../components/ui/EmptyState";
 import { FAB }                       from "../../../components/ui/FAB";
 import { Colors }                    from "../../../lib/theme";
-import type { Bill, DashboardOccurrence } from "../../../lib/supabase/types";
+import type { Bill, DashboardOccurrence } from "@shared/types";
 
 // ── Filter types ──────────────────────────────────────────────────────────────
 

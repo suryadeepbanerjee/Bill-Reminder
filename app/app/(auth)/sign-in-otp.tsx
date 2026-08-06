@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
-import { humanize } from "../../lib/errors";
+import { humanize } from "@shared/utils/errors";
 
 const RESEND_COOLDOWN = 60;
 

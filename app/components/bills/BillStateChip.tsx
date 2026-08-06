@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { OccurrenceState } from "../../lib/supabase/types";
+import { OccurrenceState } from "@shared/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../lib/theme";
 

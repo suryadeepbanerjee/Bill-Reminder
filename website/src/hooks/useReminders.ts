@@ -6,7 +6,7 @@ import {
   deleteReminderRule,
   toggleReminderRule,
 } from "../lib/api/reminders";
-import type { BillReminderRule } from "../lib/types";
+import type { BillReminderRule } from "@shared/types";
 
 export function useReminderRules(billId: string | undefined) {
   return useQuery({

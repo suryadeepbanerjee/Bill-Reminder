@@ -23,8 +23,8 @@ import { EmptyState }                from "../../../components/ui/EmptyState";
 import { SectionHeader }             from "../../../components/ui/SectionHeader";
 import { FAB }                       from "../../../components/ui/FAB";
 import { Toast }                     from "../../../components/ui/Toast";
-import { formatCurrency }            from "../../../lib/utils";
-import type { DashboardOccurrence }  from "../../../lib/supabase/types";
+import { formatCurrency }            from "@shared/utils/format";
+import type { DashboardOccurrence }  from "@shared/types";
 
 // ── Greeting ──────────────────────────────────────────────────────────────────
 

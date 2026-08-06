@@ -19,8 +19,8 @@ import {
   renameHousehold,
   deleteHousehold,
 } from "../../../lib/supabase/profile";
-import { friendlyError } from "../../../lib/errors";
-import type { HouseholdMember, Profile } from "../../../lib/supabase/types";
+import { friendlyError } from "@shared/utils/errors";
+import type { HouseholdMember, Profile } from "@shared/types";
 
 const INVITE_EXPIRY_HOURS = 24;
 const REINVITE_COOLDOWN_HOURS = 1;

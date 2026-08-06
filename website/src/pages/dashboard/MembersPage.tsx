@@ -17,8 +17,8 @@ import { TextInput } from "../../components/ui/TextInput";
 import { useConfirm } from "../../components/ui/Confirm";
 import { InviteResendButton } from "../../components/household/InviteResendButton";
 import { useToast } from "../../components/ui/Toast";
-import { friendlyError } from "../../lib/errors";
-import type { HouseholdMember, Profile } from "../../lib/types";
+import { friendlyError } from "@shared/utils/errors";
+import type { HouseholdMember, Profile } from "@shared/types";
 
 const INVITE_EXPIRY_HOURS = 24;
 const REINVITE_COOLDOWN_HOURS = 1;

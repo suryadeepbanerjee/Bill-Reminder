@@ -7,6 +7,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@shared": path.resolve(__dirname, "../packages/shared"),
+    },
+  },
+  server: {
+    fs: {
+      // The shared package lives outside the project root — allow it in dev.
+      allow: [path.resolve(__dirname, "../packages/shared")],
     },
   },
   build: {

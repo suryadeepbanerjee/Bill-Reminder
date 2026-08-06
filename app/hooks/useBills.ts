@@ -7,7 +7,7 @@ import {
   deleteBill,
 } from "../lib/supabase/bills";
 import { useHousehold } from "./useHousehold";
-import type { CreateBillInput, UpdateBillInput } from "../lib/supabase/types";
+import type { CreateBillInput, UpdateBillInput } from "@shared/types";
 
 export function useBills() {
   const { activeHousehold } = useHousehold();

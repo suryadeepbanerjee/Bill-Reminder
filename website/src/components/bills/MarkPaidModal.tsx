@@ -7,7 +7,7 @@ import AlertBadge from "../ui/AlertBadge";
 import DateAnchorPicker from "../ui/DateAnchorPicker";
 import { useMarkPaid } from "../../hooks/useOccurrences";
 import { todayIso } from "../ui/DateAnchorPicker";
-import type { BillOccurrence } from "../../lib/types";
+import type { BillOccurrence } from "@shared/types";
 
 export interface MarkPaidTarget {
   occurrence:     BillOccurrence;

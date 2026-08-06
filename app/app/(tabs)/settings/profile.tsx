@@ -7,7 +7,7 @@ import { router } from "expo-router";
 
 import { useProfile, useUpdateProfile } from "../../../hooks/useProfile";
 import { supabase } from "../../../lib/supabase/client";
-import { humanize } from "../../../lib/errors";
+import { humanize } from "@shared/utils/errors";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../../stores/auth-store";
 

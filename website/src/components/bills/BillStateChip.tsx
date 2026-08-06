@@ -1,6 +1,6 @@
 import { Clock, CalendarClock, CalendarDays, AlertTriangle, CheckCircle2, Archive } from "lucide-react";
-import type { OccurrenceState } from "../../lib/types";
-import { formatOverdueLabel } from "../../lib/utils";
+import type { OccurrenceState } from "@shared/types";
+import { formatOverdueLabel } from "@shared/utils/format";
 
 interface BillStateChipProps {
   state:      OccurrenceState;
