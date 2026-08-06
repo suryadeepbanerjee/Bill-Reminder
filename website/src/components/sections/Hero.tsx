@@ -454,7 +454,7 @@ export default function Hero() {
 					</div>
 
 					{/* ── Right: Phone ── */}
-					<div className="order-2 flex justify-center relative mt-20 lg:mt-0 flex-shrink-0 lg:translate-x-[-110px]">
+					<div className="order-2 flex justify-center relative mt-2 lg:mt-0 flex-shrink-0 lg:translate-x-[-110px]">
 						<div
 							className="absolute inset-[-40px] bg-[radial-gradient(ellipse_at_center,var(--color-border)_0%,transparent_65%)] rounded-full pointer-events-none"
 							aria-hidden="true"
