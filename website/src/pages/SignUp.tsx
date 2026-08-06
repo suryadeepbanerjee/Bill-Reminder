@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { withCaptcha } from "../lib/captcha";
+import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -86,7 +87,7 @@ export default function SignUp() {
         if (authError.message.toLowerCase().includes("rate limit")) {
           setError({ msg: "Too many sign-up attempts. Please wait a few minutes and try again." });
         } else {
-          setError({ msg: authError.message });
+          setError({ msg: humanize(authError, "auth") });
         }
         return;
       }
@@ -102,7 +103,7 @@ export default function SignUp() {
 
       setSent(true);
     } catch (e: any) {
-      setError({ msg: e.message || "An error occurred." });
+      setError({ msg: humanize(e, "auth") });
     } finally {
       setLoading(false);
     }

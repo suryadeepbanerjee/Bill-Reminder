@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { takePendingPath } from "../lib/pending-path";
 import { withCaptcha } from "../lib/captcha";
+import { isCaptchaError } from "@shared/utils/captcha";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -75,6 +76,8 @@ export default function SignIn() {
           setError("Incorrect email or password.");
         } else if (msg.includes("email not confirmed")) {
           setError("Please verify your email first. Check your inbox.");
+        } else if (isCaptchaError(err)) {
+          setError("We couldn't verify you're human. Please try again.");
         } else {
           setError(err.message);
         }

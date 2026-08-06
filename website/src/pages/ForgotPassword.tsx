@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { withCaptcha } from "../lib/captcha";
+import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -28,7 +29,7 @@ export default function ForgotPassword() {
           ...o,
         })
       );
-      if (authError) { setError(authError.message); return; }
+      if (authError) { setError(humanize(authError, "auth")); return; }
       setSent(true);
     } catch {
       setError("Something went wrong. Please try again.");

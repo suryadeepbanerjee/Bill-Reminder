@@ -1,9 +1,9 @@
 {
-  "name": "bill-reminder-monorepo",
-  "private": true,
-  "workspaces": [
-    "website",
-    "app",
-    "packages/*"
-  ]
+	"name": "bill-reminder-monorepo",
+	"private": true,
+	"workspaces": [
+		"website",
+		"app",
+		"packages/*"
+	]
 }

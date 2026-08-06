@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { withCaptcha } from "../lib/captcha";
+import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -81,7 +82,7 @@ export default function SignInCode() {
         options: { shouldCreateUser: false, ...o },
       })
     );
-    if (error) { setEmailError(error.message); return false; }
+    if (error) { setEmailError(humanize(error, "auth")); return false; }
     return true;
   };
 
@@ -111,7 +112,7 @@ export default function SignInCode() {
           options: { shouldCreateUser: false, ...o },
         })
       );
-      if (error) { setOtpError(error.message); return; }
+      if (error) { setOtpError(humanize(error, "auth")); return; }
       setOtpSuccess("New code sent — check your inbox.");
       startCooldown();
     } catch { setOtpError("Could not resend. Please try again."); }
@@ -142,7 +143,7 @@ export default function SignInCode() {
         if (msg.includes("expired") || msg.includes("otp") || msg.includes("invalid")) {
           setOtpError("Incorrect or expired code. Request a new one.");
         } else {
-          setOtpError(error.message);
+          setOtpError(humanize(error, "auth"));
         }
         return;
       }
