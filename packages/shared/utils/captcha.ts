@@ -58,18 +58,26 @@ export async function runWithCaptcha<T extends { error: unknown }>(
   preflight: (token: string | undefined) => Promise<T | null> = async () => null,
 ): Promise<T> {
   const attempt = async (): Promise<T> => {
-    const opts = await getCaptchaOptions();
-    const blocked = await preflight(opts.captchaToken);
-    if (blocked) return blocked;
-    return execute(opts);
+    try {
+      const opts = await getCaptchaOptions();
+      const blocked = await preflight(opts.captchaToken);
+      if (blocked) return blocked;
+      return await execute(opts);
+    } catch (err) {
+      // Widget load failures / challenge timeouts surface as auth errors
+      // so screens render a friendly message instead of swallowing them.
+      return {
+        error: err instanceof Error ? err : new Error(String(err)),
+      } as T;
+    }
   };
 
   const first = await attempt();
 
   if (isCaptchaError(first.error)) {
     // CAPTCHA tokens are single-use and short-lived — refresh and retry once.
-    const fresh = await getCaptchaOptions();
-    if (fresh.captchaToken) {
+    const fresh = await getCaptchaOptions().catch(() => null);
+    if (fresh?.captchaToken) {
       const blocked = await preflight(fresh.captchaToken);
       if (blocked) return blocked;
       return execute(fresh);

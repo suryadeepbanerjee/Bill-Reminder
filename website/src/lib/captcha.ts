@@ -80,40 +80,81 @@ const TOKEN_TIMEOUT_MS = 60000;
 /**
  * Generate a fresh single-use Turnstile token.
  *
- * Renders an invisible widget on an off-screen container; the challenge
- * starts automatically on render and the token arrives via `callback`.
- * Tokens are single-use, so a fresh widget is created per call and removed
- * when the callback fires.
+ * Renders an invisible widget inside a visible centered overlay card, so
+ * silent checks resolve in the background while any interactive puzzle
+ * Cloudflare requires is presented on-screen and solvable (invisible widgets
+ * render interactive challenges inside their container — an off-screen
+ * container would make the puzzle invisible and the attempt would time out).
+ * The overlay closes automatically when the token arrives.
  */
 function getToken(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const container = document.createElement("div");
-    container.style.cssText =
-      "position:absolute;left:-9999px;top:-9999px;width:300px;height:65px;";
-    document.body.appendChild(container);
+    const overlay = document.createElement("div");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Security check");
+    overlay.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:99999",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "padding:24px",
+      "background:rgba(8,8,16,0.65)",
+    ].join(";");
 
-    const finish = (err?: Error) => {
+    const card = document.createElement("div");
+    card.style.cssText = [
+      "width:320px",
+      "max-width:100%",
+      "border-radius:16px",
+      "background:#141420",
+      "border:1px solid #2a2a3a",
+      "box-shadow:0 24px 64px rgba(0,0,0,0.45)",
+      "padding:20px",
+      "text-align:center",
+    ].join(";");
+
+    const label = document.createElement("p");
+    label.textContent = "Verifying you're human…";
+    label.style.cssText = "margin:0 0 12px;color:#a3a3a3;font-size:13px;font-family:Inter,system-ui,sans-serif;";
+
+    const widget = document.createElement("div");
+    widget.style.cssText = "width:300px;max-width:100%;min-height:65px;margin:0 auto;";
+
+    card.appendChild(label);
+    card.appendChild(widget);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
       window.clearTimeout(timeout);
-      window.turnstile?.remove(container);
-      if (container.parentNode) container.parentNode.removeChild(container);
-      if (err) reject(err);
+      window.turnstile?.remove(widget);
+      overlay.remove();
     };
 
-    const timeout = window.setTimeout(
-      () => finish(new Error("CAPTCHA timed out")),
-      TOKEN_TIMEOUT_MS,
-    );
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("CAPTCHA timed out"));
+    }, TOKEN_TIMEOUT_MS);
 
-    window.turnstile?.render(container, {
+    window.turnstile?.render(widget, {
       sitekey: SITE_KEY,
       size: "invisible",
       theme: "dark",
       callback: (token) => {
-        finish();
+        cleanup();
         resolve(token);
       },
-      "error-callback": () => finish(new Error("CAPTCHA challenge failed")),
-      "expired-callback": () => finish(new Error("CAPTCHA token expired")),
+      "error-callback": () => {
+        cleanup();
+        reject(new Error("CAPTCHA challenge failed"));
+      },
+      "expired-callback": () => {
+        cleanup();
+        reject(new Error("CAPTCHA token expired"));
+      },
     });
   });
 }

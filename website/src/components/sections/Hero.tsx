@@ -156,7 +156,7 @@ function PhoneMockup() {
 							<p className="text-[9px] text-secondary mb-0.5">Good evening, Suryadeep</p>
 							<p className="text-[16px] font-bold text-primary tracking-tight">Your bills</p>
 						</div>
-						
+
 						<div className="flex gap-1.5 mb-3.5">
 							{[
 								{ label: "OVERDUE", value: "1", bg: "bg-[#2a1315] border-[#3b181a]", text: "text-[#ef4444]", icon: (
@@ -170,7 +170,7 @@ function PhoneMockup() {
 								) },
 							].map((c) => (
 								<div key={c.label} className={`flex-1 px-1.5 py-1.5 rounded-lg border ${c.bg}`}>
-									<p className={`text-[7px] font-bold uppercase mb-0.5 flex items-center gap-1 ${c.text}`}>
+									<p className={`text-[8px] font-bold uppercase mb-0.5 flex items-center gap-1 ${c.text}`}>
 										{c.icon} {c.label}
 									</p>
 									<p className={`text-[15px] font-bold tabular-nums ${c.text}`}>{c.value}</p>
@@ -189,22 +189,22 @@ function PhoneMockup() {
 						</div>
 
 						<p className="text-[9px] text-secondary font-semibold mb-2">Action Required · 2</p>
-						<BillCard 
+						<BillCard
 							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>}
-							name="Mobile" 
-							subtitle="BSNL" 
-							amount="₹899" 
-							statusText="11 days overdue" 
+							name="Mobile"
+							subtitle="BSNL"
+							amount="₹899"
+							statusText="11 days overdue"
 							statusColor="error"
 							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>}
 							actionText="Mark paid"
 							actionIcon={<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>}
 						/>
-						<BillCard 
+						<BillCard
 							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>}
-							name="Amazon Prime" 
-							amount="₹299" 
-							statusText="Due today" 
+							name="Amazon Prime"
+							amount="₹299"
+							statusText="Due today"
 							statusColor="warning"
 							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>}
 							actionText="Mark paid"
@@ -212,21 +212,21 @@ function PhoneMockup() {
 						/>
 
 						<p className="text-[9px] text-secondary font-semibold mb-2 mt-3">Upcoming</p>
-						<BillCard 
+						<BillCard
 							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>}
-							name="College Fees" 
-							subtitle="IILM University" 
-							amount="₹1,00,000" 
-							statusText="In 2 days" 
+							name="College Fees"
+							subtitle="IILM University"
+							amount="₹1,00,000"
+							statusText="In 2 days"
 							statusColor="secondary"
 							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
 						/>
-						<BillCard 
+						<BillCard
 							icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>}
-							name="Wifi" 
-							subtitle="Airtel" 
-							amount="₹706" 
-							statusText="In 5 days" 
+							name="Wifi"
+							subtitle="Airtel"
+							amount="₹706"
+							statusText="In 5 days"
 							statusColor="secondary"
 							statusIcon={<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
 						/>
@@ -242,15 +242,15 @@ function PhoneMockup() {
 					<div className="px-4 py-2.5 bg-[#1a1a1a] border-t border-[#333] flex justify-between items-center shrink-0">
 						<div className="flex flex-col items-center gap-0.5 text-white">
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
-							<span className="text-[7px] font-medium">Home</span>
+							<span className="text-[8px] font-medium">Home</span>
 						</div>
 						<div className="flex flex-col items-center gap-0.5 text-secondary">
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-							<span className="text-[7px] font-medium">Bills</span>
+							<span className="text-[8px] font-medium">Bills</span>
 						</div>
 						<div className="flex flex-col items-center gap-0.5 text-secondary">
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-							<span className="text-[7px] font-medium">Settings</span>
+							<span className="text-[8px] font-medium">Settings</span>
 						</div>
 					</div>
 				</div>
@@ -353,7 +353,7 @@ export default function Hero() {
 								authentication — so you never pay a late fee again.
 							</p>
 
-							<div className="flex gap-4 flex-wrap">
+							<div className="flex items-center gap-5 flex-wrap">
 								<a
 									href="https://github.com/suryadeepbanerjee/Bill-Reminder/releases/latest"
 									target="_blank"
@@ -375,10 +375,31 @@ export default function Hero() {
 										Download App
 									</Button>
 								</a>
-								<Link to="/sign-in">
-									<Button variant="secondary" size="lg">
-										Sign In
-									</Button>
+								<Link
+									to="/sign-in"
+									className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-primary/80 hover:text-primary transition-colors"
+								>
+									Sign in
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+										<path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+									</svg>
+								</Link>
+							</div>
+
+							{/* Trust row — this, not the hero copy, is what Google's OAuth brand review actually reads on your homepage */}
+							<div className="flex items-center gap-2 mt-5 text-xs text-secondary flex-wrap">
+								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-70">
+									<rect x="3" y="11" width="18" height="10" rx="2" />
+									<path d="M7 11V7a5 5 0 0110 0v4" />
+								</svg>
+								<span>Google sign-in reads only your name &amp; email</span>
+								<span className="opacity-40">·</span>
+								<Link to="/privacy" className="underline decoration-dotted underline-offset-2 hover:text-primary transition-colors">
+									Privacy Policy
+								</Link>
+								<span className="opacity-40">·</span>
+								<Link to="/terms" className="underline decoration-dotted underline-offset-2 hover:text-primary transition-colors">
+									Terms
 								</Link>
 							</div>
 
