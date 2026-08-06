@@ -30,7 +30,15 @@ function buildHtml(siteKey: string, nonce: number): string {
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
-  html, body { height: 100%; margin: 0; padding: 0; background: transparent; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 </style>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit" async defer></script>
 </head>
@@ -51,28 +59,15 @@ function __brTurnstileReady() {
   try {
     window.turnstile.render(document.body, {
       sitekey: "${siteKey}",
-      // appearance:interaction-only = silent for clean traffic;
-      // shows an interactive challenge when Cloudflare flags the
-      // client as suspicious (WebView, VPN, etc.) instead of failing.
-      appearance: "interaction-only",
+      // compact: always-visible 65px widget. Auto-passes silently for clean
+      // traffic; shows an interactive checkbox for WebView/VPN traffic.
+      // Never fires error-callback purely due to IP/environment suspicion.
+      size: "compact",
       theme: "dark",
       callback: function (token) { post("token", { token: token }); },
-      "before-interactive-callback": function () {
-        // Cloudflare wants interaction — notify RN host to expand the WebView
-        // before the puzzle renders so it is visible and tappable.
-        post("challenge");
-      },
       "error-callback": function () { post("error", { message: "challenge failed" }); },
       "expired-callback": function () { post("error", { message: "challenge expired" }); },
     });
-    // Also watch for layout growth in case before-interactive-callback fires late.
-    var _obs = new ResizeObserver(function () {
-      if (document.body.scrollHeight > 100) {
-        _obs.disconnect();
-        post("challenge");
-      }
-    });
-    _obs.observe(document.body);
   } catch (e) {
     post("error", { message: "init failed" });
   }
@@ -86,7 +81,6 @@ setTimeout(function () { post("timeout"); }, ${WIDGET_TIMEOUT_MS});
 export function CaptchaHost() {
   const [active, setActive] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [challenge, setChallenge] = useState(false);
   const [done, setDone] = useState(false);
   const [nonce, setNonce] = useState(() => Date.now());
 
@@ -98,7 +92,6 @@ export function CaptchaHost() {
   useEffect(() => {
     if (active) {
       setLoaded(false);
-      setChallenge(false);
       setDone(false);
     }
   }, [active]);
@@ -117,10 +110,8 @@ export function CaptchaHost() {
       completeCaptcha(undefined, msg.message ?? "CAPTCHA failed");
     } else if (msg.type === "timeout") {
       completeCaptcha(undefined, "CAPTCHA timed out");
-    } else if (msg.type === "challenge") {
-      setChallenge(true);
     }
-    // "open"/"close" are informational — wait for token/error/timeout.
+    // "challenge"/"open"/"close" are not sent in compact mode.
   }, []);
 
   const handleLoadFailure = useCallback(() => {
@@ -178,11 +169,12 @@ export function CaptchaHost() {
             </Pressable>
           </View>
 
-          {(!challenge || done) && (
+          {!done && (
             <View
               style={{
                 alignItems: "center",
-                paddingVertical: 28,
+                paddingTop: 20,
+                paddingBottom: 8,
                 paddingHorizontal: 24,
               }}
             >
@@ -214,7 +206,7 @@ export function CaptchaHost() {
                   textAlign: "center",
                 }}
               >
-                {done ? "Confirming…" : "Verifying you're human…"}
+                Verifying you're human…
               </Text>
             </View>
           )}
@@ -225,7 +217,9 @@ export function CaptchaHost() {
             style={[
               {
                 width: "100%",
-                height: challenge ? 260 : 0,
+                // compact widget is 65px tall; always show it so Cloudflare's
+                // iframe is never clipped inside a zero-height container.
+                height: 80,
                 backgroundColor: "transparent",
               },
               !loaded && { display: "none" },

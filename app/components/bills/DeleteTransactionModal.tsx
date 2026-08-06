@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import * as Haptics from "expo-haptics";
 
+import { friendlyError } from "@shared/utils/errors";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
 import { AlertBadge } from "../ui/AlertBadge";
@@ -97,7 +98,7 @@ export function DeleteTransactionModal({ target, onClose, onSuccess }: DeleteTra
       onSuccess?.();
       onClose();
     } catch (e: any) {
-      setError(e?.message || "Something went wrong.");
+      setError(friendlyError(e));
     }
   };
 

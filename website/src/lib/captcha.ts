@@ -124,15 +124,12 @@ function ensureCaptchaStyles(): void {
 /**
  * Generate a fresh single-use Turnstile token.
  *
- * Renders an invisible widget inside a visible centered overlay card, so
- * silent checks resolve in the background while any interactive puzzle
- * Cloudflare requires is presented on-screen and solvable (invisible widgets
- * render interactive challenges inside their container — an off-screen
- * container would make the puzzle invisible and the attempt would time out).
- *
- * Height behaviour: the invisible container stays flat (0px) so no dead space
- * sits below the label. When an interactive puzzle actually renders, the card
- * grows to fit it, the spinner hides and the label switches copy.
+ * Renders a compact Turnstile widget (65 px tall) inside a visible centered
+ * overlay card. The compact widget:
+ *   - Silently auto-verifies clean traffic (spinner → check, < 1 s).
+ *   - Shows an interactive checkbox challenge for suspicious IPs (VPN, proxy,
+ *     WebView), which the user solves in-place — no invisible iframe, no
+ *     hidden container, no timeout.
  *
  * The overlay stays mounted after the token arrives (label → "Confirming…")
  * so it never vanishes before the guarded auth call finishes — the caller
@@ -148,8 +145,7 @@ export function closeCaptchaOverlay(): void {
   heldOverlay = null;
 }
 
-/** Maximum widget height when an interactive challenge has settled. */
-const CHALLENGE_HEIGHT_LIMIT = 320;
+
 
 function getToken(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -215,39 +211,22 @@ function getToken(): Promise<string> {
     label.className = "br-captcha-label";
     label.textContent = "Verifying you're human…";
 
-    // appearance:interaction-only keeps the container hidden until Cloudflare
-    // decides an interactive challenge is needed (e.g. VPN/suspicious IP).
-    // The ResizeObserver expands the card to show it when that happens.
+    // Widget container — min-height so the compact Turnstile widget (65 px)
+    // is never clipped. Iframes inside a height:0 parent are invisible even
+    // with overflow:visible, which is why the old hidden approach failed.
     const widget = document.createElement("div");
     widget.setAttribute("aria-hidden", "true");
     widget.style.cssText = [
       "width:300px",
       "max-width:100%",
-      "height:0",
-      "min-width:0",
-      "margin:0 auto",
-      "overflow:visible",
-      "position:relative",
-      "transition:height 200ms ease-out",
+      "min-height:68px",
+      "margin:16px auto 0",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
     ].join(";");
-    widget.style.marginTop = "0px";
 
-    let challengeTimer: number | null = null;
-    let expanded = false;
-    const widgetObserver =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
-        if (challengeTimer || expanded) return;
-        const h = widget.scrollHeight;
-        if (h <= 4) return;
-        // Wait a beat so brief silent checks don't flip the box to "complete".
-        challengeTimer = window.setTimeout(() => {
-          expanded = true;
-          widget.style.height =
-            `${Math.min(h, CHALLENGE_HEIGHT_LIMIT)}px`;
-          spinner.style.display = "none";
-          label.textContent = "Complete the security check";
-        }, 300);
-      });
+
 
     card.appendChild(badgeWrap);
     card.appendChild(spinner);
@@ -257,8 +236,6 @@ function getToken(): Promise<string> {
     document.body.appendChild(overlay);
 
     const cleanup = () => {
-      if (challengeTimer) window.clearTimeout(challengeTimer);
-      widgetObserver?.disconnect();
       window.clearTimeout(timeout);
       window.turnstile?.remove(widget);
       overlay.remove();
@@ -269,33 +246,22 @@ function getToken(): Promise<string> {
       reject(new Error("CAPTCHA timed out"));
     }, TOKEN_TIMEOUT_MS);
 
-    widgetObserver?.observe(widget);
-
     window.turnstile?.render(widget, {
       sitekey: SITE_KEY,
-      // appearance:interaction-only = passes silently for clean traffic;
-      // when Cloudflare flags suspicious traffic (VPN, proxy, etc.) it shows
-      // an interactive challenge inside the widget div instead of rejecting.
-      appearance: "interaction-only",
+      // compact: always-visible 65px widget. Silently auto-passes for clean
+      // traffic; shows an interactive checkbox for VPN/proxy/WebView traffic.
+      // Never fires error-callback just because of IP reputation.
+      size: "compact",
       theme: "dark",
       callback: (token) => {
         // Verification succeeded — keep the card up in a "Confirming…" state
         // until the wrapped auth call finishes, so the box never vanishes
         // before the next step appears. `closeCaptchaOverlay()` tears it down.
         window.clearTimeout(timeout);
+        spinner.style.display = "none";
         label.textContent = "Confirming…";
         heldOverlay = { close: cleanup };
         resolve(token);
-      },
-      "before-interactive-callback": () => {
-        // Cloudflare needs the user to interact — expand the widget now
-        // so the puzzle is visible and tappable before the ResizeObserver fires.
-        if (!expanded) {
-          expanded = true;
-          widget.style.height = `${CHALLENGE_HEIGHT_LIMIT}px`;
-          spinner.style.display = "none";
-          label.textContent = "Complete the security check";
-        }
       },
       "error-callback": () => {
         cleanup();
