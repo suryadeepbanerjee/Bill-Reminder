@@ -136,7 +136,7 @@ export default function BillDetailPage() {
         : formatRelativeDate(dueDate)
       : undefined;
 
-  const showDateCaption = currentOccurrence && currentOccurrence.state !== "overdue" && currentOccurrence.state !== "due_today";
+  const showDateCaption = !!currentOccurrence;
 
   const handleDeleteBill = async () => {
     const ok = await confirm({
@@ -648,7 +648,7 @@ function EditBillSheet({
             }}
             showMonth
             showDay
-            error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
+
           />
         )}
 
@@ -667,7 +667,7 @@ function EditBillSheet({
             order="DMY"
             yearMin={DUE_DATE_YEAR_MIN}
             yearMax={DUE_DATE_YEAR_MAX}
-            error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
+
           />
         )}
 
@@ -681,7 +681,7 @@ function EditBillSheet({
             }}
             showMonth
             showDay
-            error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
+
           />
         )}
 
@@ -697,7 +697,7 @@ function EditBillSheet({
             showMonth
             showDay
             showYear
-            error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
+
           />
         )}
 
@@ -711,7 +711,7 @@ function EditBillSheet({
             }}
             showMonth
             showDay
-            error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
+
           />
         )}
 
@@ -730,7 +730,7 @@ function EditBillSheet({
             order="DMY"
             yearMin={DUE_DATE_YEAR_MIN}
             yearMax={DUE_DATE_YEAR_MAX}
-            error={errors.anchor_year?.message as string || errors.anchor_month?.message as string || errors.anchor_day?.message as string}
+
           />
         )}
 
