@@ -55,6 +55,15 @@ function __brTurnstileReady() {
       "error-callback": function () { post("error", { message: "challenge failed" }); },
       "expired-callback": function () { post("error", { message: "challenge expired" }); },
     });
+    // Invisible mode keeps the page at zero height until an interactive puzzle
+    // actually appears; when it does, expand so the puzzle is tappable.
+    var _obs = new ResizeObserver(function () {
+      if (document.body.scrollHeight > 100) {
+        _obs.disconnect();
+        post("challenge");
+      }
+    });
+    _obs.observe(document.body);
   } catch (e) {
     post("error", { message: "init failed" });
   }
@@ -68,14 +77,19 @@ setTimeout(function () { post("timeout"); }, ${WIDGET_TIMEOUT_MS});
 export function CaptchaHost() {
   const [active, setActive] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [challenge, setChallenge] = useState(false);
   const [nonce, setNonce] = useState(() => Date.now());
 
   useEffect(() => subscribeCaptchaActive(setActive), []);
 
   // Every activation gets a fresh widget run (nonce changes the html source
-  // so the WebView reloads and hCaptcha issues a brand-new token).
+  // so the WebView reloads and Turnstile issues a brand-new token).
   useEffect(() => {
-    if (active) setNonce(Date.now());
+    if (active) {
+      setNonce(Date.now());
+      setLoaded(false);
+      setChallenge(false);
+    }
   }, [active]);
 
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
@@ -91,6 +105,8 @@ export function CaptchaHost() {
       completeCaptcha(undefined, msg.message ?? "CAPTCHA failed");
     } else if (msg.type === "timeout") {
       completeCaptcha(undefined, "CAPTCHA timed out");
+    } else if (msg.type === "challenge") {
+      setChallenge(true);
     }
     // "open"/"close" are informational — wait for token/error/timeout.
   }, []);

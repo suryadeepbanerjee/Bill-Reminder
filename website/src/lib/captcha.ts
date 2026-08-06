@@ -82,22 +82,37 @@ let captchaStylesInjected = false;
 function ensureCaptchaStyles(): void {
   if (captchaStylesInjected) return;
   captchaStylesInjected = true;
+  // Tokens mirror the site design system (--color-surface / border / secondary
+  // / accent) so the overlay never drifts from the theme. Motion follows the
+  // brand rhythm: 200ms ease-out, one subtle rise, no bounce.
   const style = document.createElement("style");
   style.textContent = `
+    .br-captcha-overlay { animation: br-captcha-fade 160ms ease-out; }
+    .br-captcha-card { animation: br-captcha-rise 220ms ease-out; }
+    @keyframes br-captcha-fade { from { opacity: 0; } }
+    @keyframes br-captcha-rise { from { opacity: 0; transform: translateY(8px); } }
     .br-captcha-spinner {
-      width: 30px; height: 30px; border-radius: 50%;
-      border: 3px solid rgba(217, 170, 32, 0.22);
-      border-top-color: #d9aa20;
-      box-shadow: 0 0 18px rgba(217, 170, 32, 0.18);
-      animation: br-captcha-spin 0.8s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(186, 150, 24, 0.2);
+      border-top-color: var(--color-accent);
+      animation: br-captcha-spin 0.85s linear infinite;
     }
     @keyframes br-captcha-spin { to { transform: rotate(360deg); } }
     .br-captcha-label {
-      margin: 0 0 14px; color: #cfcfe0; font-size: 13px; font-weight: 500;
+      margin: 16px 0 0;
+      color: var(--color-secondary);
+      font-size: 13px; font-weight: 500; letter-spacing: 0.01em;
       font-family: Inter, system-ui, sans-serif;
-      animation: br-captcha-breathe 1.8s ease-in-out infinite;
+      animation: br-captcha-breathe 2.6s ease-in-out 0.5s infinite;
     }
-    @keyframes br-captcha-breathe { 50% { opacity: 0.55; } }
+    @keyframes br-captcha-breathe { 50% { opacity: 0.72; } }
+    @media (prefers-reduced-motion: reduce) {
+      .br-captcha-overlay,
+      .br-captcha-card,
+      .br-captcha-spinner,
+      .br-captcha-label { animation: none; }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -111,12 +126,17 @@ function ensureCaptchaStyles(): void {
  * render interactive challenges inside their container — an off-screen
  * container would make the puzzle invisible and the attempt would time out).
  * The overlay closes automatically when the token arrives.
+ *
+ * Height behaviour: the invisible container stays flat (0px) so no dead space
+ * sits below the label. When an interactive puzzle actually renders, the card
+ * grows to fit it, the spinner hides and the label switches copy.
  */
 function getToken(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     ensureCaptchaStyles();
 
     const overlay = document.createElement("div");
+    overlay.className = "br-captcha-overlay";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true");
     overlay.setAttribute("aria-label", "Security check");
@@ -129,33 +149,36 @@ function getToken(): Promise<string> {
       "align-items:center",
       "justify-content:center",
       "padding:24px",
-      "background:rgba(8,8,16,0.65)",
+      "background:rgba(10,10,12,0.6)",
     ].join(";");
 
     const card = document.createElement("div");
+    card.className = "br-captcha-card";
     card.style.cssText = [
-      "width:320px",
+      "width:360px",
       "max-width:100%",
+      "box-sizing:border-box",
       "border-radius:16px",
-      "background:#141420",
-      "border:1px solid #2a2a3a",
-      "box-shadow:0 24px 64px rgba(0,0,0,0.45)",
-      "padding:20px",
+      "background:var(--color-surface)",
+      "border:1px solid var(--color-border)",
+      "box-shadow:0 24px 64px rgba(0,0,0,0.3)",
+      "padding:24px 28px 22px",
       "text-align:center",
     ].join(";");
 
     // Branded shield mark so the box reads as a security check, not a blank popup.
     const badgeWrap = document.createElement("div");
-    badgeWrap.style.cssText = "display:flex;justify-content:center;margin-bottom:12px;";
+    badgeWrap.style.cssText =
+      "display:flex;justify-content:center;margin-bottom:14px;";
     const badge = document.createElement("div");
     badge.style.cssText = [
-      "width:44px;height:44px;border-radius:12px",
-      "background:linear-gradient(135deg,rgba(217,170,32,0.18),rgba(217,170,32,0.05))",
-      "border:1px solid rgba(217,170,32,0.35)",
+      "width:40px;height:40px;border-radius:12px",
+      "background:rgba(186,150,24,0.12)",
+      "border:1px solid rgba(186,150,24,0.25)",
       "display:flex;align-items:center;justify-content:center",
     ].join(";");
     badge.innerHTML = [
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9aa20" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
       '<path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/>',
       '<path d="M9 12l2 2 4-4"/>',
       "</svg>",
@@ -166,14 +189,44 @@ function getToken(): Promise<string> {
     spinner.className = "br-captcha-spinner";
     spinner.setAttribute("role", "status");
     spinner.setAttribute("aria-label", "Verifying");
-    spinner.style.cssText = "margin:0 auto 12px;";
+    spinner.style.cssText = "margin:0 auto;";
 
     const label = document.createElement("p");
     label.className = "br-captcha-label";
     label.textContent = "Verifying you're human…";
 
+    // Invisible mode keeps the container empty (0-height) until an interactive
+    // puzzle is needed, so no dead space lingers below the label.
     const widget = document.createElement("div");
-    widget.style.cssText = "width:300px;max-width:100%;min-height:65px;margin:0 auto;";
+    widget.setAttribute("aria-hidden", "true");
+    widget.style.cssText = [
+      "width:300px",
+      "max-width:100%",
+      "height:0",
+      "min-width:0",
+      "margin:0 auto",
+      "overflow:visible",
+      "position:relative",
+      "transition:height 200ms ease-out",
+    ].join(";");
+    widget.style.marginTop = "0px";
+
+    let challengeTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let expanded = false;
+    const widgetObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
+        if (challengeTimer || expanded) return;
+        const h = widget.scrollHeight;
+        if (h <= 4) return;
+        // Wait a beat so brief silent checks don't flip the box to "complete".
+        challengeTimer = window.setTimeout(() => {
+          expanded = true;
+          widget.style.height =
+            `${Math.min(h, CHALLENGE_HEIGHT_LIMIT)}px`;
+          spinner.style.display = "none";
+          label.textContent = "Complete the security check";
+        }, 300);
+      });
 
     card.appendChild(badgeWrap);
     card.appendChild(spinner);
@@ -183,6 +236,8 @@ function getToken(): Promise<string> {
     document.body.appendChild(overlay);
 
     const cleanup = () => {
+      if (challengeTimer) window.clearTimeout(challengeTimer);
+      widgetObserver?.disconnect();
       window.clearTimeout(timeout);
       window.turnstile?.remove(widget);
       overlay.remove();
@@ -192,6 +247,8 @@ function getToken(): Promise<string> {
       cleanup();
       reject(new Error("CAPTCHA timed out"));
     }, TOKEN_TIMEOUT_MS);
+
+    widgetObserver?.observe(widget);
 
     window.turnstile?.render(widget, {
       sitekey: SITE_KEY,

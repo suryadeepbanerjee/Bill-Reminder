@@ -312,14 +312,14 @@ export default function Hero() {
 
 			<div className="container mx-auto px-6 relative z-10">
 				<div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-16 lg:gap-8">
-					{/* ── Left: Copy ── */}
-					<div className="max-w-[560px] text-left lg:-translate-x-[-30px]">
+					{/* ── Mobile-only: headline stays first, phone comes right after it. Hidden entirely at lg — doesn't touch desktop.
+					    Decorative/aria-hidden: the real, accessible h1 lives below in "Left: Copy" (kept in the a11y tree via sr-only, not display:none). ── */}
+					<div className="order-1 lg:hidden max-w-[560px] text-left" aria-hidden="true">
 						<motion.div
 							initial={{ opacity: 0, y: 16 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
 						>
-							{/* Status badge */}
 							<div className="inline-flex items-center gap-1.5 py-1.5 pl-2 pr-3 bg-surface border border-border rounded-full mb-7 shadow-resting">
 								<div className="w-[18px] h-[18px] rounded-[5px] bg-accent flex items-center justify-center">
 									<svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -331,20 +331,51 @@ export default function Hero() {
 								<span className="text-xs font-medium text-primary">Open source · MIT License</span>
 							</div>
 
-							<h1
-								id="hero-heading"
-								className="text-[clamp(2.6rem,5.5vw,4.5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-4"
-								style={{ textWrap: "balance" as any }}
-							>
+							<p className="text-[clamp(2.6rem,5.5vw,4.5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-4" style={{ textWrap: "balance" as any }}>
 								Bill Reminder
-							</h1>
+							</p>
 
-							<p
-								className="text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold text-primary/85 tracking-tight leading-snug mb-3"
-								style={{ textWrap: "balance" as any }}
-							>
+							<p className="text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold text-primary/85 tracking-tight leading-snug" style={{ textWrap: "balance" as any }}>
 								Never miss another payment.
 							</p>
+						</motion.div>
+					</div>
+
+					{/* ── Left: Copy ── */}
+					<div className="order-3 lg:order-1 max-w-[560px] text-left lg:-translate-x-[-30px]">
+						<motion.div
+							initial={{ opacity: 0, y: 16 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+						>
+							{/* Status badge + heading — visually hidden on mobile (sr-only, not display:none, so it stays in the a11y tree), full-desktop styling untouched via lg:not-sr-only */}
+							<div className="sr-only lg:not-sr-only">
+								<div className="inline-flex items-center gap-1.5 py-1.5 pl-2 pr-3 bg-surface border border-border rounded-full mb-7 shadow-resting">
+									<div className="w-[18px] h-[18px] rounded-[5px] bg-accent flex items-center justify-center">
+										<svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+											<path d="M5 1C3.34 1 2 2.27 2 3.83V7h6V3.83C8 2.27 6.66 1 5 1Z" fill="var(--color-accent-text)" />
+											<rect x="1.5" y="6.75" width="7" height="0.9" rx="0.45" fill="var(--color-accent-text)" />
+											<circle cx="5" cy="8.5" r="0.75" fill="var(--color-accent-text)" />
+										</svg>
+									</div>
+									<span className="text-xs font-medium text-primary">Open source · MIT License</span>
+								</div>
+
+								<h1
+									id="hero-heading"
+									className="text-[clamp(2.6rem,5.5vw,4.5rem)] font-extrabold tracking-tight leading-[1.05] text-primary mb-4"
+									style={{ textWrap: "balance" as any }}
+								>
+									Bill Reminder
+								</h1>
+
+								<p
+									className="text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold text-primary/85 tracking-tight leading-snug mb-3"
+									style={{ textWrap: "balance" as any }}
+								>
+									Never miss another payment.
+								</p>
+							</div>
 
 							<p className="text-[clamp(15px,2vw,17px)] text-primary/70 leading-relaxed max-w-[60ch] mb-9">
 								Bill Reminder is a cross-platform application that helps you manage subscriptions, utility bills, mobile
@@ -423,7 +454,7 @@ export default function Hero() {
 					</div>
 
 					{/* ── Right: Phone ── */}
-					<div className="flex justify-center relative mt-20 lg:mt-0 flex-shrink-0 lg:translate-x-[-110px]">
+					<div className="order-2 flex justify-center relative mt-20 lg:mt-0 flex-shrink-0 lg:translate-x-[-110px]">
 						<div
 							className="absolute inset-[-40px] bg-[radial-gradient(ellipse_at_center,var(--color-border)_0%,transparent_65%)] rounded-full pointer-events-none"
 							aria-hidden="true"
