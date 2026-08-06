@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { withCaptcha } from "../lib/captcha";
@@ -47,6 +47,7 @@ const STRENGTH_TEXT = [
 
 
 export default function SignUp() {
+  const navigate = useNavigate();
   const [name, setName]         = useState("");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -55,6 +56,8 @@ export default function SignUp() {
   const [loading, setLoading]   = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [sent, setSent]         = useState(false);
+  const [otpCode, setOtpCode]   = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
 
   const anyLoading = loading || googleLoading;
 
@@ -123,35 +126,82 @@ export default function SignUp() {
     }
   };
 
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!otpCode || otpCode.length !== 6 || !/^\d+$/.test(otpCode)) {
+      setError({ msg: "Please enter a valid 6-digit code." });
+      return;
+    }
+    setVerifyLoading(true);
+    try {
+      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
+        supabase.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: "signup",
+          options: o,
+        })
+      );
+      if (verifyError) {
+        setError({ msg: humanize(verifyError, "auth") });
+        return;
+      }
+      navigate("/app/dashboard");
+    } catch (err: any) {
+      setError({ msg: humanize(err, "auth") });
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
   if (sent) {
     return (
-      <AuthLayout title="Check your inbox" subtitle={`We sent a verification link to ${email}`}>
-        <div className="text-center py-2">
-          <motion.div
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 280, damping: 20 }}
-            className="w-[52px] h-[52px] rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 text-accent"
-          >
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-            </svg>
-          </motion.div>
-          <p className="text-sm text-secondary leading-[1.65] mb-2">
-            Open the email and tap the verification link to activate your account.
-          </p>
-          <p className="text-xs text-secondary/70 mb-6">
-            Can't find it? Check your spam folder. The link expires in 24 hours.
-          </p>
+      <AuthLayout title="Check your email" subtitle={`We sent a 6-digit code to ${email}`}>
+        <form onSubmit={handleVerify} noValidate className="py-2">
+          {error && (
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-[13.5px] leading-relaxed mb-4">
+              <span>{error.msg}</span>
+            </div>
+          )}
+          
+          <div className="mb-4 text-center">
+            <div className="w-[52px] h-[52px] rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 text-accent">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+              </svg>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <TextInput
+              label="Verification Code"
+              id="su-otp"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              required
+              autoFocus
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="123456"
+              className="text-center tracking-widest text-lg"
+            />
+          </div>
+
           <div className="flex flex-col gap-2.5">
-            <Link to="/sign-in" className="no-underline">
-              <Button className="w-full justify-center">Go to Sign In</Button>
-            </Link>
-            <Button variant="secondary" onClick={() => { setSent(false); setEmail(""); }} className="w-full justify-center">
+            <Button type="submit" disabled={verifyLoading || otpCode.length !== 6} loading={verifyLoading} className="w-full justify-center h-11">
+              Verify & continue
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => { setSent(false); setEmail(""); setOtpCode(""); setError(null); }} className="w-full justify-center h-11">
               Use a different email
             </Button>
           </div>
-        </div>
+          
+          <p className="text-xs text-secondary/70 mt-6 text-center">
+            Can't find it? Check your spam folder. The code expires in 24 hours.
+          </p>
+        </form>
       </AuthLayout>
     );
   }

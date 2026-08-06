@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; background-color: #f4f4f5; padding: 20px; }
+    .container { background-color: #ffffff; padding: 30px; border-radius: 8px; max-width: 500px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    h2 { color: #171717; margin-top: 0; }
+    p { color: #525252; line-height: 1.5; }
+    .code { font-size: 32px; font-weight: bold; color: #4f46e5; letter-spacing: 4px; padding: 15px; background: #f3f4f6; border-radius: 6px; text-align: center; margin: 20px 0; }
+    .footer { font-size: 12px; color: #a3a3a3; margin-top: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>You have been invited!</h2>
+    <p>You have been invited to join a Household on Bill Reminder. Please enter the following 6-digit code to accept the invite and create your account:</p>
+    <div class="code">{{ .Token }}</div>
+    <p>This code will expire in 24 hours.</p>
+    <p class="footer">If you didn't expect this invite, you can safely ignore this email.</p>
+  </div>
+</body>
+</html>
