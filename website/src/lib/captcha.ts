@@ -77,6 +77,31 @@ function loadTurnstileScript(): Promise<void> {
 
 const TOKEN_TIMEOUT_MS = 60000;
 
+/** Inject the tiny amount of CSS the inline captcha overlay needs (once). */
+let captchaStylesInjected = false;
+function ensureCaptchaStyles(): void {
+  if (captchaStylesInjected) return;
+  captchaStylesInjected = true;
+  const style = document.createElement("style");
+  style.textContent = `
+    .br-captcha-spinner {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 3px solid rgba(217, 170, 32, 0.22);
+      border-top-color: #d9aa20;
+      box-shadow: 0 0 18px rgba(217, 170, 32, 0.18);
+      animation: br-captcha-spin 0.8s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+    }
+    @keyframes br-captcha-spin { to { transform: rotate(360deg); } }
+    .br-captcha-label {
+      margin: 0 0 14px; color: #cfcfe0; font-size: 13px; font-weight: 500;
+      font-family: Inter, system-ui, sans-serif;
+      animation: br-captcha-breathe 1.8s ease-in-out infinite;
+    }
+    @keyframes br-captcha-breathe { 50% { opacity: 0.55; } }
+  `;
+  document.head.appendChild(style);
+}
+
 /**
  * Generate a fresh single-use Turnstile token.
  *
@@ -89,10 +114,13 @@ const TOKEN_TIMEOUT_MS = 60000;
  */
 function getToken(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
+    ensureCaptchaStyles();
+
     const overlay = document.createElement("div");
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true");
     overlay.setAttribute("aria-label", "Security check");
+    overlay.setAttribute("aria-busy", "true");
     overlay.style.cssText = [
       "position:fixed",
       "inset:0",
@@ -116,13 +144,39 @@ function getToken(): Promise<string> {
       "text-align:center",
     ].join(";");
 
+    // Branded shield mark so the box reads as a security check, not a blank popup.
+    const badgeWrap = document.createElement("div");
+    badgeWrap.style.cssText = "display:flex;justify-content:center;margin-bottom:12px;";
+    const badge = document.createElement("div");
+    badge.style.cssText = [
+      "width:44px;height:44px;border-radius:12px",
+      "background:linear-gradient(135deg,rgba(217,170,32,0.18),rgba(217,170,32,0.05))",
+      "border:1px solid rgba(217,170,32,0.35)",
+      "display:flex;align-items:center;justify-content:center",
+    ].join(";");
+    badge.innerHTML = [
+      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9aa20" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
+      '<path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/>',
+      '<path d="M9 12l2 2 4-4"/>',
+      "</svg>",
+    ].join("");
+    badgeWrap.appendChild(badge);
+
+    const spinner = document.createElement("div");
+    spinner.className = "br-captcha-spinner";
+    spinner.setAttribute("role", "status");
+    spinner.setAttribute("aria-label", "Verifying");
+    spinner.style.cssText = "margin:0 auto 12px;";
+
     const label = document.createElement("p");
+    label.className = "br-captcha-label";
     label.textContent = "Verifying you're human…";
-    label.style.cssText = "margin:0 0 12px;color:#a3a3a3;font-size:13px;font-family:Inter,system-ui,sans-serif;";
 
     const widget = document.createElement("div");
     widget.style.cssText = "width:300px;max-width:100%;min-height:65px;margin:0 auto;";
 
+    card.appendChild(badgeWrap);
+    card.appendChild(spinner);
     card.appendChild(label);
     card.appendChild(widget);
     overlay.appendChild(card);

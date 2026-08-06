@@ -137,7 +137,7 @@ function PhoneMockup() {
 			style={{ perspective: 1000 }}
 			className="relative z-10"
 		>
-			<div className="w-[289px] bg-canvas border border-border rounded-[32px] p-2.5 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] relative z-10">
+			<div className="w-[264px] bg-canvas border border-border rounded-[32px] p-2.5 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] relative z-10">
 				<div className="rounded-[24px] overflow-hidden bg-canvas border border-border relative h-[530px] flex flex-col">
 					<div className="px-4 py-2 flex justify-between items-center bg-canvas shrink-0">
 						<span className="text-[9px] text-primary font-semibold font-mono tabular-nums">18:51</span>
@@ -266,7 +266,7 @@ export default function Hero() {
 		<section
 			id="hero"
 			aria-labelledby="hero-heading"
-			className="relative mx-auto w-full pt-[140px] md:pt-[160px] pb-16 px-6 md:px-8
+			className="relative mx-auto w-full pt-[64px] md:pt-[88px] pb-16 px-6 md:px-8
       min-h-[calc(100vh-40px)] overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_45%,var(--color-canvas)_100%)]
       dark:bg-[linear-gradient(to_bottom,#000,var(--color-canvas)_38%,#1c1e24_70%,var(--color-canvas)_100%)]
@@ -310,10 +310,10 @@ export default function Hero() {
 				<div className="absolute left-1/2 -translate-x-1/2 -top-[3px] w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_12px_2px_rgba(186,150,24,0.5)]" />
 			</div>
 
-			<div className="max-w-[1440px] mx-auto px-8 xl:px-12 relative z-10">
-				<div className="flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-20 xl:gap-24">
+			<div className="container mx-auto px-6 relative z-10">
+				<div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-16 lg:gap-8">
 					{/* ── Left: Copy ── */}
-					<div className="max-w-[600px] text-left">
+					<div className="max-w-[560px] text-left">
 						<motion.div
 							initial={{ opacity: 0, y: 16 }}
 							animate={{ opacity: 1, y: 0 }}
@@ -346,7 +346,7 @@ export default function Hero() {
 								Never miss another payment.
 							</p>
 
-							<p className="text-[clamp(15px,2vw,17px)] text-primary/70 leading-relaxed max-w-[54ch] mb-9">
+							<p className="text-[clamp(15px,2vw,17px)] text-primary/70 leading-relaxed max-w-[60ch] mb-9">
 								Bill Reminder is a cross-platform application that helps you manage subscriptions, utility bills, mobile
 								recharges, rent, EMIs and other recurring payments. It pairs smart reminders and email + push
 								notifications with secure cloud sync, payment history, offline support and private-by-design
@@ -423,7 +423,7 @@ export default function Hero() {
 					</div>
 
 					{/* ── Right: Phone ── */}
-					<div className="flex justify-center relative mt-20 lg:mt-0 flex-shrink-0 lg:translate-x-6 xl:translate-x-10">
+					<div className="flex justify-center relative mt-20 lg:mt-0 flex-shrink-0">
 						<div
 							className="absolute inset-[-40px] bg-[radial-gradient(ellipse_at_center,var(--color-border)_0%,transparent_65%)] rounded-full pointer-events-none"
 							aria-hidden="true"

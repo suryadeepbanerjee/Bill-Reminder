@@ -152,8 +152,23 @@ export function CaptchaHost() {
 
           {!loaded && (
             <View style={{ height: 200, alignItems: "center", justifyContent: "center", gap: 12 }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: "rgba(217,170,32,0.12)",
+                  borderWidth: 1,
+                  borderColor: "rgba(217,170,32,0.35)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 2,
+                }}
+              >
+                <Ionicons name="shield-checkmark" size={22} color={Colors.accent[400]} />
+              </View>
               <ActivityIndicator size="small" color={Colors.accent[500]} />
-              <Text style={{ color: "#A3A3A3", fontSize: 13 }}>Starting security check…</Text>
+              <Text style={{ color: "#A3A3A3", fontSize: 13 }}>Verifying you're human…</Text>
             </View>
           )}
 
