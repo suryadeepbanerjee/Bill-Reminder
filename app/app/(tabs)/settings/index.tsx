@@ -24,7 +24,6 @@ import { signOutGoogle }  from "../../../lib/auth/google";
 import { cancelAllReminders } from "../../../lib/notifications";
 import { Switch }         from "../../../components/ui/Switch";
 import { humanize, friendlyError } from "@shared/utils/errors";
-import { withCaptcha } from "../../../lib/captcha";
 
 // ── Section header ────────────────────────────────────────────────────────────
 
@@ -246,9 +245,7 @@ function DeleteAccountSheet({
     setError(null);
     setSending(true);
     try {
-      const { error: otpError } = await withCaptcha("otp_request", (o) =>
-        supabase.auth.signInWithOtp({ email: user?.email ?? "", options: o })
-      );
+      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
       if (otpError) throw otpError;
       setStep("otp");
       setCooldown(60);
@@ -265,9 +262,7 @@ function DeleteAccountSheet({
     setError(null);
     setSending(true);
     try {
-      const { error: otpError } = await withCaptcha("otp_request", (o) =>
-        supabase.auth.signInWithOtp({ email: user?.email ?? "", options: o })
-      );
+      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
       if (otpError) throw otpError;
       setCooldown(60);
     } catch (e: any) {
@@ -286,14 +281,11 @@ function DeleteAccountSheet({
     setVerifying(true);
     try {
       // 1. Verify the OTP
-      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
-        supabase.auth.verifyOtp({
+      const { error: verifyError } = await supabase.auth.verifyOtp({
           email: user?.email ?? "",
           token: otp,
           type: "magiclink",
-          options: o,
-        })
-      );
+        });
       if (verifyError) {
         setVerifying(false);
         setError(humanize(verifyError, "auth"));

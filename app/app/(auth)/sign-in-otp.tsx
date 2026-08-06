@@ -9,7 +9,6 @@ import { AlertBadge } from "../../components/ui/AlertBadge";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { humanize } from "@shared/utils/errors";
 import { takePendingRoute } from "../../lib/pending-route";
-import { withCaptcha } from "../../lib/captcha";
 
 const RESEND_COOLDOWN = 60;
 
@@ -38,12 +37,10 @@ export default function SignInOtpScreen() {
     }
     setSendLoading(true);
     try {
-      const { error } = await withCaptcha("otp_request", (o) =>
-        supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
           email: email.trim(),
-          options: { shouldCreateUser: false, ...o },
-        })
-      );
+          options: { shouldCreateUser: false },
+        });
       if (error) {
         setEmailError(humanize(error, "auth"));
         return;
@@ -64,12 +61,10 @@ export default function SignInOtpScreen() {
     setOtpCode("");
     setSendLoading(true);
     try {
-      const { error } = await withCaptcha("otp_request", (o) =>
-        supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
           email: email.trim(),
-          options: { shouldCreateUser: false, ...o },
-        })
-      );
+          options: { shouldCreateUser: false },
+        });
       if (error) {
         setOtpError(humanize(error, "auth"));
         return;
@@ -110,14 +105,11 @@ export default function SignInOtpScreen() {
 
     setVerifyLoading(true);
     try {
-      const { error } = await withCaptcha("otp_verify", (o) =>
-        supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
           email: email.trim(),
           token: code,
           type:  "email",
-          options: o,
-        })
-      );
+        });
       if (error) {
         const msg = error.message.toLowerCase();
         if (msg.includes("expired") || msg.includes("otp") || msg.includes("invalid")) {

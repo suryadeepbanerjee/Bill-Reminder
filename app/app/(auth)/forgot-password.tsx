@@ -8,7 +8,6 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "../../lib/supabase/client";
 import { forgotPasswordSchema, ForgotPasswordFormData } from "@shared/schemas/../";
 import { humanize } from "@shared/utils/errors";
-import { withCaptcha } from "../../lib/captcha";
 
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -44,9 +43,7 @@ export default function ForgotPasswordScreen() {
       // No account-existence pre-check: RLS would block it for other users'
       // emails (breaking reset entirely) AND it would be an enumeration
       // surface. GoTrue always returns 200 for unknown emails (audit finding).
-      const { error: authError } = await withCaptcha("recover", (o) =>
-        supabase.auth.resetPasswordForEmail(data.email, o)
-      );
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(data.email);
       if (authError) throw authError;
       
       setStep("verify");
@@ -70,14 +67,11 @@ export default function ForgotPasswordScreen() {
     try {
       if (!isOtpVerified) {
         // 1. Verify OTP
-        const { data, error: verifyError } = await withCaptcha("otp_verify", (o) =>
-          supabase.auth.verifyOtp({
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
             email: getValues("email"),
             token: otp.trim(),
             type: "recovery",
-            options: o,
-          })
-        );
+          });
         if (verifyError) throw verifyError;
         
         // Mark as verified so we don't try to use the same OTP again if updateUser fails

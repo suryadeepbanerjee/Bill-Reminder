@@ -11,7 +11,6 @@ import { useAuthStore } from "../stores/auth-store";
 import { useThemeStore } from "../stores/theme-store";
 import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
-import { CaptchaHost } from "../components/ui/CaptchaHost";
 
 // Side-effect: patches expo-router's routing queue so every navigation call
 // (router.*, Link, Redirect) is deduped per destination — silent, cooldown-based.
@@ -140,7 +139,6 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
-        <CaptchaHost />
       </View>
     </QueryClientProvider>
   );

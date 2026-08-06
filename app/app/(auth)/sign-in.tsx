@@ -9,7 +9,6 @@ import { signInWithGoogle } from "../../lib/auth/google";
 import { signInSchema, SignInFormData } from "@shared/schemas/../";
 import { humanize } from "@shared/utils/errors";
 import { takePendingRoute } from "../../lib/pending-route";
-import { withCaptcha } from "../../lib/captcha";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { PasswordField } from "../../components/ui/PasswordField";
@@ -38,13 +37,10 @@ export default function SignInScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      const { error: authError } = await withCaptcha("signin", (o) =>
-        supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
-          options: o,
-        })
-      );
+        });
       if (authError) {
         setError(humanize(authError, "auth"));
         return;

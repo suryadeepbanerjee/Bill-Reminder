@@ -9,7 +9,6 @@ import { TextInput } from "../../components/ui/TextInput";
 import { AuthFormContainer } from "../../components/ui/AuthFormContainer";
 import { AlertBadge } from "../../components/ui/AlertBadge";
 import { humanize } from "@shared/utils/errors";
-import { withCaptcha } from "../../lib/captcha";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -65,14 +64,11 @@ export default function VerifyEmailScreen() {
 
     setVerifyLoading(true);
     try {
-      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
-        supabase.auth.verifyOtp({
+      const { error: verifyError } = await supabase.auth.verifyOtp({
           email: email,
           token: code,
           type: "signup",
-          options: o,
-        })
-      );
+        });
 
       if (verifyError) {
         const msg = verifyError.message.toLowerCase();
@@ -105,13 +101,11 @@ export default function VerifyEmailScreen() {
 
     setResendLoading(true);
     try {
-      const { error: resendError } = await withCaptcha("resend_verify", (o) =>
-        supabase.auth.resend({
+      const { error: resendError } = await supabase.auth.resend({
           type: "signup",
           email,
-          options: { emailRedirectTo: webRedirectUri, ...o },
-        })
-      );
+          options: { emailRedirectTo: webRedirectUri },
+        });
 
       if (resendError) {
         const msg = resendError.message.toLowerCase();

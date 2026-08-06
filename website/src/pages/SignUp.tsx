@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
-import { withCaptcha } from "../lib/captcha";
 import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
@@ -75,16 +74,13 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const { data, error: authError } = await withCaptcha("signup", (o) =>
-        supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
           email, password,
           options: {
             data: { display_name: name.trim() },
             emailRedirectTo: `${window.location.origin}/auth/callback`,
-            ...o,
           },
-        })
-      );
+        });
 
       if (authError) {
         if (authError.message.toLowerCase().includes("rate limit")) {
@@ -135,14 +131,11 @@ export default function SignUp() {
     }
     setVerifyLoading(true);
     try {
-      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
-        supabase.auth.verifyOtp({
+      const { error: verifyError } = await supabase.auth.verifyOtp({
           email,
           token: otpCode,
           type: "signup",
-          options: o,
-        })
-      );
+        });
       if (verifyError) {
         setError({ msg: humanize(verifyError, "auth") });
         return;
