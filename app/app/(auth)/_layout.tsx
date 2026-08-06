@@ -1,16 +1,22 @@
-import { Redirect, Stack } from "expo-router";
+import { Stack, router } from "expo-router";
+import { useEffect } from "react";
 import { useAuthStore } from "../../stores/auth-store";
 
 export default function AuthLayout() {
   const { session, isLoading } = useAuthStore();
 
-  if (isLoading) {
-    return null;
-  }
+  // Use router.replace() inside useEffect rather than <Redirect>.
+  // <Redirect> uses useFocusEffect which calls useNavigation() from @react-navigation/native
+  // — that hook throws "no navigation context" when the layout returns null (during loading)
+  // because the parent layout hasn't yet mounted its own navigator.
+  useEffect(() => {
+    if (!isLoading && session) {
+      router.replace("/(tabs)/dashboard");
+    }
+  }, [isLoading, session]);
 
-  if (session) {
-    return <Redirect href="/(tabs)/dashboard" />;
-  }
+  // While loading or redirecting, render nothing (loading overlay from root layout covers this)
+  if (isLoading || session) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

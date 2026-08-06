@@ -1,4 +1,5 @@
-import { Redirect, Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
+import { useEffect } from "react";
 import { useAuthStore } from "../../stores/auth-store";
 import { useThemeStore } from "../../stores/theme-store";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,8 +33,16 @@ export default function TabsLayout() {
   const { resolved } = useThemeStore();
   const insets = useSafeAreaInsets();
 
-  if (isLoading) return null;
-  if (!session)  return <Redirect href="/(auth)/sign-in" />;
+  // Use router.replace() inside useEffect rather than <Redirect>.
+  // <Redirect> uses useFocusEffect → useNavigation() from @react-navigation/native,
+  // which throws "no navigation context" when this layout returns null during loading.
+  useEffect(() => {
+    if (!isLoading && !session) {
+      router.replace("/(auth)/sign-in");
+    }
+  }, [isLoading, session]);
+
+  if (isLoading || !session) return null;
 
   const isDark = resolved === "dark";
 
