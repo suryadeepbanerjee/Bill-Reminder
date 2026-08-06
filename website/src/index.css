@@ -16,7 +16,7 @@
 		--color-accent: #ba9618;
 		--color-accent-hover: #d1a920;
 		--color-accent-muted: rgba(186, 150, 24, 0.08);
-		--color-accent-text: #8c6e0d;
+		--color-accent-text: #09090b;
 
 		--color-error: #dc2626;
 		--color-success: #10b981;
@@ -69,7 +69,7 @@
 		--color-accent: #ba9618;
 		--color-accent-hover: #d1a920;
 		--color-accent-muted: rgba(186, 150, 24, 0.08);
-		--color-accent-text: #8c6e0d;
+		--color-accent-text: #09090b;
 	}
 
 	body {
