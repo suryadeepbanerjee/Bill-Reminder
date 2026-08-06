@@ -1,0 +1,22 @@
+{
+  "name": "Bill Reminder - Never Miss Another Payment",
+  "short_name": "Bill Reminder",
+  "description": "Free, offline-first bill and subscription tracker with smart payment reminders, secure cloud sync, and household sharing.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080810",
+  "theme_color": "#080810",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/fevicon.png", "sizes": "500x500", "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "495x495", "type": "image/png", "purpose": "any" }
+  ]
+}

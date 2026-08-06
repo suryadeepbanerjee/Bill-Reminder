@@ -2,31 +2,56 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/fevicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- SEO -->
-    <title>Bill Reminder — Never Miss Another Payment</title>
-    <meta name="description" content="Bill Reminder is a premium recurring bill and subscription tracker that helps you never miss a payment. Smart reminders, offline support, and secure cloud sync." />
-    <meta name="keywords" content="bill reminder, subscription tracker, payment reminders, recurring bills, personal finance" />
-    <meta name="author" content="Bill Reminder" />
-    <meta name="robots" content="index, follow" />
+    <!-- Primary Meta Tags -->
+    <title>Bill Reminder - Never Miss Another Payment | Free Bill Tracker</title>
+    <meta name="title" content="Bill Reminder - Never Miss Another Payment | Free Bill Tracker" />
+    <meta name="description" content="Bill Reminder is a free, offline-first bill and subscription tracker with smart payment reminders sent to your email and phone. Share a household, sync across devices, and never miss a due date. No bank access needed." />
+    <meta name="keywords" content="bill reminder, bill tracker, subscription tracker, payment reminders, recurring bills, due date tracker, bill organizer, household bills, free bill reminder app" />
+    <meta name="author" content="Suryadeep Banerjee" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="darkreader-lock" />
+    <meta name="copyright" content="Bill Reminder - Suryadeep Banerjee" />
+    <meta http-equiv="content-language" content="en" />
     <link rel="canonical" href="https://billreminder.suryadeepbanerjee.in/" />
 
-    <!-- Open Graph -->
+    <!-- Icons & Web Manifest -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/fevicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Bill Reminder" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- SEO -->
+    <meta name="revisit-after" content="7 days" />
+    <meta name="yandex-verification" content="b5c34faf36cab3a0" />
+    <link rel="alternate" hreflang="en" href="https://billreminder.suryadeepbanerjee.in/" />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://billreminder.suryadeepbanerjee.in/" />
-    <meta property="og:title" content="Bill Reminder — Never Miss Another Payment" />
-    <meta property="og:description" content="Premium recurring bill tracker with smart reminders, offline support, and secure cloud sync." />
+    <meta property="og:site_name" content="Bill Reminder" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Bill Reminder - Never Miss Another Payment" />
+    <meta property="og:description" content="Free, offline-first bill and subscription tracker. Smart payment reminders, secure cloud sync, household sharing. No bank access needed." />
     <meta property="og:image" content="https://billreminder.suryadeepbanerjee.in/og-image.png" />
+    <meta property="og:image:url" content="https://billreminder.suryadeepbanerjee.in/og-image.png" />
+    <meta property="og:image:secure_url" content="https://billreminder.suryadeepbanerjee.in/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bill Reminder - Never Miss Another Payment" />
 
-    <!-- Twitter Card -->
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Bill Reminder — Never Miss Another Payment" />
-    <meta name="twitter:description" content="Premium recurring bill tracker with smart reminders, offline support, and secure cloud sync." />
+    <meta name="twitter:title" content="Bill Reminder - Never Miss Another Payment" />
+    <meta name="twitter:description" content="Free, offline-first bill and subscription tracker with smart payment reminders." />
     <meta name="twitter:image" content="https://billreminder.suryadeepbanerjee.in/og-image.png" />
+    <meta name="twitter:image:alt" content="Bill Reminder - Never Miss Another Payment" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,10 +59,98 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
     <!-- Theme color -->
-    <meta name="theme-color" content="#080810" />
+    <meta name="theme-color" content="#080810" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://billreminder.suryadeepbanerjee.in/#org",
+          "name": "Bill Reminder",
+          "url": "https://billreminder.suryadeepbanerjee.in/",
+          "logo": { "@type": "ImageObject", "url": "https://billreminder.suryadeepbanerjee.in/logo.png" },
+          "sameAs": ["https://github.com/suryadeepbanerjee/Bill-Reminder"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://billreminder.suryadeepbanerjee.in/#website",
+          "url": "https://billreminder.suryadeepbanerjee.in/",
+          "name": "Bill Reminder",
+          "description": "Free, offline-first bill and subscription tracker with smart payment reminders, secure cloud sync, and household sharing.",
+          "inLanguage": "en",
+          "publisher": { "@id": "https://billreminder.suryadeepbanerjee.in/#org" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://billreminder.suryadeepbanerjee.in/#app",
+          "name": "Bill Reminder",
+          "url": "https://billreminder.suryadeepbanerjee.in/",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Android, iOS",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "description": "Free, offline-first bill and subscription tracker with smart payment reminders. Tracks recurring bills, works offline, syncs across devices, and never asks for bank credentials.",
+          "publisher": { "@id": "https://billreminder.suryadeepbanerjee.in/#org" }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://billreminder.suryadeepbanerjee.in/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Is Bill Reminder free?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes - completely free. There are no subscription tiers, no feature gates, and no in-app purchases. It's MIT licensed open source software." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does it store my bank credentials?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No. Bill Reminder never asks for bank credentials, card numbers, or financial institution access. You manually enter bill names and amounts. Nothing is connected to your bank." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does it work without internet?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every feature is available offline. When you reconnect, changes sync automatically across your devices via Supabase." }
+            },
+            {
+              "@type": "Question",
+              "name": "Is there an iOS version?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Not yet. The app currently ships on Android. iOS is on the roadmap - star the GitHub repository to follow progress." }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I export my data?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. You can request a full export of your data at any time by emailing support. We'll respond within 30 days." }
+            },
+            {
+              "@type": "Question",
+              "name": "Who can see my bills?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Only you. Each account uses row-level security at the database layer - no query, even from the server, can read another user's data." }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body class="bg-[#080810] text-white antialiased">
     <div id="root"></div>
+    <noscript>
+      <div style="max-width:640px;margin:48px auto;padding:0 20px;font-family:Arial,sans-serif;color:#e4e4e7">
+        <h1 style="color:#fff">Bill Reminder - Never Miss Another Payment</h1>
+        <p>Bill Reminder is a free, offline-first bill and subscription tracker. Track recurring bills and subscriptions, get automatic payment reminders by email and push notification, share a household, and sync across devices - no bank credentials needed.</p>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#faq">Frequently asked questions</a></li>
+          <li><a href="/sign-up">Get started</a></li>
+          <li><a href="/sign-in">Sign in</a></li>
+        </ul>
+        <p style="color:#8e929e">Bill Reminder &copy; Suryadeep Banerjee - billreminder.suryadeepbanerjee.in</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

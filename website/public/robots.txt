@@ -1,0 +1,17 @@
+# robots.txt — billreminder.suryadeepbanerjee.in
+# Allow all crawlers (Google, Bing, Brave, etc.) to index the public site.
+
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /auth/
+Disallow: /bill/
+Disallow: /reset-password
+Disallow: /success.html
+Disallow: /404
+
+# Never index deep-link landing pages (they require sign-in).
+User-agent: *
+Disallow: /accept-invite
+
+Sitemap: https://billreminder.suryadeepbanerjee.in/sitemap.xml
