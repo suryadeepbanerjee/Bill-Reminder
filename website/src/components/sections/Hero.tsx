@@ -266,7 +266,7 @@ export default function Hero() {
 		<section
 			id="hero"
 			aria-labelledby="hero-heading"
-			className="relative mx-auto w-full pt-[84px] md:pt-[108px] pb-16 px-6 md:px-8
+			className="relative mx-auto w-full pt-[94px] md:pt-[118px] pb-16 px-6 md:px-8
       min-h-[calc(100vh-40px)] overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_45%,var(--color-canvas)_100%)]
       dark:bg-[linear-gradient(to_bottom,#000,var(--color-canvas)_38%,#1c1e24_70%,var(--color-canvas)_100%)]
