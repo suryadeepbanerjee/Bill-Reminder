@@ -145,3 +145,69 @@
 .animate-fade-up {
 	animation: fade-up 0.8s ease-out forwards;
 }
+
+/* ─── Legacy compatibility layer ─────────────────────────────────────────────
+   Pages still using the old CSS API (AcceptInvite, NotFound, AuthError,
+   Terms, PrivacyPolicy): legacy tokens + button/card classes that were
+   removed when index.css migrated to the --color-* system. Without these,
+   `var(--ink)` etc. resolve to nothing and text on gold buttons is invisible. */
+:root {
+	--bg:        var(--color-canvas);
+	--ink:       var(--color-primary);
+	--ink-2:     var(--color-secondary);
+	--ink-3:     var(--color-secondary);
+	--ink-4:     var(--color-secondary);
+	--surface-1: var(--color-surface);
+	--border:    var(--color-border);
+	--brand:     var(--color-accent);
+	--accent:    var(--color-accent);
+	--r-xl:      16px;
+}
+
+@layer components {
+	.btn-primary,
+	.btn-outline,
+	.btn-ghost {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 12px 24px;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+		text-decoration: none;
+		cursor: pointer;
+		border: 1px solid transparent;
+		transition: background-color 150ms, color 150ms, border-color 150ms;
+	}
+	.btn-primary {
+		background: var(--color-accent);
+		color: var(--color-accent-text);
+	}
+	.btn-primary:hover {
+		background: var(--color-accent-hover);
+	}
+	.btn-outline {
+		background: transparent;
+		border-color: var(--color-border);
+		color: var(--color-primary);
+	}
+	.btn-outline:hover {
+		background: var(--color-input);
+	}
+	.btn-ghost {
+		background: transparent;
+		color: var(--color-secondary);
+	}
+	.btn-ghost:hover {
+		color: var(--color-primary);
+	}
+	.card {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 12px;
+		box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08), 0 1px 4px 0 rgba(0, 0, 0, 0.04);
+	}
+}
