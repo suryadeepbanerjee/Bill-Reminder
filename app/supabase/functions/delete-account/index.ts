@@ -4,16 +4,12 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { internalError } from "../_shared/http.ts";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   try {
@@ -26,7 +22,7 @@ serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" }, status: 401 }
       );
     }
 
@@ -43,12 +39,12 @@ serve(async (req: Request) => {
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" }, status: 401 }
       );
     }
 
     const userId = user.id;
-    console.log(`[delete-account] Starting deletion for user ${userId}`);
+    console.log(`[delete-account] Starting deletion for user`);
 
     // Create admin client for data cleanup and auth deletion
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -104,16 +100,11 @@ serve(async (req: Request) => {
     const householdIds = memberships?.map((m: { household_id: string }) => m.household_id) || [];
     console.log(`[delete-account] Found ${householdIds.length} households`);
 
-    // 7. Delete audit log entries for those households
-    if (householdIds.length > 0) {
-      const { error: alErr } = await adminClient
-        .from("audit_log")
-        .delete()
-        .in("household_id", householdIds);
-      if (alErr) console.error("[delete-account] Error deleting audit_log:", alErr.message);
-    }
-
-    // 8. Delete households where this user is the sole member (personal households)
+    // 7. Determine which households will be deleted (sole-member), then delete
+    //    audit log entries the user is the actor of OR that belong to
+    //    sole-member households. Shared-household audit history is preserved —
+    //    deleting it would destroy other members' history (audit finding).
+    const soleHouseholdIds: string[] = [];
     for (const householdId of householdIds) {
       const { data: otherMembers } = await adminClient
         .from("household_members")
@@ -123,13 +114,30 @@ serve(async (req: Request) => {
         .eq("status", "active");
 
       if (!otherMembers || otherMembers.length === 0) {
-        const { error: hhErr } = await adminClient
-          .from("households")
-          .delete()
-          .eq("id", householdId);
-        if (hhErr) console.error(`[delete-account] Error deleting household ${householdId}:`, hhErr.message);
-        else console.log(`[delete-account] Deleted household ${householdId}`);
+        soleHouseholdIds.push(householdId);
       }
+    }
+
+    if (householdIds.length > 0) {
+      const conditions = [`actor_id.eq.${userId}`];
+      if (soleHouseholdIds.length > 0) {
+        conditions.push(`household_id.in.(${soleHouseholdIds.join(",")})`);
+      }
+      const { error: alErr } = await adminClient
+        .from("audit_log")
+        .delete()
+        .or(conditions.join(","));
+      if (alErr) console.error("[delete-account] Error deleting audit_log:", alErr.message);
+    }
+
+    // 8. Delete sole-member households (personal households)
+    for (const householdId of soleHouseholdIds) {
+      const { error: hhErr } = await adminClient
+        .from("households")
+        .delete()
+        .eq("id", householdId);
+      if (hhErr) console.error("[delete-account] Error deleting household:", hhErr.message);
+      else console.log("[delete-account] Deleted household");
     }
 
     // 9. Delete remaining household memberships
@@ -147,23 +155,19 @@ serve(async (req: Request) => {
     if (profErr) console.error("[delete-account] Error deleting profile:", profErr.message);
 
     // 11. Delete the auth user via Admin API
-    console.log(`[delete-account] Deleting auth user ${userId}`);
+    console.log(`[delete-account] Deleting auth user`);
     const { error: delErr } = await adminClient.auth.admin.deleteUser(userId);
     if (delErr) {
       console.error("[delete-account] Error deleting auth user:", delErr.message);
       throw delErr;
     }
 
-    console.log(`[delete-account] Successfully deleted user ${userId}`);
+    console.log(`[delete-account] Successfully deleted user`);
     return new Response(
       JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
-    console.error("[delete-account] Fatal error:", (error as Error).message);
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    return internalError(req, "delete-account", error);
   }
 });

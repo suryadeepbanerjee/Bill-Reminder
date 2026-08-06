@@ -99,11 +99,10 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
       const { data, error: authError } = await supabase.auth.updateUser({ email: trimmed });
       if (authError) throw authError;
 
-      console.log("[EmailSection] updateUser response:", JSON.stringify(data));
+      // B3.6: do not log the full response — it contains PII (email) and the session
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowOtpSheet(true);
     } catch (e: any) {
-      console.error("[EmailSection] updateUser error:", e);
       setError(humanize(e, "auth"));
     } finally {
       setIsLoading(false);
@@ -121,32 +120,22 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
     try {
       // Step 1: Verify old email OTP
       if (!oldEmailVerified) {
-        console.log("[EmailSection] Verifying old email OTP for:", currentEmail);
         const { error: verifyError } = await supabase.auth.verifyOtp({
           email: currentEmail,
           token: oldOtp.trim(),
           type: 'email_change'
         });
-        if (verifyError) {
-          console.error("[EmailSection] Old email verify error:", verifyError);
-          throw verifyError;
-        }
-        console.log("[EmailSection] Old email verified OK");
+        if (verifyError) throw verifyError;
         setOldEmailVerified(true);
       }
 
       // Step 2: Verify new email OTP
-      console.log("[EmailSection] Verifying new email OTP for:", email.trim());
       const { error: verifyError2 } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: newOtp.trim(),
         type: 'email_change'
       });
-      if (verifyError2) {
-        console.error("[EmailSection] New email verify error:", verifyError2);
-        throw verifyError2;
-      }
-      console.log("[EmailSection] New email verified OK");
+      if (verifyError2) throw verifyError2;
 
       // Step 3: Refresh session to pick up the new email from auth
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -160,7 +149,7 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
           .from("profiles")
           .update({ email: email.trim() })
           .eq("id", user.id);
-        if (profErr) console.error("[EmailSection] Profile update error:", profErr);
+        if (profErr) setError(humanize(profErr, "auth"));
 
         // Immediately update React Query cache so UI reflects new email
         queryClient.setQueryData<Profile | null>(
@@ -177,7 +166,6 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
       setOldEmailVerified(false);
       Alert.alert("Success", "Your email has been updated.");
     } catch (e: any) {
-      console.error("[EmailSection] Verify flow error:", e);
       setError(humanize(e, "auth"));
     } finally {
       setIsLoading(false);

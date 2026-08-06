@@ -104,15 +104,37 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // Release signing is supplied at build time via env vars (CI/EAS)
+            // or gradle.properties — NEVER the committed debug keystore.
+            // A release built with the public debug keystore lets anyone with
+            // the repo sign a fake app and push updates (security audit finding).
+            def storeFileEnv = System.getenv('RELEASE_STORE_FILE')
+            if (storeFileEnv) {
+                storeFile file(storeFileEnv)
+                storePassword System.getenv('RELEASE_STORE_PASSWORD')
+                keyAlias System.getenv('RELEASE_KEY_ALIAS')
+                keyPassword System.getenv('RELEASE_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Refuse to build a release without a real signing key — do not
+            // fall back to the debug keystore (security audit finding).
+            def storeFileEnv = System.getenv('RELEASE_STORE_FILE')
+            if (!storeFileEnv) {
+                throw new GradleException(
+                    'Release signing not configured. Set RELEASE_STORE_FILE, ' +
+                    'RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD ' +
+                    'env vars in CI/EAS (or gradle.properties). ' +
+                    'Refusing to sign a release with the debug keystore.'
+                )
+            }
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

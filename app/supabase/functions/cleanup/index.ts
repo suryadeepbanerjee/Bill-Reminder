@@ -4,16 +4,12 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { internalError } from "../_shared/http.ts";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   // Guard: only allow calls with a valid CRON_SECRET
@@ -21,7 +17,7 @@ serve(async (req: Request) => {
   const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       status: 401,
     });
   }
@@ -58,14 +54,11 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ success: true, cleanedAt: new Date().toISOString() }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       }
     );
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+    return internalError(req, "cleanup", error);
   }
 });

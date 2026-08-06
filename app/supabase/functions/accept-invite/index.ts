@@ -1,14 +1,21 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { internalError } from "../_shared/http.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+/* Mask an email for display so an API response never discloses a full address
+ * to a caller who is not its owner (the invitation-email leak finding). */
+function maskEmail(email: string): string {
+  if (!email.includes("@")) return "a***@***";
+  const [user, domain] = email.split("@");
+  const shown = user.slice(0, 2).replace(/./g, "*");
+  const dStart = domain.charAt(0);
+  return `${shown || "***"}@${dStart}***`;
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   try {
@@ -17,7 +24,7 @@ serve(async (req: Request) => {
     if (!householdId) {
       return new Response(
         JSON.stringify({ error: "householdId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -37,7 +44,7 @@ serve(async (req: Request) => {
     if (!caller) {
       return new Response(
         JSON.stringify({ error: "Not authenticated" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -64,11 +71,11 @@ serve(async (req: Request) => {
     if (!invite) {
       const other = pendingInvites?.[0];
       const message = other?.invited_email
-        ? `This invitation was sent to ${other.invited_email}. You're signed in as ${caller.email ?? "an unknown account"}. Sign in with the invited email to accept it.`
+        ? `This invitation was sent to ${maskEmail(other.invited_email)}. You're signed in as ${maskEmail(caller.email ?? "an unknown account")}. Sign in with the invited email to accept it.`
         : "No pending invitation found for this household.";
       return new Response(
-        JSON.stringify({ error: message, sentTo: other?.invited_email ?? null }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: message, sentTo: other?.invited_email ? maskEmail(other.invited_email) : null }),
+        { status: 404, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -84,13 +91,9 @@ serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err: any) {
-    console.error("accept-invite error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message ?? "Internal error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return internalError(req, "accept-invite", err);
   }
 });

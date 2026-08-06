@@ -424,3 +424,11 @@ verify_jwt = false
 
 [functions.cleanup]
 verify_jwt = false
+
+# senders are called by reminder-dispatcher and gated by the x-cron-secret
+# header (CRON_SECRET env), not by JWT verification
+[functions.email-sender]
+verify_jwt = false
+
+[functions.push-sender]
+verify_jwt = false

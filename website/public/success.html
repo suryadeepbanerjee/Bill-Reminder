@@ -323,7 +323,8 @@
           if (tokens.access_token) {
             deepLink = 'bill-reminder://callback'
               + '?access_token=' + encodeURIComponent(tokens.access_token)
-              + '&refresh_token=' + encodeURIComponent(tokens.refresh_token || '');
+              + '&refresh_token=' + encodeURIComponent(tokens.refresh_token || '')
+              + '&type=' + encodeURIComponent(tokens.type || '');
           }
         }
       } catch (e) { /* malformed JSON — fall back to manual sign-in */ }

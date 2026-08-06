@@ -40,19 +40,9 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      // Check if email exists in profiles first
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", data.email)
-        .maybeSingle();
-
-      if (!profile) {
-        setError("No account found with this email address.");
-        setIsLoading(false);
-        return;
-      }
-
+      // No account-existence pre-check: RLS would block it for other users'
+      // emails (breaking reset entirely) AND it would be an enumeration
+      // surface. GoTrue always returns 200 for unknown emails (audit finding).
       const { error: authError } = await supabase.auth.resetPasswordForEmail(data.email);
       if (authError) throw authError;
       

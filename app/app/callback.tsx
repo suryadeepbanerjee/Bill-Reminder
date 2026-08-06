@@ -19,6 +19,12 @@ import { Colors } from "../lib/theme";
  *   4. Navigate to dashboard (tabs layout guard will keep them there)
  *
  * If tokens are absent or invalid → fall back to the sign-in screen.
+ *
+ * H-3 (session-fixing guard): only accept the tokens when the deep link also
+ * carries a recognized Supabase auth `type` (signup / magiclink / email_change
+ * / recovery, etc.). success.html forwards the `type` it received from the
+ * real auth redirect. A bare `bill-reminder://callback?access_token=...`
+ * link (no type) is rejected — this is the common shape of a forced deep link.
  */
 export default function CallbackScreen() {
   const { access_token, refresh_token, type } = useLocalSearchParams<{
@@ -27,9 +33,20 @@ export default function CallbackScreen() {
     type?: string;
   }>();
 
+  const VALID_TYPES = new Set([
+    "signup",
+    "magiclink",
+    "magic_link",
+    "email_change",
+    "recovery",
+    "invite",
+    "email",
+    "sms",
+  ]);
+
   useEffect(() => {
     async function handleDeepLink() {
-      if (access_token) {
+      if (access_token && type && VALID_TYPES.has(type)) {
         const { error } = await supabase.auth.setSession({
           access_token,
           refresh_token: refresh_token ?? "",
@@ -45,7 +62,7 @@ export default function CallbackScreen() {
         }
       }
 
-      // No tokens or invalid session — send to sign-in.
+      // No tokens, unrecognized type, or invalid session — send to sign-in.
       router.replace("/(auth)/sign-in");
     }
 

@@ -7,8 +7,15 @@ const ExpoSecureStoreAdapter = {
 	removeItem: (key: string) => SecureStore.deleteItemAsync(key),
 };
 
-const supabaseUrl     = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl     = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+	throw new Error(
+		"Missing EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY. " +
+		"Copy app/.env.example to app/.env and fill in your project values."
+	);
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 	auth: {

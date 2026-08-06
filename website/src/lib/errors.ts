@@ -36,11 +36,9 @@ type ErrorContext = keyof typeof FALLBACKS;
 export function humanize(error: unknown, context: ErrorContext = "unknown"): string {
   const raw = extractMessage(error);
 
-  if (import.meta.env.DEV) {
-    console.warn(`[Error:${context}]`, raw, error);
-  } else {
-    console.warn(`[Error:${context}]`, raw);
-  }
+  // Log the sanitized message only — never the raw error object, which can
+  // embed session/user payloads in Supabase errors (audit finding).
+  console.warn(`[Error:${context}]`, raw);
 
   if (raw && SAFE_MESSAGES.has(raw)) return raw;
 

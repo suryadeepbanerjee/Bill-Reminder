@@ -180,7 +180,7 @@ export default function AcceptInvite() {
                 You've joined the household. Open the Bill Reminder app to see and manage shared bills.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-                <a href={`bill-reminder://accept-invite?hid=${hid}`} className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
+                <a href={`bill-reminder://accept-invite?hid=${encodeURIComponent(hid ?? "")}`} className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
                   Open in App
                 </a>
                 <a href="/" className="btn-outline" style={{ minWidth: 200, textDecoration: "none" }}>

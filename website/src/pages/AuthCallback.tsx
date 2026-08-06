@@ -27,7 +27,7 @@ function redirectError(reason: Reason, detail?: string): void {
   window.location.replace(url.toString());
 }
 
-function redirectSuccess(accessToken?: string, refreshToken?: string): void {
+function redirectSuccess(accessToken?: string, refreshToken?: string, type?: string): void {
   // Gate token — success.html checks this before rendering.
   // Cleared immediately by success.html after reading (prevent refresh bypass).
   sessionStorage.setItem("br_auth_verified", "1");
@@ -37,7 +37,7 @@ function redirectSuccess(accessToken?: string, refreshToken?: string): void {
   if (accessToken) {
     sessionStorage.setItem(
       "br_auth_tokens",
-      JSON.stringify({ access_token: accessToken, refresh_token: refreshToken ?? "" })
+      JSON.stringify({ access_token: accessToken, refresh_token: refreshToken ?? "", type: type ?? "" })
     );
   }
 
@@ -91,7 +91,7 @@ async function processCallback(): Promise<void> {
 
     // signup, email_change, magic_link, AND mobile OAuth (implicit) 
     // → success + store tokens for deep link
-    return redirectSuccess(accessToken, refreshToken);
+    return redirectSuccess(accessToken, refreshToken, hashType);
   }
 
   // ── PKCE code exchange ────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ async function processCallback(): Promise<void> {
     }
 
     // signup, email_change, magic_link → success + store tokens for deep link
-    return redirectSuccess(data.session.access_token, data.session.refresh_token);
+    return redirectSuccess(data.session.access_token, data.session.refresh_token, type);
   }
 
   // ── No meaningful params ─────────────────────────────────────────────────

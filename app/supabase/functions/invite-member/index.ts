@@ -1,32 +1,56 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { internalError } from "../_shared/http.ts";
 
 // ── Invite resend policy ─────────────────────────────────────────────────────
 // 2 minute cooldown between sends, max 3 resends (4 total sends),
 // then a 1 hour lockout measured from the last successful send.
-const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
-const MAX_SENDS          = 4; // initial invite + 3 resends
-const LOCKOUT_MS         = 60 * 60 * 1000;
+// A hard lifetime cap stops the "lockout expires → send again" loop, so an
+// invite can never exceed MAX_SENDS_LIFETIME total sends (audit finding).
+const RESEND_COOLDOWN_MS  = 2 * 60 * 1000;
+const MAX_SENDS           = 4; // initial invite + 3 resends
+const LOCKOUT_MS          = 60 * 60 * 1000;
+const MAX_SENDS_LIFETIME  = 12; // hard ceiling — never exceeded, period
 
-function json(body: Record<string, unknown>, status: number): Response {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function json(req: Request, body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
+/* HTML-escape user-provided values before interpolating into the Resend
+ * HTML template — an attacker-controlled display name or household name must
+ * render as text, never as markup (H-4). */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* Return a 429 Response when a resend is not allowed yet, else null. */
-function resendLimitCheck(inviteCount: number, lastSentMs: number, now: number): Response | null {
+function resendLimitCheck(req: Request, inviteCount: number, lastSentMs: number, now: number): Response | null {
+  if (inviteCount >= MAX_SENDS_LIFETIME) {
+    return json(req,
+      {
+        error: "This invite has reached the maximum number of sends.",
+        inviteCount,
+      },
+      429
+    );
+  }
+
   const sinceLast = now - lastSentMs; // ms since last send
 
   if (inviteCount >= MAX_SENDS && sinceLast < LOCKOUT_MS) {
     const waitMin = Math.max(1, Math.ceil((LOCKOUT_MS - sinceLast) / 60000));
-    return json(
+    return json(req,
       {
         error: "Too many invites sent to this email. Please try again after 1 hour.",
         retryAfterMs: LOCKOUT_MS - sinceLast,
@@ -38,7 +62,7 @@ function resendLimitCheck(inviteCount: number, lastSentMs: number, now: number):
 
   if (sinceLast < RESEND_COOLDOWN_MS) {
     const waitSec = Math.max(1, Math.ceil((RESEND_COOLDOWN_MS - sinceLast) / 1000));
-    return json(
+    return json(req,
       {
         error: `Please wait ${waitSec}s before sending another invite.`,
         retryAfterMs: RESEND_COOLDOWN_MS - sinceLast,
@@ -53,14 +77,20 @@ function resendLimitCheck(inviteCount: number, lastSentMs: number, now: number):
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   try {
     const { householdId, email } = await req.json();
 
     if (!householdId || !email) {
-      return json({ error: "householdId and email are required" }, 400);
+      return json(req,{ error: "householdId and email are required" }, 400);
+    }
+
+    // Reject malformed emails before they reach GoTrue's filter parser or
+    // Resend (audit finding: raw email was interpolated into listUsers filter).
+    if (typeof email !== "string" || !EMAIL_RE.test(email)) {
+      return json(req,{ error: "A valid email address is required" }, 400);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -79,7 +109,7 @@ serve(async (req: Request) => {
     // ── 1. Verify caller is admin of this household ────────────────────────
     const { data: { user: caller } } = await userClient.auth.getUser();
     if (!caller) {
-      return json({ error: "Not authenticated" }, 401);
+      return json(req,{ error: "Not authenticated" }, 401);
     }
 
     const { data: callerMember } = await adminClient
@@ -91,7 +121,7 @@ serve(async (req: Request) => {
       .single();
 
     if (!callerMember || callerMember.role !== "admin") {
-      return json({ error: "Only admins can invite members" }, 403);
+      return json(req,{ error: "Only admins can invite members" }, 403);
     }
 
     // ── 2. Look up the target user by email in auth.users ──────────────────
@@ -108,7 +138,7 @@ serve(async (req: Request) => {
     );
 
     if (!targetUser) {
-      return json(
+      return json(req,
         { error: "No account found with this email. They must create an account first." },
         404
       );
@@ -126,7 +156,7 @@ serve(async (req: Request) => {
 
     if (existing) {
       if (existing.status === "active") {
-        return json({ error: "This user is already a member of this household" }, 409);
+        return json(req,{ error: "This user is already a member of this household" }, 409);
       }
 
       // Invited or removed → resend path with rate limiting
@@ -135,7 +165,7 @@ serve(async (req: Request) => {
         ? new Date(existing.invite_last_sent_at).getTime()
         : Date.now();
 
-      const blocked = resendLimitCheck(inviteCount, lastSentMs, Date.now());
+      const blocked = resendLimitCheck(req, inviteCount, lastSentMs, Date.now());
       if (blocked) return blocked;
 
       await adminClient
@@ -193,6 +223,10 @@ serve(async (req: Request) => {
     }
 
     const webUrl = `https://billreminder.suryadeepbanerjee.in/accept-invite?hid=${householdId}`;
+    const safeCallerName   = escapeHtml(callerName);
+    const safeHousehold    = escapeHtml(householdName);
+    const safeSubjectName  = escapeHtml(callerName);
+    const safeSubjectHH    = escapeHtml(householdName);
 
     const html = `
 <!DOCTYPE html>
@@ -211,9 +245,9 @@ serve(async (req: Request) => {
               <div style="font-size:32px;margin-bottom:16px;">🏠</div>
               <h1 style="color:#F5F5F5;font-size:22px;font-weight:700;margin:0 0 8px;">You're Invited!</h1>
               <p style="color:#A3A3A3;font-size:15px;margin:0;">
-                <strong style="color:#F5F5F5;">${callerName}</strong> invited you to join
+                <strong style="color:#F5F5F5;">${safeCallerName}</strong> invited you to join
               </p>
-              <p style="color:#D1A920;font-size:20px;font-weight:700;margin:12px 0 0;">${householdName}</p>
+              <p style="color:#D1A920;font-size:20px;font-weight:700;margin:12px 0 0;">${safeHousehold}</p>
             </td>
           </tr>
           <tr>
@@ -246,7 +280,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from:    "Bill Reminder <billalert@billreminder.suryadeepbanerjee.in>",
         to:      [email],
-        subject: `${callerName} invited you to "${householdName}" on Bill Reminder`,
+        subject: `${safeSubjectName} invited you to "${safeSubjectHH}" on Bill Reminder`,
         html,
       }),
     });
@@ -259,13 +293,12 @@ serve(async (req: Request) => {
       } catch {
         detail = await resp.text();
       }
-      console.error("Resend email failed:", resp.status, detail);
+      console.error("Resend email failed:", resp.status, detail?.slice(0, 200));
       throw new Error("The invitation was saved, but the email could not be sent. Please check the email service configuration.");
     }
 
-    return json({ success: true, message: `Invitation sent to ${email}` }, 200);
+    return json(req,{ success: true, message: `Invitation sent to ${email}` }, 200);
   } catch (err: any) {
-    console.error("invite-member error:", err);
-    return json({ error: err.message ?? "Internal error" }, 500);
+    return internalError(req, "invite-member", err);
   }
 });
