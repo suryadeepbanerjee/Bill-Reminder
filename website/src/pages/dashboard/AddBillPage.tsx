@@ -178,6 +178,12 @@ export default function AddBillPage() {
     return sorted.map((p) => (p.key === "other" ? { ...p, name: "Other (Custom)" } : p));
   }, [presets]);
 
+  useEffect(() => {
+    if (activeHousehold?.household.id) {
+      setValue("household_id", activeHousehold.household.id);
+    }
+  }, [activeHousehold?.household.id, setValue]);
+
   const isPrepaidOrWallet = behaviorType === "prepaid_validity" || behaviorType === "wallet_balance";
 
   const repeatOptions = useMemo(() => getRepeatOptions(behaviorType), [behaviorType]);
@@ -221,7 +227,8 @@ export default function AddBillPage() {
     if (step === 3) {
       const ok = await trigger();
       if (!ok) {
-        setError("Please fill all required fields correctly.");
+        const firstError = Object.values(form.formState.errors)[0] as any;
+        setError(firstError?.message || "Please fill all required fields correctly.");
         return;
       }
     }
@@ -286,8 +293,10 @@ export default function AddBillPage() {
     }
   };
 
-  const onInvalid = () => {
-    setError("Please fill all required fields correctly.");
+  const onInvalid = (errors: any) => {
+    console.error("Form Validation Failed:", errors);
+    const firstError = Object.values(errors)[0] as any;
+    setError(firstError?.message || "Please fill all required fields correctly.");
   };
 
   return (

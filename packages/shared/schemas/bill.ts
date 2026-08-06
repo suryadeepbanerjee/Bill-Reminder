@@ -98,7 +98,7 @@ const createBillBaseSchema = z.object({
   expected_payment_day_offset: z.number().int().optional().nullable(),
 
   // Meta
-  household_id: z.string().uuid(),
+  household_id: z.string().uuid("Household not found"),
 });
 
 // ── Cross-field validation ────────────────────────────────────────────────────
