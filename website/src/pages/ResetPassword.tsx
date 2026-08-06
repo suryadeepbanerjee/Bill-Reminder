@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -63,7 +64,7 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       const { error: authError } = await supabase.auth.updateUser({ password });
-      if (authError) { setError(authError.message); return; }
+      if (authError) { setError(humanize(authError, "auth")); return; }
       await supabase.auth.signOut();
       // Set the gate token so success.html renders, then redirect
       sessionStorage.setItem("br_auth_verified", "1");

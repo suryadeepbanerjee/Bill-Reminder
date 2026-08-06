@@ -63,7 +63,7 @@ async function processCallback(): Promise<void> {
       // Already verified is a success outcome — user can sign in
       return redirectSuccess();
     }
-    return redirectError("invalid", errDesc);
+    return redirectError("invalid");
   }
 
   // ── Hash fragment — implicit flow ────────────────────────────────────────
@@ -103,7 +103,7 @@ async function processCallback(): Promise<void> {
       if (msg.includes("expired") || msg.includes("already been used") || msg.includes("single use")) {
         return redirectError("expired");
       }
-      return redirectError("error", exchErr.message);
+      return redirectError("error");
     }
     if (!data.session) return redirectError("error");
 

@@ -118,7 +118,7 @@ export function MarkPaidModal({ target, onClose, onSuccess }: MarkPaidModalProps
       onSuccess?.(target!.occurrence.id);
       onClose();
     } catch (e: any) {
-      setError(e?.message || JSON.stringify(e));
+      setError(humanize(e, "unknown"));
     }
   };
 

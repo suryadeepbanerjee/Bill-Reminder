@@ -9,9 +9,9 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { View, Modal, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Modal, Text, Pressable } from "react-native";
 import { WebView } from "react-native-webview";
-import { Ionicons } from "@expo/vector-icons";
+
 import {
   CAPTCHA_SITE_KEY,
   isCaptchaEnabled,
@@ -20,7 +20,6 @@ import {
   completeCaptcha,
   closeCaptchaOverlay,
 } from "../../lib/captcha";
-import { Colors } from "../../lib/theme";
 
 const WIDGET_TIMEOUT_MS = 90000;
 
@@ -59,10 +58,10 @@ function __brTurnstileReady() {
   try {
     window.turnstile.render(document.body, {
       sitekey: "${siteKey}",
-      // compact: always-visible 65px widget. Auto-passes silently for clean
-      // traffic; shows an interactive checkbox for WebView/VPN traffic.
-      // Never fires error-callback purely due to IP/environment suspicion.
-      size: "compact",
+      // "normal" = standard 300×65 Cloudflare checkbox widget.
+      // Auto-passes silently for clean traffic; shows interactive puzzle
+      // for WebView/VPN traffic. Always visible, never clipped.
+      size: "normal",
       theme: "dark",
       callback: function (token) { post("token", { token: token }); },
       "error-callback": function () { post("error", { message: "challenge failed" }); },
@@ -165,11 +164,11 @@ export function CaptchaHost() {
               hitSlop={8}
               accessibilityLabel="Cancel security check"
             >
-              <Ionicons name="close" size={20} color="#A3A3A3" />
+              <Text style={{ color: "#A3A3A3", fontSize: 18, lineHeight: 20 }}>✕</Text>
             </Pressable>
           </View>
 
-          {!done && (
+      {!done && (
             <View
               style={{
                 alignItems: "center",
@@ -178,35 +177,14 @@ export function CaptchaHost() {
                 paddingHorizontal: 24,
               }}
             >
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(217,170,32,0.12)",
-                  borderWidth: 1,
-                  borderColor: "rgba(217,170,32,0.25)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}
-              >
-                <Ionicons name="shield-checkmark" size={20} color={Colors.accent[400]} />
-              </View>
-              <ActivityIndicator
-                size="large"
-                color={Colors.accent[500]}
-                style={{ marginTop: 14 }}
-              />
               <Text
                 style={{
-                  marginTop: 12,
                   color: "#A3A3A3",
                   fontSize: 13,
                   textAlign: "center",
                 }}
               >
-                Verifying you're human…
+                Complete the security check below
               </Text>
             </View>
           )}
@@ -217,9 +195,8 @@ export function CaptchaHost() {
             style={[
               {
                 width: "100%",
-                // compact widget is 65px tall; always show it so Cloudflare's
-                // iframe is never clipped inside a zero-height container.
-                height: 80,
+                // normal widget is 300×65px; give 100px to breathe.
+                height: 100,
                 backgroundColor: "transparent",
               },
               !loaded && { display: "none" },

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { friendlyError } from "@shared/utils/errors";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 
@@ -61,7 +62,7 @@ export default function AcceptInvite() {
         setStatus("success");
       } catch (e: any) {
         setStatus("error");
-        setErrorMsg(e.message ?? "Something went wrong.");
+        setErrorMsg(friendlyError(e));
       }
     })();
   }, [hid]);

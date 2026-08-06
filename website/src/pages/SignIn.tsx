@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { takePendingPath } from "../lib/pending-path";
 import { withCaptcha } from "../lib/captcha";
 import { isCaptchaError } from "@shared/utils/captcha";
+import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
@@ -79,7 +80,7 @@ export default function SignIn() {
         } else if (isCaptchaError(err)) {
           setError("We couldn't verify you're human. Please try again.");
         } else {
-          setError(err.message);
+          setError(humanize(err, "auth"));
         }
         return;
       }
