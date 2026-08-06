@@ -80,15 +80,15 @@ export default function VerifyEmailScreen() {
           setError("Incorrect or expired code. Please request a new one.");
           return;
         }
-        setError(humanize(verifyError, "auth"));
+        setError("DEBUG: " + verifyError.message);
         return;
       }
 
       // Verification successful, session established.
       tempAuth.clear();
       router.replace("/(tabs)/dashboard");
-    } catch {
-      setError("Could not verify the code. Please try again.");
+    } catch (err: any) {
+      setError("CATCH_DEBUG: " + (err.message || String(err)));
     } finally {
       setVerifyLoading(false);
     }

@@ -7,9 +7,10 @@ const workspaceRoot = path.resolve(projectRoot, "..");
 
 const config = getDefaultConfig(projectRoot);
 
-// Monorepo: watch the shared package so Fast Refresh picks up changes there.
+// Monorepo: watch the shared package and hoisted node_modules so Fast Refresh picks up changes.
 config.watchFolders = [
   path.join(workspaceRoot, "packages"),
+  path.join(workspaceRoot, "node_modules"),
 ];
 
 // Keep module resolution inside the app first, then the workspace root.

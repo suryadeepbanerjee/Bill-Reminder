@@ -77,7 +77,7 @@ export default function SignUpScreen() {
         if (authError.message.toLowerCase().includes("rate limit")) {
           setError("Too many attempts. Please wait a few minutes and try again.");
         } else {
-          setError(humanize(authError, "auth"));
+          setError("DEBUG SIGNUP: " + authError.message);
         }
         return;
       }
@@ -93,8 +93,8 @@ export default function SignUpScreen() {
       // to detect confirmed status (tempAuth is never persisted to disk).
       tempAuth.store(data.email, data.password);
       router.push({ pathname: "/(auth)/verify-email", params: { email: data.email } });
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err: any) {
+      setError("CATCH_DEBUG SIGNUP: " + (err.message || String(err)));
     } finally {
       setIsLoading(false);
     }

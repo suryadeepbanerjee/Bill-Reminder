@@ -125,8 +125,9 @@ android {
         release {
             // Refuse to build a release without a real signing key — do not
             // fall back to the debug keystore (security audit finding).
+            def isReleaseTask = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
             def storeFileEnv = System.getenv('RELEASE_STORE_FILE')
-            if (!storeFileEnv) {
+            if (isReleaseTask && !storeFileEnv) {
                 throw new GradleException(
                     'Release signing not configured. Set RELEASE_STORE_FILE, ' +
                     'RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD ' +
@@ -134,7 +135,9 @@ android {
                     'Refusing to sign a release with the debug keystore.'
                 )
             }
-            signingConfig signingConfigs.release
+            if (storeFileEnv) {
+                signingConfig signingConfigs.release
+            }
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

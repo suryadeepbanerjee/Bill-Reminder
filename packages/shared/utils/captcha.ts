@@ -33,7 +33,8 @@ export function isCaptchaError(error: unknown): boolean {
     lower.includes("captcha") ||
     lower.includes("hcaptcha") ||
     lower.includes("turnstile") ||
-    lower.includes("verification failed")
+    lower.includes("verification failed") ||
+    lower.includes("challenge")
   );
 }
 

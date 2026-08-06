@@ -214,7 +214,7 @@ export function CaptchaHost() {
 
           <WebView
             key={nonce}
-            source={{ html: buildHtml(CAPTCHA_SITE_KEY, nonce) }}
+            source={{ html: buildHtml(CAPTCHA_SITE_KEY, nonce), baseUrl: "https://billreminder.suryadeepbanerjee.in" }}
             style={[
               {
                 width: "100%",

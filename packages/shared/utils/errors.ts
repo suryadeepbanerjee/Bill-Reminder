@@ -82,7 +82,7 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
 
     // CAPTCHA rejections — before the token/code checks so "Captcha token
     // expired" never surfaces as a wrong-code message.
-    if (lower.includes("captcha") || lower.includes("hcaptcha") || lower.includes("turnstile")) {
+    if (lower.includes("captcha") || lower.includes("hcaptcha") || lower.includes("turnstile") || lower.includes("challenge")) {
       return "We couldn't verify you're human. Please try again.";
     }
 
@@ -159,7 +159,8 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
     }
   }
 
-  return FALLBACKS[context] ?? FALLBACKS.unknown;
+  const fallback = FALLBACKS[context] ?? FALLBACKS.unknown;
+  return `${fallback} (DEBUG RAW: ${raw})`;
 }
 
 /** Extract a string message from any error-like value. */
