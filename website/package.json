@@ -10,10 +10,11 @@
     "lint": "eslint src --ext ts,tsx"
   },
   "dependencies": {
+    "@bill-reminder/shared": "*",
     "@hookform/resolvers": "^5.7.1",
     "@supabase/supabase-js": "^2.49.0",
     "@tanstack/react-query": "^5.101.4",
-    "@bill-reminder/shared": "*",
+    "@vercel/analytics": "^2.0.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^1.28.0",
     "react": "^18.3.1",

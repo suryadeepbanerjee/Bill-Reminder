@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Analytics } from "@vercel/analytics/react";
 import Home from "./pages/Home";
 import SignIn from "./pages/SignIn";
 import SignInCode from "./pages/SignInCode";
@@ -36,6 +37,12 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Applies the stored theme, but keeps the landing page (`/`) permanently dark. */
+function RouteAwareTheme({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  return <ThemeProvider forceDark={pathname === "/"}>{children}</ThemeProvider>;
+}
+
 /** Restores the Supabase session once for the whole app (needed on public pages too). */
 function SessionSync() {
   useAuth();
@@ -60,11 +67,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ThemeProvider defaultTheme="system" storageKey="bill-reminder-theme">
+        <RouteAwareTheme>
           <ToastProvider>
             <ConfirmProvider>
               <SessionSync />
               <ScrollToTop />
+              <Analytics />
               <Routes>
                 {/* Public / landing */}
                 <Route path="/" element={<RedirectIfAuthed><Home /></RedirectIfAuthed>} />
@@ -109,7 +117,7 @@ export default function App() {
               </Routes>
             </ConfirmProvider>
           </ToastProvider>
-        </ThemeProvider>
+        </RouteAwareTheme>
       </BrowserRouter>
     </QueryClientProvider>
   );
