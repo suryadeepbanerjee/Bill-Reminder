@@ -76,7 +76,6 @@
 		background-color: var(--color-canvas);
 		color: var(--color-primary);
 		@apply font-sans antialiased selection:bg-accent selection:text-accent-text;
-		overflow-x: hidden;
 		overscroll-behavior: none;
 	}
 }

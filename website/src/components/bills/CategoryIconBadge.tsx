@@ -42,13 +42,14 @@ export default function CategoryIconBadge({ icon, color, size = 40 }: CategoryIc
   const Icon = resolveIcon(icon);
   return (
     <div
-      className="flex items-center justify-center shrink-0"
+      className="flex items-center justify-center shrink-0 [.dark_&]:!bg-[var(--dark-bg-color)]"
       style={{
         width: size,
         height: size,
         borderRadius: size / 4,
         backgroundColor: `${color}1f`,
-      }}
+        "--dark-bg-color": "rgba(244, 244, 246, 0.1)", // translucent deep white for dark mode
+      } as React.CSSProperties}
       aria-hidden
     >
       <Icon
