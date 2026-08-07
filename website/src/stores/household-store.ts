@@ -39,7 +39,12 @@ export const useHouseholdStore = create<HouseholdState>((set, get) => ({
     try {
       const storedId = localStorage.getItem(STORAGE_KEY);
       const { households } = get();
-      if (households.length === 0) return;
+      if (households.length === 0) {
+        // No households left (left / kicked) — allow the shell to render an
+        // empty state until ensureAtLeastOneHousehold creates a default one.
+        set({ activeHousehold: null, isLoading: false });
+        return;
+      }
 
       const match = households.find((h) => h.household.id === storedId);
       if (match) {

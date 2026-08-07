@@ -6,8 +6,10 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useHouseholdStore } from "../../stores/household-store";
 import {
   fetchHouseholdMembers,
+  ensureAtLeastOneHousehold,
   inviteToHousehold,
   leaveToHousehold,
+  membershipExists,
   removeMember,
   renameHousehold,
   deleteHousehold,
@@ -70,6 +72,7 @@ export default function MembersPage() {
 
   const [resending, setResending] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -93,6 +96,26 @@ export default function MembersPage() {
       setLoading(false);
     }
   }, []);
+
+  // Re-fetch the full household list and repair the active one in place, so a
+  // manual refresh (and its "reset to default" side-effect) is never needed
+  // after a leave/delete where the row was already changed elsewhere.
+  const refreshHouseholds = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      // If the user lost their only household (left / kicked), a fresh
+      // default household is created in its place.
+      const list = await ensureAtLeastOneHousehold(user.id);
+      setHouseholds(list);
+      queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
+      const activeId = activeHousehold?.household.id;
+      if (!list.some((h) => h.household.id === activeId)) {
+        setActiveHousehold(list[0]);
+      }
+    } catch {
+      // leave the store as-is; query revalidation will repair it later
+    }
+  }, [user?.id, activeHousehold?.household.id, setHouseholds, setActiveHousehold, queryClient]);
 
   useEffect(() => {
     if (!householdId) return;
@@ -163,7 +186,27 @@ export default function MembersPage() {
   };
 
   const handleLeaveHousehold = async () => {
-    if (!householdId) return;
+    if (!householdId || !user?.id) return;
+
+    // Buffer first — verify we're still an active member before asking anything.
+    setSyncing(true);
+    try {
+      const { exists, status } = await membershipExists(householdId, user.id);
+      if (!exists || status !== "active") {
+        // Already left (e.g. confirmed on another device) — reconcile in place
+        // instead of surfacing an error.
+        await refreshHouseholds();
+        await loadMembers(householdId);
+        showToast("You've already left this household.", "info");
+        return;
+      }
+    } catch (e) {
+      setSyncing(false);
+      showToast(friendlyError(e), "error");
+      return;
+    }
+    setSyncing(false);
+
     const ok = await confirm({
       title: "Leave this household?",
       message: `We'll email a confirmation link to verify it's really you. Once confirmed, you will lose access to "${activeHousehold?.household.name ?? "this household"}" and its bills.`,
@@ -171,18 +214,40 @@ export default function MembersPage() {
       destructive: true,
     });
     if (!ok) return;
+
     setLeaving(true);
     try {
       const res = await leaveToHousehold(householdId);
       showToast(res.message ?? "Check your inbox to confirm.", "success");
     } catch (e) {
-      showToast(friendlyError(e), "error");
+      const raw = e instanceof Error ? e.message : String(e ?? "");
+      if (/not an active member|already left/i.test(raw)) {
+        await refreshHouseholds();
+        showToast("You've already left this household.", "info");
+      } else {
+        showToast(friendlyError(e), "error");
+      }
     } finally {
       setLeaving(false);
     }
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!householdId) return;
+
+    // Buffer first — confirm the member still exists (an admin on another
+    // device may have removed them already).
+    setSyncing(true);
+    const fresh = await fetchHouseholdMembers(householdId);
+    const stillThere = fresh.some((m) => m.member.id === memberId);
+    if (!stillThere) {
+      setMembers(fresh);
+      setSyncing(false);
+      showToast(`${memberName} has already been removed from this household.`, "info");
+      return;
+    }
+    setSyncing(false);
+
     const ok = await confirm({
       title: "Remove member",
       message: `Are you sure you want to remove ${memberName} from the household?`,
@@ -195,7 +260,13 @@ export default function MembersPage() {
       setMembers((prev) => prev.filter((m) => m.member.id !== memberId));
       showToast(`${memberName} removed`, "success");
     } catch (e) {
-      showToast(friendlyError(e), "error");
+      const raw = e instanceof Error ? e.message : String(e ?? "");
+      if (/no rows? updated|already been removed|not found/i.test(raw)) {
+        await loadMembers(householdId);
+        showToast(`${memberName} has already been removed from this household.`, "info");
+      } else {
+        showToast(friendlyError(e), "error");
+      }
     }
   };
 
@@ -246,6 +317,25 @@ export default function MembersPage() {
       showToast("You cannot delete your default household. Set another household as default first.", "error");
       return;
     }
+
+    // Buffer first — verify the household still exists (it may already have
+    // been deleted by the owner on another device).
+    setSyncing(true);
+    try {
+      const { exists, status } = await membershipExists(targetId, user?.id ?? "");
+      if (!exists || status !== "admin") {
+        await refreshHouseholds();
+        setSyncing(false);
+        showToast(`"${target.household.name}" has already been deleted.`, "info");
+        return;
+      }
+    } catch (e) {
+      setSyncing(false);
+      showToast(friendlyError(e), "error");
+      return;
+    }
+    setSyncing(false);
+
     const ok = await confirm({
       title: "Delete household",
       message: `Are you sure you want to delete "${target.household.name}"? This will permanently remove all bills, members, and data.`,
@@ -267,7 +357,13 @@ export default function MembersPage() {
       queryClient.invalidateQueries({ queryKey: ["householdCategories", targetId] });
       showToast("Household deleted", "success");
     } catch (e) {
-      showToast(friendlyError(e), "error");
+      const raw = e instanceof Error ? e.message : String(e ?? "");
+      if (/only admin|only admin fails/i.test(raw)) {
+        showToast(friendlyError(e), "error");
+      } else {
+        await refreshHouseholds();
+        showToast(`"${target.household.name}" has already been deleted.`, "info");
+      }
     } finally {
       setDeleting(false);
     }
@@ -275,9 +371,18 @@ export default function MembersPage() {
 
   return (
     <div className="max-w-xl mx-auto">
-      {/* Soft buffer while resending — brief, translucent, then the list
-          updates in place so a manual refresh (and its household reset) is
-          never needed. */}
+      {/* Soft buffer while resending / verifying / syncing — brief, translucent,
+          then the list updates in place so a manual refresh (and its household
+          reset) is never needed. */}
+      {syncing && (
+        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-[2px] flex items-center justify-center">
+          <div className="bg-surface border border-border rounded-xl px-6 py-5 flex items-center gap-3 shadow-raised">
+            <div className="w-5 h-5 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+            <p className="text-sm text-primary font-medium">Checking…</p>
+          </div>
+        </div>
+      )}
+
       {resending && (
         <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-[2px] flex items-center justify-center">
           <div className="bg-surface border border-border rounded-xl px-6 py-5 flex items-center gap-3 shadow-raised">

@@ -8,6 +8,7 @@ const api = createProfileApi(supabase);
 export const fetchProfile = api.fetchProfile;
 export const updateProfile = api.updateProfile;
 export const fetchAllUserHouseholds = api.fetchAllUserHouseholds;
+export const ensureAtLeastOneHousehold = api.ensureAtLeastOneHousehold;
 export const fetchUserHousehold = api.fetchUserHousehold;
 export const fetchHouseholdMembers = api.fetchHouseholdMembers;
 export const savePushToken = api.savePushToken;
@@ -43,6 +44,8 @@ export function leaveToHousehold(
     api.leaveToHousehold(householdId)
   ) as Promise<{ success: boolean; message: string }>;
 }
+
+export const membershipExists = api.membershipExists;
 
 export function renameHousehold(householdId: string, newName: string): Promise<void> {
   return guardAsync(`mut:rename-household:${householdId}:${newName.trim()}`, () =>

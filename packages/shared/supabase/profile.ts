@@ -11,6 +11,13 @@ export interface ProfileApi {
     household: Household;
     member:    HouseholdMember;
   }[]>;
+  /** Fetch the user's active households; if the user has none (they left/acked
+   * their default, or were kicked out of it), auto-create a default household
+   * so the app always has something to render. */
+  ensureAtLeastOneHousehold(userId: string): Promise<{
+    household: Household;
+    member:    HouseholdMember;
+  }[]>;
   fetchUserHousehold(userId: string): Promise<{
     household: Household;
     member:    HouseholdMember;
@@ -22,6 +29,7 @@ export interface ProfileApi {
   createHousehold(name: string, userId: string): Promise<{ household: Household; member: HouseholdMember }>;
   inviteToHousehold(householdId: string, email: string): Promise<{ success: boolean; message: string }>;
   leaveToHousehold(householdId: string): Promise<{ success: boolean; message: string }>;
+  membershipExists(householdId: string, userId: string): Promise<{ exists: boolean; status: string | null }>;
   removeMember(memberId: string): Promise<void>;
   renameHousehold(householdId: string, newName: string): Promise<void>;
   deleteHousehold(householdId: string): Promise<void>;
@@ -83,6 +91,17 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
       household: row.households as Household,
       member:    row as HouseholdMember,
     }));
+  };
+
+  const ensureAtLeastOneHousehold = async (userId: string) => {
+    let list = await fetchAllUserHouseholds(userId);
+    if (list.length === 0) {
+      // They left / were kicked out of their only household — create a fresh
+      // default one so the app can still render bills & money views.
+      const created = await createHousehold("My Household", userId);
+      list = [created];
+    }
+    return list;
   };
 
   const fetchUserHousehold = async (userId: string): Promise<{
@@ -169,6 +188,19 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     return data as { success: boolean; message: string };
   };
 
+  const membershipExists = async (householdId: string, userId: string): Promise<{ exists: boolean; status: string | null }> => {
+    const { data, error } = await supabase
+      .from("household_members")
+      .select("status")
+      .eq("household_id", householdId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) return { exists: false, status: null };
+    return { exists: true, status: data.status as string };
+  };
+
   const removeMember = async (memberId: string): Promise<void> => {
     const { error } = await supabase
       .from("household_members")
@@ -238,11 +270,13 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     fetchProfile,
     updateProfile,
     fetchAllUserHouseholds,
+    ensureAtLeastOneHousehold,
     fetchUserHousehold,
     fetchHouseholdMembers,
     createHousehold,
     inviteToHousehold,
     leaveToHousehold,
+    membershipExists,
     removeMember,
     renameHousehold,
     deleteHousehold,

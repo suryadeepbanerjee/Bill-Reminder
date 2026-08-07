@@ -15,8 +15,10 @@ import { useAppTokens } from "../../../lib/tokens";
 import { useHouseholdStore } from "../../../stores/household-store";
 import {
   fetchHouseholdMembers,
+  ensureAtLeastOneHousehold,
   inviteToHousehold,
   leaveToHousehold,
+  membershipExists,
   removeMember,
   renameHousehold,
   deleteHousehold,
@@ -54,6 +56,7 @@ export default function MembersScreen() {
   const [showRename, setShowRename] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [showCreateHousehold, setShowCreateHousehold] = useState(false);
   const [newHouseholdName, setNewHouseholdName] = useState("");
   const [creatingHousehold, setCreatingHousehold] = useState(false);
@@ -68,6 +71,23 @@ export default function MembersScreen() {
 
   const householdId = activeHousehold?.household.id ?? "";
   const isAdmin = activeHousehold?.member.role === "admin";
+
+  // Re-fetch the full household list and repair the active one in place, so a
+  // manual refresh (and its "reset to default" side-effect) is never needed
+  // after a leave/delete where the row was changed elsewhere. If the user lost
+  // their only household, a fresh default household is created in its place.
+  const refreshHouseholds = async () => {
+    if (!user?.id) return;
+    try {
+      const list = await ensureAtLeastOneHousehold(user.id);
+      setHouseholds(list);
+      queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
+      const activeId = activeHousehold?.household.id;
+      if (!list.some((h) => h.household.id === activeId) && list.length > 0) {
+        await useHouseholdStore.getState().setActiveHousehold(list[0]);
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     if (!householdId) return;
@@ -143,7 +163,8 @@ export default function MembersScreen() {
     }
   };
 
-  const handleRemoveMember = (memberId: string, memberName: string) => {    Alert.alert(
+  const handleRemoveMember = (memberId: string, memberName: string) => {
+    Alert.alert(
       "Remove Member",
       `Are you sure you want to remove ${memberName} from the household?`,
       [
@@ -153,11 +174,36 @@ export default function MembersScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              setSyncing(true);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+              // Existence check first — an admin on another device may have
+              // already removed this person.
+              const updated = await fetchHouseholdMembers(householdId);
+              if (!updated.some((m) => m.member.id === memberId)) {
+                setMembers(updated);
+                setSyncing(false);
+                Alert.alert("Already Removed", `${memberName} has already been removed from this household.`);
+                return;
+              }
+              setSyncing(false);
+
               await removeMember(memberId);
               setMembers((prev) => prev.filter((m) => m.member.id !== memberId));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (e: any) {
-              Alert.alert("Error", friendlyError(e));
+              setSyncing(false);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              const raw = e instanceof Error ? e.message : String(e ?? "");
+              if (/no rows? updated|already been removed|not found/i.test(raw)) {
+                try {
+                  const fresh = await fetchHouseholdMembers(householdId);
+                  setMembers(fresh);
+                } catch {}
+                Alert.alert("Already Removed", `${memberName} has already been removed from this household.`);
+              } else {
+                Alert.alert("Error", friendlyError(e));
+              }
             }
           },
         }
@@ -238,8 +284,21 @@ export default function MembersScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              setDeleting(true);
+              setSyncing(true);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+              // Existence check first — the owner on another device may have
+              // already deleted this household.
+              const { exists, status } = await membershipExists(targetId, user?.id ?? "");
+              if (!exists || status !== "admin") {
+                await refreshHouseholds();
+                setSyncing(false);
+                Alert.alert("Already Deleted", `"${target.household.name}" has already been deleted.`);
+                return;
+              }
+              setSyncing(false);
+
+              setDeleting(true);
               await deleteHousehold(targetId);
               const remaining = households.filter((h) => h.household.id !== targetId);
               setHouseholds(remaining);
@@ -256,7 +315,15 @@ export default function MembersScreen() {
               queryClient.invalidateQueries({ queryKey: ["householdCategories", targetId] });
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (e: any) {
-              Alert.alert("Error", friendlyError(e));
+              setSyncing(false);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              const raw = e instanceof Error ? e.message : String(e ?? "");
+              if (/only admin|only-owner/i.test(raw)) {
+                Alert.alert("Error", friendlyError(e));
+              } else {
+                await refreshHouseholds();
+                Alert.alert("Already Deleted", `"${target.household.name}" has already been deleted.`);
+              }
             } finally {
               setDeleting(false);
             }
@@ -266,7 +333,27 @@ export default function MembersScreen() {
     );
   };
 
-  const handleLeaveHousehold = () => {
+  const handleLeaveHousehold = async () => {
+    if (!householdId || !user?.id) return;
+
+    // Buffer first — verify we're still an active member before asking anything.
+    setSyncing(true);
+    try {
+      const { exists, status } = await membershipExists(householdId, user.id);
+      if (!exists || status !== "active") {
+        // Already left — reconcile household/member lists in place.
+        await refreshHouseholds();
+        setSyncing(false);
+        Alert.alert("Already Left", "You've already left this household.");
+        return;
+      }
+    } catch (e: any) {
+      setSyncing(false);
+      Alert.alert("Error", friendlyError(e));
+      return;
+    }
+    setSyncing(false);
+
     Alert.alert(
       "Leave this household?",
       `We'll email a confirmation link to verify it's really you. Once confirmed, you will lose access to "${activeHousehold?.household.name ?? "this household"}" and its bills.`,
@@ -284,7 +371,13 @@ export default function MembersScreen() {
               Alert.alert("Check your inbox", res.message ?? "We've sent a confirmation link to your email.");
             } catch (e: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert("Error", friendlyError(e));
+              const raw = e instanceof Error ? e.message : String(e ?? "");
+              if (/not an active member|already left/i.test(raw)) {
+                await refreshHouseholds();
+                Alert.alert("Already Left", "You've already left this household.");
+              } else {
+                Alert.alert("Error", friendlyError(e));
+              }
             } finally {
               setLeaving(false);
             }
@@ -651,11 +744,11 @@ export default function MembersScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {deleting && (
+      {(deleting || syncing) && (
         <View className="absolute inset-0 z-50 bg-black/70 items-center justify-center">
           <ActivityIndicator size="large" color="#D1A920" />
           <Text className="mt-3 text-white text-[15px] font-semibold">
-            Deleting household…
+            {deleting ? "Deleting household…" : "Checking…"}
           </Text>
         </View>
       )}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllUserHouseholds } from "../lib/api/household";
+import { ensureAtLeastOneHousehold } from "../lib/api/household";
 import { useAuthStore } from "../stores/auth-store";
 import { useHouseholdStore } from "../stores/household-store";
 
@@ -16,7 +16,9 @@ export function useHousehold() {
   const query = useQuery({
     queryKey: ["households", user?.id],
     queryFn:  async () => {
-      const list = await fetchAllUserHouseholds(user!.id);
+      // If the user has no households (left or was kicked out of their default)
+      // a fresh default one is created so there's always something to render.
+      const list = await ensureAtLeastOneHousehold(user!.id);
       setHouseholds(list);
       loadActive();
       return list;
