@@ -146,21 +146,46 @@
     </script>
   </head>
   <body class="bg-[#080810] text-white antialiased">
-    <div id="root"></div>
-    <noscript>
-      <div style="max-width:640px;margin:48px auto;padding:0 20px;font-family:Arial,sans-serif;color:#e4e4e7">
-        <h1 style="color:#fff">Bill Reminder</h1>
-        <p>Bill Reminder is a cross-platform application that helps you manage subscriptions, utility bills, mobile recharges, rent, EMIs and other recurring payments with smart reminders, email and push notifications, secure cloud sync, payment history and safe authentication - never pay a late fee again.</p>
-        <ul>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#how-it-works">How it works</a></li>
-          <li><a href="#faq">Frequently asked questions</a></li>
-          <li><a href="/sign-up">Get started</a></li>
-          <li><a href="/sign-in">Sign in</a></li>
-        </ul>
-        <p style="color:#8e929e">Bill Reminder &copy; Suryadeep Banerjee - billreminder.suryadeepbanerjee.in</p>
+    <div id="root">
+      <!--
+        Static pre-render for crawlers (Google OAuth bot, Googlebot, etc.) that do
+        not execute JavaScript. React replaces this entire block on mount.
+        DO NOT REMOVE — this content is what Google reads for OAuth app verification.
+      -->
+      <div id="static-prerender" style="max-width:680px;margin:48px auto;padding:0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#e4e4e7;background:#080810;min-height:100vh">
+        <header style="display:flex;align-items:center;gap:12px;padding:24px 0 40px">
+          <img src="/fevicon.png" alt="Bill Reminder logo" width="36" height="36" style="border-radius:8px" />
+          <span style="font-size:18px;font-weight:700;color:#fff">Bill Reminder</span>
+        </header>
+        <main>
+          <h1 style="font-size:2.5rem;font-weight:800;color:#fff;margin:0 0 16px;line-height:1.1">Bill Reminder — Never Miss Another Payment</h1>
+          <p style="font-size:1.1rem;color:#a0a0b0;line-height:1.7;margin:0 0 24px">
+            Bill Reminder is a free, cross-platform application that helps you track and manage all your recurring bills and payments — subscriptions, utility bills, mobile recharges, rent, EMIs and more. It sends smart reminders by email and push notification before every due date so you never pay a late fee again.
+          </p>
+          <h2 style="font-size:1.25rem;font-weight:700;color:#fff;margin:0 0 12px">Key Features</h2>
+          <ul style="color:#a0a0b0;line-height:2;padding-left:20px;margin:0 0 24px">
+            <li>Track subscriptions, utilities, rent, EMIs and mobile recharges in one place</li>
+            <li>Email and push notification reminders before every due date</li>
+            <li>Payment history and overdue tracking</li>
+            <li>Secure cloud sync across all your devices</li>
+            <li>Offline support — works without internet</li>
+            <li>Household sharing — split bills with family members</li>
+            <li>Google sign-in — reads only your name and email, never your financial data</li>
+            <li>Free and open source (MIT License)</li>
+          </ul>
+          <p style="color:#a0a0b0;line-height:1.7;margin:0 0 32px">
+            Bill Reminder never connects to your bank, never asks for card numbers, and never accesses your financial accounts. You manually enter bill names and amounts. All data is protected by row-level security — only you can see your bills.
+          </p>
+          <nav style="display:flex;gap:16px;flex-wrap:wrap">
+            <a href="/sign-up" style="background:#ba9618;color:#080810;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Get Started Free</a>
+            <a href="/sign-in" style="color:#a0a0b0;padding:12px 0;text-decoration:none;font-size:15px">Sign In →</a>
+          </nav>
+        </main>
+        <footer style="margin-top:64px;padding-top:24px;border-top:1px solid #222;color:#666;font-size:13px">
+          <p>© 2026 Bill Reminder by Suryadeep Banerjee · <a href="/privacy" style="color:#888">Privacy Policy</a> · <a href="/terms" style="color:#888">Terms</a></p>
+        </footer>
       </div>
-    </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
