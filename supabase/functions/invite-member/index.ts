@@ -257,10 +257,8 @@ serve(async (req: Request) => {
       throw new Error("Email service is not configured. Please set RESEND_API_KEY.");
     }
 
-        const safeCallerName   = escapeHtml(callerName);
+    const safeCallerName   = escapeHtml(callerName);
     const safeHousehold    = escapeHtml(householdName);
-    const safeSubjectName  = escapeHtml(callerName);
-    const safeSubjectHH    = escapeHtml(householdName);
 
     const html = `
 <!DOCTYPE html>
@@ -314,7 +312,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from:    "Bill Reminder <billalert@billreminder.suryadeepbanerjee.in>",
         to:      [email],
-        subject: `${safeSubjectName} invited you to "${safeSubjectHH}" on Bill Reminder`,
+        subject: `${callerName} invited you to "${householdName}" on Bill Reminder`,
         html,
       }),
     });

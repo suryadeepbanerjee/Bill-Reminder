@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Pencil, Plus, Trash2, Shield, User, CheckCircle2, AlertCircle, Settings } from "lucide-react";
+import { ChevronLeft, Pencil, Plus, Trash2, Shield, User, CheckCircle2, AlertCircle, Settings, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "../../stores/auth-store";
 import { useHouseholdStore } from "../../stores/household-store";
 import {
@@ -709,20 +709,24 @@ export default function MembersPage() {
       </div>
 
       {/* ── Leave this household ────────────────────────────────────────── */}
-      <SectionHeader>Leave household</SectionHeader>
-      <div className="bg-surface border border-border rounded-card p-4 space-y-3">
-        <p className="text-sm text-secondary leading-relaxed">
-          Remove yourself from "{activeHousehold?.household.name ?? "this household"}". A confirmation link will be emailed to verify it's really you — once confirmed, you lose access to this household's bills.
-        </p>
-        <Button
-          variant="destructive"
-          fullWidth
-          onClick={handleLeaveHousehold}
-          loading={leaving}
-        >
-          Leave this household
-        </Button>
-      </div>
+      {!isSuper && (
+        <>
+          <SectionHeader>Leave household</SectionHeader>
+          <div className="bg-surface border border-border rounded-card p-4 space-y-3">
+            <p className="text-sm text-secondary leading-relaxed">
+              Remove yourself from "{activeHousehold?.household.name ?? "this household"}". A confirmation link will be emailed to verify it's really you — once confirmed, you lose access to this household's bills.
+            </p>
+            <Button
+              variant="destructive"
+              fullWidth
+              onClick={handleLeaveHousehold}
+              loading={leaving}
+            >
+              Leave this household
+            </Button>
+          </div>
+        </>
+      )}
 
       {/* ── Danger zone ────────────────────────────────────────────────── */}
       {isSuper && (
@@ -751,25 +755,41 @@ export default function MembersPage() {
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
                 <p className="text-sm text-secondary">
-                  Delete a non-default household to remove all its bills, members, and data permanently.
+                  Delete this household and remove all its bills and members permanently.
                 </p>
-                {households.filter((h) => h.household.id !== activeHousehold?.household.id).map((h) => (
-                  <button
-                    key={h.household.id}
-                    type="button"
-                    onClick={() => handleDeleteHousehold(h.household.id)}
-                    disabled={deleting}
-                    className="w-full flex items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg text-error hover:bg-error/10 transition-colors disabled:opacity-50"
-                  >
-                    <span className="text-sm font-medium truncate">Delete "{h.household.name}"</span>
-                    <Trash2 size={16} className="shrink-0" />
-                  </button>
-                ))}
-                {households.length === 1 && (
-                  <p className="text-xs text-secondary mt-1">You cannot delete your only household.</p>
-                )}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (households.length <= 1) {
+                      showToast("You cannot delete your only household.", "error");
+                      return;
+                    }
+                    const confirmed = await confirm({
+                      title: "Delete Household",
+                      message: `Are you sure you want to delete "${activeHousehold?.household.name ?? "this household"}"? This action is permanent and cannot be undone.`,
+                      confirmLabel: "Delete Household",
+                      destructive: true,
+                    });
+                    if (confirmed) {
+                      setSyncing(true);
+                      try {
+                        await deleteHousehold(householdId);
+                        await refreshHouseholds();
+                        showToast("Household deleted.", "success");
+                      } catch (e: any) {
+                        showToast(friendlyError(e), "error");
+                      } finally {
+                        setSyncing(false);
+                      }
+                    }
+                  }}
+                  className="w-full flex items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg text-error hover:bg-error/10 transition-colors"
+                >
+                  <span className="text-sm font-medium">Delete Household</span>
+                  <AlertTriangle size={18} />
+                </button>
               </div>
             </div>
           </div>

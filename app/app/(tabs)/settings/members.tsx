@@ -1031,23 +1031,25 @@ export default function MembersScreen() {
             </Surface>
           </View>
 
-          <View>
-            <Text className="text-caption text-secondary font-medium uppercase tracking-widest mb-2 mt-2">
-              Leave Household
-            </Text>
-            <Surface level="resting" bordered rounded="card" className="p-4 gap-3">
-              <Text className="text-body text-secondary">
-                Remove yourself from "{activeHousehold?.household.name ?? "this household"}". A confirmation link will be emailed to verify it's really you — once confirmed, you lose access to this household's bills.
+          {!isOwner && (
+            <View>
+              <Text className="text-caption text-secondary font-medium uppercase tracking-widest mb-2 mt-2">
+                Leave Household
               </Text>
-              <Button
-                title="Leave this household"
-                variant="destructive"
-                fullWidth
-                onPress={handleLeaveHousehold}
-                loading={leaving}
-              />
-            </Surface>
-          </View>
+              <Surface level="resting" bordered rounded="card" className="p-4 gap-3">
+                <Text className="text-body text-secondary">
+                  Remove yourself from "{activeHousehold?.household.name ?? "this household"}". A confirmation link will be emailed to verify it's really you — once confirmed, you lose access to this household's bills.
+                </Text>
+                <Button
+                  title="Leave this household"
+                  variant="destructive"
+                  fullWidth
+                  onPress={handleLeaveHousehold}
+                  loading={leaving}
+                />
+              </Surface>
+            </View>
+          )}
 
           {isOwner && (
             <View>
@@ -1079,29 +1081,47 @@ export default function MembersScreen() {
                       <Ionicons name="swap-horizontal" size={18} className="text-accent" />
                     </Pressable>
                   </View>
-                  <View className="gap-3">
+                  <View className="gap-3 pt-2">
                     <Text className="text-body text-secondary">
-                      Delete a non-default household to remove all its bills, members, and data permanently.
+                      Delete this household and remove all its bills and members permanently.
                     </Text>
-                    {households.filter(h => h.household.id !== activeHousehold?.household.id).map((h) => (
-                      <Pressable
-                        key={h.household.id}
-                        onPress={() => handleDeleteHousehold(h.household.id)}
-                        disabled={deleting}
-                        className="flex-row items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg"
-                        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                      >
-                        <Text className="text-body text-error font-medium" numberOfLines={1}>
-                          Delete "{h.household.name}"
-                        </Text>
-                        <Ionicons name="trash-outline" size={18} className="text-error" />
-                      </Pressable>
-                    ))}
-                    {households.length === 1 && (
-                      <Text className="text-caption text-secondary">
-                        You cannot delete your only household.
+                    <Pressable
+                      onPress={async () => {
+                        if (households.length <= 1) {
+                          Alert.alert("Cannot delete", "You cannot delete your only household.");
+                          return;
+                        }
+                        Alert.alert(
+                          "Delete Household",
+                          `Are you sure you want to delete "${activeHousehold?.household.name ?? "this household"}"? This action is permanent and cannot be undone.`,
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Delete",
+                              style: "destructive",
+                              onPress: async () => {
+                                setSyncing(true);
+                                try {
+                                  await deleteHousehold(householdId);
+                                  await refreshHouseholds();
+                                } catch (e: any) {
+                                  Alert.alert("Error", friendlyError(e));
+                                } finally {
+                                  setSyncing(false);
+                                }
+                              }
+                            }
+                          ]
+                        );
+                      }}
+                      className="flex-row items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    >
+                      <Text className="text-body text-error font-medium" numberOfLines={1}>
+                        Delete Household
                       </Text>
-                    )}
+                      <Ionicons name="trash-outline" size={18} className="text-error" />
+                    </Pressable>
                   </View>
                 </View>
               </Surface>
