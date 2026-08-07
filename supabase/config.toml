@@ -444,3 +444,11 @@ verify_jwt = false
 # accept-invite-by-code — public; the invite row UUID in the link IS the token
 [functions.accept-invite-by-code]
 verify_jwt = false
+
+# leave-household - caller-authenticated; sends a verification email with a
+# single-use link (JWT verified by default)
+[functions.leave-household]
+
+# leave-household-by-code - public; the membership row UUID in the link IS the token
+[functions.leave-household-by-code]
+verify_jwt = false

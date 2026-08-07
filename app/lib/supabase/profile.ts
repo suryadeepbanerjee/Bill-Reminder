@@ -36,6 +36,14 @@ export function removeMember(memberId: string): Promise<void> {
   ) as Promise<void>;
 }
 
+export function leaveToHousehold(
+  householdId: string
+): Promise<{ success: boolean; message: string }> {
+  return guardAsync(`mut:leave-household:${householdId}`, () =>
+    api.leaveToHousehold(householdId)
+  ) as Promise<{ success: boolean; message: string }>;
+}
+
 export function renameHousehold(householdId: string, newName: string): Promise<void> {
   return guardAsync(`mut:rename-household:${householdId}:${newName.trim()}`, () =>
     api.renameHousehold(householdId, newName)

@@ -21,6 +21,7 @@ export interface ProfileApi {
   }[]>;
   createHousehold(name: string, userId: string): Promise<{ household: Household; member: HouseholdMember }>;
   inviteToHousehold(householdId: string, email: string): Promise<{ success: boolean; message: string }>;
+  leaveToHousehold(householdId: string): Promise<{ success: boolean; message: string }>;
   removeMember(memberId: string): Promise<void>;
   renameHousehold(householdId: string, newName: string): Promise<void>;
   deleteHousehold(householdId: string): Promise<void>;
@@ -158,6 +159,16 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     return data as { success: boolean; message: string };
   };
 
+  const leaveToHousehold = async (
+    householdId: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const { data, error } = await supabase.functions.invoke("leave-household", {
+      body: { householdId },
+    });
+    if (error) throw new Error(await extractInvokeError(error));
+    return data as { success: boolean; message: string };
+  };
+
   const removeMember = async (memberId: string): Promise<void> => {
     const { error } = await supabase
       .from("household_members")
@@ -231,6 +242,7 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     fetchHouseholdMembers,
     createHousehold,
     inviteToHousehold,
+    leaveToHousehold,
     removeMember,
     renameHousehold,
     deleteHousehold,

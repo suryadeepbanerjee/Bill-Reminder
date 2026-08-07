@@ -9,6 +9,7 @@ export const fetchAllUserHouseholds = api.fetchAllUserHouseholds;
 export const fetchHouseholdMembers = api.fetchHouseholdMembers;
 export const createHousehold = api.createHousehold;
 export const inviteToHousehold = api.inviteToHousehold;
+export const leaveToHousehold = api.leaveToHousehold;
 export const deleteHousehold = api.deleteHousehold;
 export const acceptInvite = api.acceptInvite;
 export const removeMember = api.removeMember;

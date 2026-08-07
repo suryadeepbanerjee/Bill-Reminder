@@ -15,3 +15,10 @@ export function billUrl(billId: string): string {
 export function inviteUrl(householdId: string, inviteCode: string): string {
   return `${SITE_URL}/accept-invite?code=${encodeURIComponent(inviteCode)}&hid=${encodeURIComponent(householdId)}`;
 }
+
+/** Canonical link to confirm leaving a household (leave-household page).
+ * Same one-time-token pattern as invites: the household_members.id is only
+ * usable while the membership is "active", so the link works without login. */
+export function leaveUrl(householdId: string, membershipCode: string): string {
+  return `${SITE_URL}/leave-household?code=${encodeURIComponent(membershipCode)}&hid=${encodeURIComponent(householdId)}`;
+}

@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import AcceptInvite from "./pages/AcceptInvite";
+import LeaveHousehold from "./pages/LeaveHousehold";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import BillsPage from "./pages/dashboard/BillsPage";
@@ -87,6 +88,7 @@ export default function App() {
                 <Route path="/auth/error" element={<AuthError />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/accept-invite" element={<AcceptInvite />} />
+                <Route path="/leave-household" element={<LeaveHousehold />} />
 
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />

@@ -7,6 +7,7 @@ import { useHouseholdStore } from "../../stores/household-store";
 import {
   fetchHouseholdMembers,
   inviteToHousehold,
+  leaveToHousehold,
   removeMember,
   renameHousehold,
   deleteHousehold,
@@ -68,6 +69,7 @@ export default function MembersPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   const [resending, setResending] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -157,6 +159,26 @@ export default function MembersPage() {
       await loadMembers(householdId);
     } finally {
       setResending(false);
+    }
+  };
+
+  const handleLeaveHousehold = async () => {
+    if (!householdId) return;
+    const ok = await confirm({
+      title: "Leave this household?",
+      message: `We'll email a confirmation link to verify it's really you. Once confirmed, you will lose access to "${activeHousehold?.household.name ?? "this household"}" and its bills.`,
+      confirmLabel: "Send link",
+      destructive: true,
+    });
+    if (!ok) return;
+    setLeaving(true);
+    try {
+      const res = await leaveToHousehold(householdId);
+      showToast(res.message ?? "Check your inbox to confirm.", "success");
+    } catch (e) {
+      showToast(friendlyError(e), "error");
+    } finally {
+      setLeaving(false);
     }
   };
 
@@ -508,6 +530,22 @@ export default function MembersPage() {
             <span className="text-sm font-medium">Create new household</span>
           </button>
         )}
+      </div>
+
+      {/* ── Leave this household ────────────────────────────────────────── */}
+      <SectionHeader>Leave household</SectionHeader>
+      <div className="bg-surface border border-border rounded-card p-4 space-y-3">
+        <p className="text-sm text-secondary leading-relaxed">
+          Remove yourself from "{activeHousehold?.household.name ?? "this household"}". A confirmation link will be emailed to verify it's really you — once confirmed, you lose access to this household's bills.
+        </p>
+        <Button
+          variant="destructive"
+          fullWidth
+          onClick={handleLeaveHousehold}
+          loading={leaving}
+        >
+          Leave this household
+        </Button>
       </div>
 
       {/* ── Danger zone ────────────────────────────────────────────────── */}

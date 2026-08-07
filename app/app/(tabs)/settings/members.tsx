@@ -16,6 +16,7 @@ import { useHouseholdStore } from "../../../stores/household-store";
 import {
   fetchHouseholdMembers,
   inviteToHousehold,
+  leaveToHousehold,
   removeMember,
   renameHousehold,
   deleteHousehold,
@@ -52,6 +53,7 @@ export default function MembersScreen() {
   const [renaming, setRenaming] = useState(false);
   const [showRename, setShowRename] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [showCreateHousehold, setShowCreateHousehold] = useState(false);
   const [newHouseholdName, setNewHouseholdName] = useState("");
   const [creatingHousehold, setCreatingHousehold] = useState(false);
@@ -257,6 +259,34 @@ export default function MembersScreen() {
               Alert.alert("Error", friendlyError(e));
             } finally {
               setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLeaveHousehold = () => {
+    Alert.alert(
+      "Leave this household?",
+      `We'll email a confirmation link to verify it's really you. Once confirmed, you will lose access to "${activeHousehold?.household.name ?? "this household"}" and its bills.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Send link",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLeaving(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const res = await leaveToHousehold(householdId);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert("Check your inbox", res.message ?? "We've sent a confirmation link to your email.");
+            } catch (e: any) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert("Error", friendlyError(e));
+            } finally {
+              setLeaving(false);
             }
           },
         },
@@ -567,6 +597,25 @@ export default function MembersScreen() {
                   <Text className="text-body text-accent font-medium">Create new household</Text>
                 </Pressable>
               )}
+            </Surface>
+          </View>
+
+          {/* ── Leave this household ──────────────────────────────────────── */}
+          <View>
+            <Text className="text-caption text-secondary font-medium uppercase tracking-widest mb-2 mt-2">
+              Leave Household
+            </Text>
+            <Surface level="resting" bordered rounded="card" className="p-4 gap-3">
+              <Text className="text-body text-secondary">
+                Remove yourself from "{activeHousehold?.household.name ?? "this household"}". A confirmation link will be emailed to verify it's really you — once confirmed, you lose access to this household's bills.
+              </Text>
+              <Button
+                title="Leave this household"
+                variant="destructive"
+                fullWidth
+                onPress={handleLeaveHousehold}
+                loading={leaving}
+              />
             </Surface>
           </View>
 
