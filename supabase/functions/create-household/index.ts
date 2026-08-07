@@ -46,13 +46,13 @@ serve(async (req: Request) => {
 
     if (hhError) throw new Error(hhError.message);
 
-    // Add user as admin member
+    // Add user as super admin member (the household creator)
     const { error: mError } = await admin
       .from("household_members")
       .insert({
         household_id: hh.id,
         user_id:      user.id,
-        role:         "admin",
+        role:         "super_admin",
         status:       "active",
       });
 

@@ -20,6 +20,7 @@ import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
 import { useNotificationPermission } from "../../hooks/useNotificationPermission";
 import { useAuthStore }       from "../../stores/auth-store";
+import { useHouseholdStore }  from "../../stores/household-store";
 import { savePendingRoute }   from "../../lib/pending-route";
 
 import { Header }          from "../../components/ui/Header";
@@ -51,6 +52,7 @@ import {
 } from "@shared/utils/format";
 import { Colors }                         from "../../lib/theme";
 import { humanize }                       from "@shared/utils/errors";
+import { canEditBills }                   from "@shared/utils/roles";
 import { updateBillSchema, UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas";
 import type { Bill, BillOccurrence, BillReminderRule } from "@shared/types";
 
@@ -617,7 +619,7 @@ function ReminderRuleRow({
 
 // ── Occurrence history row ────────────────────────────────────────────────────
 
-function OccurrenceRow({ occurrence, onDelete }: { occurrence: BillOccurrence, onDelete: () => void }) {
+function OccurrenceRow({ occurrence, onDelete, canEdit }: { occurrence: BillOccurrence, onDelete: () => void, canEdit?: boolean }) {
   const isPaid = occurrence.state === "paid";
 
   return (
@@ -650,7 +652,7 @@ function OccurrenceRow({ occurrence, onDelete }: { occurrence: BillOccurrence, o
         <BillStateChip state={occurrence.state} />
       </View>
       
-      {isPaid && (
+      {isPaid && canEdit && (
         <IconButton 
           icon={<Ionicons name="trash-outline" size={16} color="#EF4444" />}
           size="sm" 
@@ -670,6 +672,9 @@ export default function BillDetailScreen() {
   const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
   const [deleteTransactionTarget, setDeleteTransactionTarget] = useState<DeleteTransactionTarget | null>(null);
   const [showEditBill, setShowEditBill]   = useState(false);
+
+  const activeHousehold = useHouseholdStore((s) => s.activeHousehold);
+  const canEdit = canEditBills(activeHousehold?.member.role);
 
   const { user, isLoading: authLoading } = useAuthStore();
   const { data: bill, isLoading, isError, error, refetch } = useBill(id, Boolean(user));
@@ -813,20 +818,22 @@ export default function BillDetailScreen() {
         title={bill.title}
         showBack
         rightAction={
-          <View className="flex-row gap-3">
-            <IconButton
-              icon={<Ionicons name="create-outline" size={20} className="text-primary" />}
-              onPress={() => setShowEditBill(true)}
-              accessibilityLabel="Edit bill"
-              variant="ghost"
-            />
-            <IconButton
-              icon={<Ionicons name="trash-outline" size={20} className="text-error" />}
-              onPress={handleDelete}
-              accessibilityLabel="Delete bill"
-              variant="danger"
-            />
-          </View>
+          canEdit ? (
+            <View className="flex-row gap-3">
+              <IconButton
+                icon={<Ionicons name="create-outline" size={20} className="text-primary" />}
+                onPress={() => setShowEditBill(true)}
+                accessibilityLabel="Edit bill"
+                variant="ghost"
+              />
+              <IconButton
+                icon={<Ionicons name="trash-outline" size={20} className="text-error" />}
+                onPress={handleDelete}
+                accessibilityLabel="Delete bill"
+                variant="danger"
+              />
+            </View>
+          ) : undefined
         }
       />
 
@@ -884,7 +891,7 @@ export default function BillDetailScreen() {
         </View>
 
         {/* ── Mark Paid CTA ───────────────────────────────────────────── */}
-        {canMarkPaid && (
+        {canMarkPaid && canEdit && (
           <View className="px-4 mb-4">
             <Pressable
               onPress={() => {
@@ -1003,6 +1010,7 @@ export default function BillDetailScreen() {
                 <View key={o.id}>
                   <OccurrenceRow 
                     occurrence={o} 
+                    canEdit={canEdit}
                     onDelete={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       setDeleteTransactionTarget({

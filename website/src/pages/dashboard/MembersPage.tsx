@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Pencil, Plus, Trash2, Shield, User, CheckCircle2, AlertCircle, Settings } from "lucide-react";
 import { useAuthStore } from "../../stores/auth-store";
 import { useHouseholdStore } from "../../stores/household-store";
 import {
@@ -11,16 +11,26 @@ import {
   leaveToHousehold,
   membershipExists,
   removeMember,
+  setMemberRole,
   renameHousehold,
   deleteHousehold,
   createHousehold,
+  transferOwnershipRequest,
+  transferOwnershipConfirm,
 } from "../../lib/api/household";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { useConfirm } from "../../components/ui/Confirm";
 import { InviteResendButton } from "../../components/household/InviteResendButton";
 import { useToast } from "../../components/ui/Toast";
+import Modal from "../../components/ui/Modal";
 import { friendlyError } from "@shared/utils/errors";
+import {
+  canInviteMembers,
+  canManageHousehold,
+  isSuperAdmin,
+  roleLabel,
+} from "@shared/utils/roles";
 import type { HouseholdMember, Profile } from "@shared/types";
 
 const INVITE_EXPIRY_HOURS = 24;
@@ -83,8 +93,21 @@ export default function MembersPage() {
   const [newHouseholdName, setNewHouseholdName] = useState("");
   const [creatingHousehold, setCreatingHousehold] = useState(false);
 
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberRow | null>(null);
+
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferStep, setTransferStep] = useState<"confirm" | "otp">("confirm");
+  const [transferOtp, setTransferOtp] = useState("");
+  const [transferSending, setTransferSending] = useState(false);
+  const [transferVerifying, setTransferVerifying] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferCooldown, setTransferCooldown] = useState(0);
+
   const householdId = activeHousehold?.household.id ?? "";
-  const isAdmin = activeHousehold?.member.role === "admin";
+  const myRole = activeHousehold?.member.role ?? null;
+  const isSuper = canManageHousehold(myRole);
+  const canInvite = canInviteMembers(myRole);
 
   const loadMembers = useCallback(async (hhId: string) => {
     setLoading(true);
@@ -97,14 +120,9 @@ export default function MembersPage() {
     }
   }, []);
 
-  // Re-fetch the full household list and repair the active one in place, so a
-  // manual refresh (and its "reset to default" side-effect) is never needed
-  // after a leave/delete where the row was already changed elsewhere.
   const refreshHouseholds = useCallback(async () => {
     if (!user?.id) return;
     try {
-      // If the user lost their only household (left / kicked), a fresh
-      // default household is created in its place.
       const list = await ensureAtLeastOneHousehold(user.id);
       setHouseholds(list);
       queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
@@ -113,7 +131,6 @@ export default function MembersPage() {
         setActiveHousehold(list[0]);
       }
     } catch {
-      // leave the store as-is; query revalidation will repair it later
     }
   }, [user?.id, activeHousehold?.household.id, setHouseholds, setActiveHousehold, queryClient]);
 
@@ -121,6 +138,12 @@ export default function MembersPage() {
     if (!householdId) return;
     loadMembers(householdId);
   }, [householdId, loadMembers]);
+
+  useEffect(() => {
+    if (transferCooldown <= 0) return;
+    const timer = setTimeout(() => setTransferCooldown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [transferCooldown]);
 
   const activeMembers = useMemo(
     () =>
@@ -172,8 +195,6 @@ export default function MembersPage() {
       } catch (e) {
         const raw = e instanceof Error ? e.message : String(e ?? "");
         if (/already a member/i.test(raw)) {
-          // They've already accepted — just sync the page so the stale
-          // "Pending" row flips to an active member.
           showToast("This person has already joined the household.", "info");
         } else {
           showToast(friendlyError(e), "error");
@@ -188,15 +209,12 @@ export default function MembersPage() {
   const handleLeaveHousehold = async () => {
     if (!householdId || !user?.id) return;
 
-    // Buffer first — verify we're still an active member before asking anything.
     setSyncing(true);
     try {
       const { exists, status } = await membershipExists(householdId, user.id);
       if (!exists || status !== "active") {
-        // Already left (e.g. confirmed on another device) — reconcile in place
-        // instead of surfacing an error.
         await refreshHouseholds();
-        await loadMembers(householdId);
+        setSyncing(false);
         showToast("You've already left this household.", "info");
         return;
       }
@@ -207,65 +225,64 @@ export default function MembersPage() {
     }
     setSyncing(false);
 
-    const ok = await confirm({
+    const confirmed = await confirm({
       title: "Leave this household?",
       message: `We'll email a confirmation link to verify it's really you. Once confirmed, you will lose access to "${activeHousehold?.household.name ?? "this household"}" and its bills.`,
       confirmLabel: "Send link",
       destructive: true,
     });
-    if (!ok) return;
-
-    setLeaving(true);
-    try {
-      const res = await leaveToHousehold(householdId);
-      showToast(res.message ?? "Check your inbox to confirm.", "success");
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : String(e ?? "");
-      if (/not an active member|already left/i.test(raw)) {
-        await refreshHouseholds();
-        showToast("You've already left this household.", "info");
-      } else {
-        showToast(friendlyError(e), "error");
+    
+    if (confirmed) {
+      setLeaving(true);
+      try {
+        const res = await leaveToHousehold(householdId);
+        showToast(res.message ?? "Check your inbox for a confirmation link.", "success");
+      } catch (e) {
+        const raw = e instanceof Error ? e.message : String(e ?? "");
+        if (/not an active member|already left/i.test(raw)) {
+          await refreshHouseholds();
+          showToast("You've already left this household.", "info");
+        } else {
+          showToast(friendlyError(e), "error");
+        }
+      } finally {
+        setLeaving(false);
       }
-    } finally {
-      setLeaving(false);
     }
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
     if (!householdId) return;
-
-    // Buffer first — confirm the member still exists (an admin on another
-    // device may have removed them already).
-    setSyncing(true);
-    const fresh = await fetchHouseholdMembers(householdId);
-    const stillThere = fresh.some((m) => m.member.id === memberId);
-    if (!stillThere) {
-      setMembers(fresh);
-      setSyncing(false);
-      showToast(`${memberName} has already been removed from this household.`, "info");
-      return;
-    }
-    setSyncing(false);
-
-    const ok = await confirm({
-      title: "Remove member",
+    const confirmed = await confirm({
+      title: "Remove Member",
       message: `Are you sure you want to remove ${memberName} from the household?`,
       confirmLabel: "Remove",
       destructive: true,
     });
-    if (!ok) return;
-    try {
-      await removeMember(memberId);
-      setMembers((prev) => prev.filter((m) => m.member.id !== memberId));
-      showToast(`${memberName} removed`, "success");
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : String(e ?? "");
-      if (/no rows? updated|already been removed|not found/i.test(raw)) {
-        await loadMembers(householdId);
-        showToast(`${memberName} has already been removed from this household.`, "info");
-      } else {
-        showToast(friendlyError(e), "error");
+    
+    if (confirmed) {
+      setSyncing(true);
+      try {
+        const fresh = await fetchHouseholdMembers(householdId);
+        if (!fresh.some(m => m.member.id === memberId)) {
+          setMembers(fresh);
+          setSyncing(false);
+          showToast(`${memberName} has already been removed.`, "info");
+          return;
+        }
+        setSyncing(false);
+        await removeMember(memberId);
+        setMembers((prev) => prev.filter((m) => m.member.id !== memberId));
+        showToast(`${memberName} removed.`, "success");
+      } catch (e) {
+        setSyncing(false);
+        const raw = e instanceof Error ? e.message : String(e ?? "");
+        if (/no rows? updated|already been removed|not found/i.test(raw)) {
+          await loadMembers(householdId);
+          showToast(`${memberName} has already been removed.`, "info");
+        } else {
+          showToast(friendlyError(e), "error");
+        }
       }
     }
   };
@@ -281,32 +298,16 @@ export default function MembersPage() {
           : h
       );
       setHouseholds(updated);
-      const match = updated.find((h) => h.household.id === householdId);
-      if (match) setActiveHousehold(match);
-      setShowRename(false);
+      if (activeHousehold?.household.id === householdId) {
+        const match = updated.find((h) => h.household.id === householdId);
+        if (match) setActiveHousehold(match);
+      }
       showToast("Household renamed", "success");
+      setShowRename(false);
     } catch (e) {
       showToast(friendlyError(e), "error");
     } finally {
       setRenaming(false);
-    }
-  };
-
-  const handleCreateHousehold = async () => {
-    const name = newHouseholdName.trim();
-    if (!name || !user?.id) return;
-    setCreatingHousehold(true);
-    try {
-      const result = await createHousehold(name, user.id);
-      setHouseholds([...households, result]);
-      setActiveHousehold(result);
-      setShowCreateHousehold(false);
-      setNewHouseholdName("");
-      showToast("Household created", "success");
-    } catch (e) {
-      showToast(friendlyError(e), "error");
-    } finally {
-      setCreatingHousehold(false);
     }
   };
 
@@ -317,159 +318,199 @@ export default function MembersPage() {
       showToast("You cannot delete your default household. Set another household as default first.", "error");
       return;
     }
-
-    // Buffer first — verify the household still exists (it may already have
-    // been deleted by the owner on another device).
-    setSyncing(true);
-    try {
-      const { exists, status } = await membershipExists(targetId, user?.id ?? "");
-      if (!exists || status !== "admin") {
-        await refreshHouseholds();
-        setSyncing(false);
-        showToast(`"${target.household.name}" has already been deleted.`, "info");
-        return;
-      }
-    } catch (e) {
-      setSyncing(false);
-      showToast(friendlyError(e), "error");
-      return;
-    }
-    setSyncing(false);
-
-    const ok = await confirm({
-      title: "Delete household",
+    const confirmed = await confirm({
+      title: "Delete Household",
       message: `Are you sure you want to delete "${target.household.name}"? This will permanently remove all bills, members, and data.`,
       confirmLabel: "Delete",
       destructive: true,
     });
-    if (!ok) return;
-    try {
-      setDeleting(true);
-      await deleteHousehold(targetId);
-      const remaining = households.filter((h) => h.household.id !== targetId);
-      setHouseholds(remaining);
-      if (activeHousehold?.household.id === targetId && remaining.length > 0) {
-        setActiveHousehold(remaining[0]);
-      }
-      queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["bills", targetId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", targetId] });
-      queryClient.invalidateQueries({ queryKey: ["householdCategories", targetId] });
-      showToast("Household deleted", "success");
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : String(e ?? "");
-      if (/only admin|only admin fails/i.test(raw)) {
+    
+    if (confirmed) {
+      setSyncing(true);
+      try {
+        const { exists, status } = await membershipExists(targetId, user?.id ?? "");
+        if (!exists || status !== "super_admin") {
+          await refreshHouseholds();
+          setSyncing(false);
+          showToast(`"${target.household.name}" could not be deleted or you do not have permission.`, "error");
+          return;
+        }
+      } catch (e) {
+        setSyncing(false);
         showToast(friendlyError(e), "error");
-      } else {
-        await refreshHouseholds();
-        showToast(`"${target.household.name}" has already been deleted.`, "info");
+        return;
       }
+      setSyncing(false);
+
+      setDeleting(true);
+      try {
+        await deleteHousehold(targetId);
+        const remaining = households.filter((h) => h.household.id !== targetId);
+        setHouseholds(remaining);
+        if (activeHousehold?.household.id === targetId && remaining.length > 0) {
+          setActiveHousehold(remaining[0]);
+        }
+        queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
+        queryClient.invalidateQueries({ queryKey: ["bills", targetId] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard", targetId] });
+        showToast(`"${target.household.name}" deleted.`, "success");
+      } catch (e) {
+        const raw = e instanceof Error ? e.message : String(e ?? "");
+        if (/only owner|only-owner/i.test(raw)) {
+          showToast(friendlyError(e), "error");
+        } else {
+          await refreshHouseholds();
+          showToast(`"${target.household.name}" has already been deleted.`, "info");
+        }
+      } finally {
+        setDeleting(false);
+      }
+    }
+  };
+
+  const handleCreateHousehold = async () => {
+    const name = newHouseholdName.trim();
+    if (!name || !user?.id) return;
+    setCreatingHousehold(true);
+    try {
+      const result = await createHousehold(name, user.id);
+      const newList = [...households, result];
+      setHouseholds(newList);
+      setActiveHousehold(result);
+      setShowCreateHousehold(false);
+      setNewHouseholdName("");
+      showToast(`Household "${name}" created`, "success");
+    } catch (e) {
+      showToast(friendlyError(e), "error");
     } finally {
-      setDeleting(false);
+      setCreatingHousehold(false);
+    }
+  };
+
+  const handleSendTransferOtp = async () => {
+    if (!selectedMember) return;
+    setTransferError(null);
+    setTransferSending(true);
+    try {
+      await transferOwnershipRequest(householdId, selectedMember.member.id);
+      setTransferStep("otp");
+      setTransferCooldown(60);
+    } catch (e: any) {
+      setTransferError(friendlyError(e));
+    } finally {
+      setTransferSending(false);
+    }
+  };
+
+  const handleResendTransferOtp = async () => {
+    if (transferCooldown > 0 || !selectedMember) return;
+    setTransferError(null);
+    setTransferSending(true);
+    try {
+      await transferOwnershipRequest(householdId, selectedMember.member.id);
+      setTransferCooldown(60);
+    } catch (e: any) {
+      setTransferError(friendlyError(e));
+    } finally {
+      setTransferSending(false);
+    }
+  };
+
+  const handleVerifyTransfer = async () => {
+    if (transferOtp.length !== 6 || !selectedMember) {
+      setTransferError("Please enter the 6-digit code.");
+      return;
+    }
+    setTransferError(null);
+    setTransferVerifying(true);
+    try {
+      await transferOwnershipConfirm(householdId, selectedMember.member.id, transferOtp);
+      showToast("Ownership Transferred successfully.", "success");
+      setShowTransferModal(false);
+      setTransferStep("confirm");
+      setTransferOtp("");
+      await loadMembers(householdId);
+      await refreshHouseholds();
+    } catch (e: any) {
+      setTransferError(friendlyError(e));
+      setTransferVerifying(false);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto">
-      {/* Soft buffer while resending / verifying / syncing — brief, translucent,
-          then the list updates in place so a manual refresh (and its household
-          reset) is never needed. */}
-      {syncing && (
-        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-[2px] flex items-center justify-center">
-          <div className="bg-surface border border-border rounded-xl px-6 py-5 flex items-center gap-3 shadow-raised">
-            <div className="w-5 h-5 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-            <p className="text-sm text-primary font-medium">Checking…</p>
-          </div>
-        </div>
-      )}
-
-      {resending && (
-        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-[2px] flex items-center justify-center">
-          <div className="bg-surface border border-border rounded-xl px-6 py-5 flex items-center gap-3 shadow-raised">
-            <div className="w-5 h-5 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-            <p className="text-sm text-primary font-medium">Syncing members…</p>
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center gap-1 mb-6">
+    <div className="max-w-2xl mx-auto pb-16">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 mb-6">
         <button
           type="button"
-          onClick={() => navigate("/app/settings")}
-          aria-label="Go back"
-          className="p-2 -ml-2 rounded-lg text-secondary hover:bg-input hover:text-primary transition-colors"
+          onClick={() => navigate("/dashboard")}
+          aria-label="Back to dashboard"
+          className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-primary hover:bg-input transition-colors shrink-0"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={24} />
         </button>
-        <h1 className="text-2xl font-bold tracking-tight text-primary">Manage Household</h1>
+        <h1 className="text-2xl font-bold text-primary tracking-tight">Manage Household</h1>
       </div>
 
-      {/* ── Rename (admin) ─────────────────────────────────────────────── */}
-      {isAdmin && (
+      {/* ── Household Name ─────────────────────────────────────────────── */}
+      {isSuper && (
         <>
           <SectionHeader>Household Name</SectionHeader>
-          <div className="bg-surface border border-border rounded-card p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-card p-4 space-y-4">
             {showRename ? (
-              <>
+              <div className="space-y-3">
                 <TextInput
                   label="Household name"
                   placeholder="Enter new name"
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+                  autoFocus
                 />
                 <div className="flex gap-3">
-                  <Button
-                    variant="secondary"
-                    fullWidth
-                    onClick={() => { setShowRename(false); setRenameValue(""); }}
-                  >
+                  <Button variant="secondary" fullWidth onClick={() => setShowRename(false)}>
                     Cancel
                   </Button>
-                  <Button
-                    variant="accent"
-                    fullWidth
-                    onClick={handleRename}
-                    loading={renaming}
-                    disabled={!renameValue.trim()}
-                  >
+                  <Button variant="accent" fullWidth onClick={handleRename} loading={renaming} disabled={!renameValue.trim()}>
                     Save
                   </Button>
                 </div>
-              </>
+              </div>
             ) : (
               <button
                 type="button"
                 onClick={() => { setRenameValue(activeHousehold?.household.name ?? ""); setShowRename(true); }}
-                className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+                className="w-full flex items-center justify-between text-left group"
               >
-                <span className="text-sm text-primary font-medium">
+                <span className="text-sm text-primary group-hover:text-accent transition-colors">
                   {activeHousehold?.household.name ?? "Household"}
                 </span>
-                <Pencil size={16} className="text-accent" />
+                <Pencil size={16} className="text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             )}
           </div>
         </>
       )}
 
-      {/* ── Invite (admin) ─────────────────────────────────────────────── */}
-      {isAdmin && (
+      {/* ── Invite Members ─────────────────────────────────────────────── */}
+      {canInvite && (
         <>
           <SectionHeader>Invite a user</SectionHeader>
-          <div className="bg-surface border border-border rounded-card p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-card p-4 space-y-4">
             <p className="text-sm text-secondary leading-relaxed">
               Send an invitation link to a user. Once they accept, they will be able to see and manage bills in this household.
             </p>
-            <TextInput
-              label="Email address"
-              placeholder="user@example.com"
-              type="email"
-              value={emailToInvite}
-              onChange={(e) => { setEmailToInvite(e.target.value); if (inviteError) setInviteError(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") handleInvite(); }}
-            />
-            {inviteError && <p className="text-xs text-error">{inviteError}</p>}
+            <div className="space-y-1">
+              <TextInput
+                label="Email address"
+                placeholder="user@example.com"
+                type="email"
+                value={emailToInvite}
+                onChange={(e) => setEmailToInvite(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleInvite(); }}
+              />
+              {inviteError && <p className="text-[11px] text-error font-medium pl-1 mt-1">{inviteError}</p>}
+            </div>
             <Button
               variant="accent"
               fullWidth
@@ -483,7 +524,7 @@ export default function MembersPage() {
         </>
       )}
 
-      {/* ── Members list ───────────────────────────────────────────────── */}
+      {/* ── Household Members ──────────────────────────────────────────── */}
       <SectionHeader>Household Members</SectionHeader>
       <div className="bg-surface border border-border rounded-card overflow-hidden">
         {loading ? (
@@ -515,13 +556,23 @@ export default function MembersPage() {
                   <div className="flex-1 min-w-0 mr-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-sm text-primary font-medium truncate">{name}</span>
+                      {role === "super_admin" && (
+                        <span className="bg-yellow-500/10 px-1.5 py-0.5 rounded-sm text-[10px] text-yellow-600 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 border border-yellow-500/20">
+                          Owner
+                        </span>
+                      )}
                       {role === "admin" && (
-                        <span className="bg-primary/10 px-1.5 py-0.5 rounded-sm text-[10px] text-primary font-bold uppercase tracking-wider shrink-0">
+                        <span className="bg-blue-500/10 px-1.5 py-0.5 rounded-sm text-[10px] text-blue-600 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 border border-blue-500/20">
                           Admin
                         </span>
                       )}
+                      {role === "member" && (
+                        <span className="bg-neutral-500/10 px-1.5 py-0.5 rounded-sm text-[10px] text-neutral-500 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 border border-neutral-500/20">
+                          Member
+                        </span>
+                      )}
                       {m.member.status === "invited" && (
-                        <span className="bg-accent/10 px-1.5 py-0.5 rounded-sm text-[10px] text-accent font-bold uppercase tracking-wider shrink-0">
+                        <span className="bg-accent/10 px-1.5 py-0.5 rounded-sm text-[10px] text-accent font-bold uppercase tracking-wider shrink-0 border border-accent/20">
                           Pending
                         </span>
                       )}
@@ -533,22 +584,42 @@ export default function MembersPage() {
                   </div>
                 </div>
 
-                {isAdmin && !isMe && m.member.status === "active" && (
-                  <button
-                    type="button"
-                    aria-label={`Remove ${name}`}
-                    onClick={() => handleRemoveMember(m.member.id, name)}
-                    className="ml-2 bg-error/10 p-2 rounded-full text-error hover:bg-error/20 transition-colors shrink-0"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                {isSuper && !isMe && m.member.status === "active" && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      aria-label={`Change role for ${name}`}
+                      onClick={() => { setSelectedMember(m); setShowRoleModal(true); }}
+                      className="bg-primary/10 p-2 rounded-full text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <Settings size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${name}`}
+                      onClick={() => handleRemoveMember(m.member.id, name)}
+                      className="bg-error/10 p-2 rounded-full text-error hover:bg-error/20 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
 
-                {isAdmin && !isMe && m.member.status === "invited" && (
-                  <InviteResendButton
-                    member={m.member}
-                    onResend={() => handleResend(m.member)}
-                  />
+                {canInvite && !isMe && m.member.status === "invited" && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <InviteResendButton
+                      member={m.member}
+                      onResend={() => handleResend(m.member)}
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Remove ${name}`}
+                      onClick={() => handleRemoveMember(m.member.id, name)}
+                      className="bg-error/10 p-2 rounded-full text-error hover:bg-error/20 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -654,30 +725,216 @@ export default function MembersPage() {
       </div>
 
       {/* ── Danger zone ────────────────────────────────────────────────── */}
-      {isAdmin && households.length > 1 && (
+      {isSuper && (
         <>
           <SectionHeader>Danger Zone</SectionHeader>
           <div className="bg-surface border border-border rounded-card overflow-hidden">
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-secondary">
-                Delete a non-default household to remove all its bills, members, and data permanently.
-              </p>
-              {households.filter((h) => h.household.id !== activeHousehold?.household.id).map((h) => (
+            <div className="p-4 space-y-4">
+              <div className="space-y-3 border-b border-border pb-4">
+                <p className="text-sm text-secondary">
+                  Transfer ownership of this household to another Admin. You will become an Admin.
+                </p>
                 <button
-                  key={h.household.id}
                   type="button"
-                  onClick={() => handleDeleteHousehold(h.household.id)}
-                  disabled={deleting}
-                  className="w-full flex items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg text-error hover:bg-error/10 transition-colors disabled:opacity-50"
+                  onClick={() => {
+                    const otherAdmins = activeMembers.filter(m => m.member.role === "admin" && m.member.status === "active");
+                    if (otherAdmins.length === 0) {
+                      showToast("You must promote a member to Admin before you can transfer ownership.", "error");
+                      return;
+                    }
+                    setSelectedMember(otherAdmins[0]);
+                    setShowTransferModal(true);
+                  }}
+                  className="w-full flex items-center justify-between py-3 px-4 bg-accent/5 border border-accent/20 rounded-lg text-accent hover:bg-accent/10 transition-colors"
                 >
-                  <span className="text-sm font-medium truncate">Delete "{h.household.name}"</span>
-                  <Trash2 size={16} className="shrink-0" />
+                  <span className="text-sm font-medium">Transfer Ownership</span>
                 </button>
-              ))}
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm text-secondary">
+                  Delete a non-default household to remove all its bills, members, and data permanently.
+                </p>
+                {households.filter((h) => h.household.id !== activeHousehold?.household.id).map((h) => (
+                  <button
+                    key={h.household.id}
+                    type="button"
+                    onClick={() => handleDeleteHousehold(h.household.id)}
+                    disabled={deleting}
+                    className="w-full flex items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg text-error hover:bg-error/10 transition-colors disabled:opacity-50"
+                  >
+                    <span className="text-sm font-medium truncate">Delete "{h.household.name}"</span>
+                    <Trash2 size={16} className="shrink-0" />
+                  </button>
+                ))}
+                {households.length === 1 && (
+                  <p className="text-xs text-secondary mt-1">You cannot delete your only household.</p>
+                )}
+              </div>
             </div>
           </div>
         </>
       )}
+
+      {/* ── Transfer Ownership Modal ───────────────────────────────────── */}
+      <Modal
+        open={showTransferModal}
+        onClose={() => {
+          if (transferVerifying) return;
+          setShowTransferModal(false);
+          setTimeout(() => {
+            setTransferStep("confirm");
+            setTransferOtp("");
+            setTransferError(null);
+          }, 200);
+        }}
+        title={transferStep === "confirm" ? "Transfer Ownership" : "Verify your identity"}
+        dismissable={transferStep === "confirm" && !transferVerifying}
+        footer={
+          transferStep === "confirm" ? (
+            <>
+              <Button variant="secondary" onClick={() => setShowTransferModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button variant="accent" onClick={handleSendTransferOtp} loading={transferSending} className="flex-1">
+                Send code
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={() => setShowTransferModal(false)} className="flex-1" disabled={transferVerifying}>
+                Cancel
+              </Button>
+              <Button variant="accent" onClick={handleVerifyTransfer} loading={transferVerifying} disabled={transferOtp.length !== 6} className="flex-1">
+                Confirm Transfer
+              </Button>
+            </>
+          )
+        }
+      >
+        <div className="space-y-4">
+          {transferError && (
+            <div className="bg-error/10 text-error px-3 py-2 rounded-lg text-sm flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{transferError}</span>
+            </div>
+          )}
+
+          {transferStep === "confirm" ? (
+            <>
+              <div className="bg-accent/10 p-4 rounded-lg space-y-2 border border-accent/20">
+                <div className="flex items-start gap-2 text-primary">
+                  <AlertCircle size={18} className="text-accent mt-0.5 shrink-0" />
+                  <p className="text-sm leading-relaxed">
+                    You are about to transfer ownership to <span className="font-semibold">{selectedMember ? getMemberName(selectedMember) : ""}</span>.
+                  </p>
+                </div>
+                <ul className="text-xs text-secondary list-disc ml-8 space-y-1">
+                  <li>They will become the Owner.</li>
+                  <li>You will be downgraded to an Admin.</li>
+                  <li>This action cannot be undone.</li>
+                </ul>
+              </div>
+              <p className="text-sm text-secondary">
+                A verification code will be sent to <span className="font-medium text-primary">{user?.email}</span> to confirm this action.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-secondary">
+                Enter the 6-digit code sent to <span className="font-medium text-primary">{user?.email}</span>
+              </p>
+              <TextInput
+                label="Verification code"
+                placeholder="000000"
+                value={transferOtp}
+                onChange={(e) => {
+                  setTransferOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6));
+                  if (transferError) setTransferError(null);
+                }}
+                maxLength={6}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleResendTransferOtp}
+                disabled={transferCooldown > 0}
+                className={`text-xs font-medium ${transferCooldown > 0 ? "text-secondary cursor-not-allowed" : "text-primary hover:text-accent"} transition-colors`}
+              >
+                {transferCooldown > 0 ? `Resend code in ${transferCooldown}s` : "Resend code"}
+              </button>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* ── Role Change Modal ──────────────────────────────────────────── */}
+      <Modal
+        open={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+        title="Change Role"
+        subtitle={selectedMember ? `For ${getMemberName(selectedMember)}` : undefined}
+      >
+        <div className="space-y-3 mt-4">
+          <button
+            type="button"
+            onClick={async () => {
+              if (!selectedMember || selectedMember.member.role === "admin") return;
+              try {
+                await setMemberRole(selectedMember.member.id, "admin");
+                showToast("Role updated to Admin", "success");
+                setShowRoleModal(false);
+                await loadMembers(householdId);
+              } catch (e) {
+                showToast(friendlyError(e), "error");
+              }
+            }}
+            className={`w-full p-4 rounded-xl border text-left transition-all ${
+              selectedMember?.member.role === "admin" ? "border-blue-500/50 bg-blue-500/5 ring-1 ring-blue-500/30" : "border-border hover:border-primary/30 bg-surface"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Shield size={18} className="text-blue-500" />
+                <span className={`text-sm font-semibold ${selectedMember?.member.role === "admin" ? "text-blue-500" : "text-primary"}`}>Admin</span>
+              </div>
+              {selectedMember?.member.role === "admin" && <CheckCircle2 size={18} className="text-blue-500" />}
+            </div>
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
+              Can manage bills, edit household details, and invite members. Cannot delete household or transfer ownership.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (!selectedMember || selectedMember.member.role === "member") return;
+              try {
+                await setMemberRole(selectedMember.member.id, "member");
+                showToast("Role updated to Member", "success");
+                setShowRoleModal(false);
+                await loadMembers(householdId);
+              } catch (e) {
+                showToast(friendlyError(e), "error");
+              }
+            }}
+            className={`w-full p-4 rounded-xl border text-left transition-all ${
+              selectedMember?.member.role === "member" ? "border-neutral-500/50 bg-neutral-500/5 ring-1 ring-neutral-500/30" : "border-border hover:border-primary/30 bg-surface"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <User size={18} className="text-neutral-500" />
+                <span className={`text-sm font-semibold ${selectedMember?.member.role === "member" ? "text-neutral-500" : "text-primary"}`}>Member</span>
+              </div>
+              {selectedMember?.member.role === "member" && <CheckCircle2 size={18} className="text-neutral-500" />}
+            </div>
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
+              Can view bills and receive notifications. Cannot add, edit, or mark bills as paid.
+            </p>
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

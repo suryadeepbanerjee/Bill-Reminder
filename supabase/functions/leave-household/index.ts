@@ -77,22 +77,22 @@ serve(async (req: Request) => {
       return json(req, { error: "You are not an active member of this household." }, 403);
     }
 
-    // ── 2. Admins need another active admin behind them ──────────────────────
-    if (member.role === "admin") {
+    // ── 2. Super admins need another active super admin behind them ──────────
+    if (member.role === "super_admin") {
       const { data: otherAdmins, error: adminsError } = await adminClient
         .from("household_members")
         .select("id")
         .eq("household_id", householdId)
         .eq("status", "active")
-        .eq("role", "admin")
+        .eq("role", "super_admin")
         .neq("id", member.id)
         .limit(1);
 
-      if (adminsError) throw new Error(`Admin lookup failed: ${adminsError.message}`);
+      if (adminsError) throw new Error(`Super admin lookup failed: ${adminsError.message}`);
       if (!otherAdmins || otherAdmins.length === 0) {
         return json(
           req,
-          { error: "You are the only admin. Add another admin or delete the household from the app instead." },
+          { error: "You are the only super admin. Delete the household from the app instead." },
           403
         );
       }

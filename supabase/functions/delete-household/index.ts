@@ -44,9 +44,9 @@ serve(async (req: Request) => {
       .eq("status", "active")
       .single();
 
-    if (!callerMember || callerMember.role !== "admin") {
+    if (!callerMember || callerMember.role !== "super_admin") {
       return new Response(
-        JSON.stringify({ error: "Only admins can delete households" }),
+        JSON.stringify({ error: "Only the household owner can delete households" }),
         { status: 403, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }

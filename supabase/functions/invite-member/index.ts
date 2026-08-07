@@ -121,8 +121,8 @@ serve(async (req: Request) => {
       .eq("status", "active")
       .single();
 
-    if (!callerMember || callerMember.role !== "admin") {
-      return json(req,{ error: "Only admins can invite members" }, 403);
+    if (!callerMember || callerMember.role !== "super_admin") {
+      return json(req,{ error: "Only the household owner can invite members" }, 403);
     }
 
     // ── 1b. Abuse gate — per-account + per-IP cap on invite sends ─────────
@@ -208,7 +208,7 @@ serve(async (req: Request) => {
           household_id:        householdId,
           user_id:             targetUser.id,
           invited_email:       email,
-          role:                "editor",
+          role:                "member",
           status:              "invited",
           invite_count:        1,
           invite_last_sent_at: nowIso,

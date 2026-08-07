@@ -23,6 +23,8 @@ import { ErrorView }                 from "../../../components/ui/ErrorView";
 import { EmptyState }                from "../../../components/ui/EmptyState";
 import { FAB }                       from "../../../components/ui/FAB";
 import { Colors }                    from "../../../lib/theme";
+import { useHouseholdStore }         from "../../../stores/household-store";
+import { canEditBills }              from "@shared/utils/roles";
 import type { Bill, DashboardOccurrence } from "@shared/types";
 
 // ── Filter types ──────────────────────────────────────────────────────────────
@@ -41,6 +43,9 @@ export default function BillsScreen() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
+
+  const activeHousehold = useHouseholdStore((s) => s.activeHousehold);
+  const canEdit = canEditBills(activeHousehold?.member.role);
 
   const {
     data:        bills = [],
@@ -137,10 +142,10 @@ export default function BillsScreen() {
         bill={item as any}
         occurrence={occurrence}
         onPress={() => router.push(`/bill/${item.id}`)}
-        onMarkPaid={() => openMarkPaid(item.id)}
+        onMarkPaid={canEdit ? () => openMarkPaid(item.id) : undefined}
       />
     );
-  }, [occurrenceByBillId, openMarkPaid]);
+  }, [occurrenceByBillId, openMarkPaid, canEdit]);
 
   const isLoading = billsLoading;
   const isError   = billsError;
@@ -225,9 +230,11 @@ export default function BillsScreen() {
       />
 
       {/* ── FAB ──────────────────────────────────────────────────────── */}
-      <View className="absolute bottom-6 right-4" pointerEvents="box-none">
-        <FAB onPress={() => router.push("/add-bill")} label="Add bill" />
-      </View>
+      {canEdit && (
+        <View className="absolute bottom-6 right-4" pointerEvents="box-none">
+          <FAB onPress={() => router.push("/add-bill")} label="Add bill" />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

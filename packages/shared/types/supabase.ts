@@ -6,7 +6,7 @@ export type RepeatKind   = "monthly" | "yearly" | "every_x_days" | "every_x_week
 export type OccurrenceState = "upcoming" | "generated" | "expected_payment" | "due_today" | "overdue" | "paid" | "archived";
 export type ReminderAnchor  = "generation" | "expected_payment" | "due_date";
 export type ReminderChannel = "push" | "email" | "both";
-export type HouseholdRole   = "admin" | "editor" | "viewer";
+export type HouseholdRole   = "super_admin" | "admin" | "member";
 
 export interface Profile {
   id:           string;

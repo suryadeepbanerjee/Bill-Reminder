@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Profile, Household, HouseholdMember } from "../types";
+import type { Profile, Household, HouseholdMember, HouseholdRole } from "../types";
 
 export interface ProfileApi {
   fetchProfile(userId: string): Promise<Profile | null>;
@@ -31,11 +31,14 @@ export interface ProfileApi {
   leaveToHousehold(householdId: string): Promise<{ success: boolean; message: string }>;
   membershipExists(householdId: string, userId: string): Promise<{ exists: boolean; status: string | null }>;
   removeMember(memberId: string): Promise<void>;
+  setMemberRole(memberId: string, role: HouseholdRole): Promise<void>;
   renameHousehold(householdId: string, newName: string): Promise<void>;
   deleteHousehold(householdId: string): Promise<void>;
   acceptInvite(householdId: string): Promise<{ success: boolean }>;
   deleteAccount(): Promise<void>;
   savePushToken(userId: string, expoPushToken: string, deviceLabel?: string): Promise<void>;
+  transferOwnershipRequest(householdId: string, targetMemberId: string): Promise<{ success: boolean; message: string }>;
+  transferOwnershipConfirm(householdId: string, targetMemberId: string, otpToken: string): Promise<{ success: boolean }>;
 }
 
 /**
@@ -160,7 +163,7 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
         id:           "",
         household_id: household.id,
         user_id:      userId,
-        role:         "admin",
+        role:         "super_admin",
         status:       "active",
         created_at:   household.created_at,
       } as HouseholdMember,
@@ -266,6 +269,41 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     if (error) throw new Error(error.message);
   };
 
+  const setMemberRole = async (
+    memberId: string,
+    role: HouseholdRole
+  ): Promise<void> => {
+    const { error } = await supabase
+      .from("household_members")
+      .update({ role })
+      .eq("id", memberId);
+
+    if (error) throw new Error(error.message);
+  };
+
+  const transferOwnershipRequest = async (
+    householdId: string,
+    targetMemberId: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const { data, error } = await supabase.functions.invoke("transfer-ownership", {
+      body: { phase: "request", householdId, targetMemberId },
+    });
+    if (error) throw new Error(await extractInvokeError(error));
+    return data as { success: boolean; message: string };
+  };
+
+  const transferOwnershipConfirm = async (
+    householdId: string,
+    targetMemberId: string,
+    otpToken: string
+  ): Promise<{ success: boolean }> => {
+    const { data, error } = await supabase.functions.invoke("transfer-ownership", {
+      body: { phase: "confirm", householdId, targetMemberId, otpToken },
+    });
+    if (error) throw new Error(await extractInvokeError(error));
+    return data as { success: boolean };
+  };
+
   return {
     fetchProfile,
     updateProfile,
@@ -278,11 +316,14 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     leaveToHousehold,
     membershipExists,
     removeMember,
+    setMemberRole,
     renameHousehold,
     deleteHousehold,
     acceptInvite,
     deleteAccount,
     savePushToken,
+    transferOwnershipRequest,
+    transferOwnershipConfirm,
   };
 }
 

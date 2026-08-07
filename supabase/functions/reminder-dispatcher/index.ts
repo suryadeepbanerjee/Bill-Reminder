@@ -95,6 +95,27 @@ serve(async (req: Request) => {
             pushedSent++;
           }
         } else if (reminder.channel === "email") {
+          // House rule: email reminders only reach admin + super_admin members.
+          // Members get push notifications only (they just track the bill).
+          const { data: memberRole, error: roleError } = await supabase
+            .from("household_members")
+            .select("role")
+            .eq("household_id", bill.household_id)
+            .eq("user_id", reminder.user_id)
+            .eq("status", "active")
+            .maybeSingle();
+
+          if (roleError) {
+            throw new Error(`Role lookup failed: ${roleError.message}`);
+          }
+          if (!memberRole || memberRole.role !== "admin" && memberRole.role !== "super_admin") {
+            await supabase
+              .from("scheduled_reminders")
+              .update({ status: "skipped", sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+            continue;
+          }
+
           // Get user's email
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
