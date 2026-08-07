@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  LayoutGrid, Receipt, Settings, Plus, LogOut, ChevronDown,
-  Check, Users, PanelLeftClose, PanelLeftOpen,
+  LayoutGrid, Receipt, Settings, Plus, LogOut,
+  Check, Users, PanelLeftClose, PanelLeftOpen, ChevronUp,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/auth-store";
@@ -91,7 +91,7 @@ export default function AppShell({ children }: AppShellProps) {
 
         {/* Household switcher */}
         <div className="px-3 pb-3">
-          <div className="rounded-card border border-border bg-input/50">
+          <div className="rounded-card border border-border bg-input/50 flex flex-col-reverse">
             <button
               type="button"
               onClick={() => setHouseholdOpen((v) => !v)}
@@ -107,12 +107,12 @@ export default function AppShell({ children }: AppShellProps) {
                       {activeHousehold?.household.name ?? "…"}
                     </span>
                   </span>
-                  <ChevronDown size={15} className={`text-secondary transition-transform ${householdOpen ? "rotate-180" : ""}`} />
+                  <ChevronUp size={15} className={`text-secondary transition-transform ${householdOpen ? "rotate-180" : ""}`} />
                 </>
               )}
             </button>
             {householdOpen && !sidebarCollapsed && (
-              <div className="px-2 pb-2 border-t border-border pt-2 space-y-1">
+              <div className="px-2 pt-2 border-b border-border pb-2 space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-secondary px-2 pb-1">
                   Your Households
                 </p>
