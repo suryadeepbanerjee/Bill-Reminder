@@ -19,7 +19,12 @@ export default function Navbar() {
 	const drawerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		const onScroll = () => setScrolled(window.scrollY > 32);
+		// Hysteresis deadband (40 / 80): a single threshold would flicker the
+		// pill on/off under momentum scrolling near the boundary.
+		const onScroll = () => {
+			const y = window.scrollY;
+			setScrolled((prev) => (prev ? y > 40 : y > 80));
+		};
 		window.addEventListener("scroll", onScroll, { passive: true });
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
@@ -35,10 +40,10 @@ export default function Navbar() {
 		<>
 			<header
 				role="banner"
-				className={`fixed top-0 left-0 right-0 z-[100] transition-[padding] duration-250 ease-out ${scrolled ? "py-2" : "py-4"}`}
+				className={`fixed top-0 left-0 right-0 z-[100] transition-[padding] duration-300 ease-out ${scrolled ? "py-2" : "py-4"}`}
 			>
 				<div
-					className={`mx-auto px-6 flex items-center transition-all duration-250 ease-out ${scrolled ? "max-w-[calc(100%-48px)] py-2.5 bg-canvas/90 backdrop-blur-md rounded-2xl border border-border shadow-resting" : "max-w-[1360px] bg-transparent"}`}
+					className={`mx-auto px-6 flex items-center transition-[max-width,padding,background-color,border-color,border-radius,box-shadow] duration-300 ease-out ${scrolled ? "max-w-[calc(100%-48px)] py-2.5 bg-canvas/95 backdrop-blur-md rounded-2xl border border-border shadow-resting" : "max-w-[1360px] bg-transparent"}`}
 				>
 					{isAuth ? (
 						// Auth pages: simple flex layout (logo left, actions right)
@@ -145,7 +150,7 @@ export default function Navbar() {
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.18 }}
-						className="fixed top-[72px] left-4 right-4 bg-surface border border-border rounded-card p-3 z-[99] shadow-raised md:hidden"
+						className={`fixed left-4 right-4 bg-surface border border-border rounded-card p-3 z-[99] shadow-raised md:hidden ${scrolled ? "top-14" : "top-[76px]"}`}
 						onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
 					>
 						<div className="flex flex-col items-center gap-1">

@@ -139,7 +139,7 @@ export function ThemeTransition() {
           }}
         >
           <Ionicons
-            name={shownTheme === "dark" ? "moon" : "sunny"}
+            name={mode === "dark" ? "moon" : "sunny"}
             size={44}
             color={c.accent}
           />
