@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useBills } from "../../hooks/useBills";
 import { useDashboard } from "../../hooks/useOccurrences";
 import BillCard from "../../components/bills/BillCard";
@@ -22,11 +22,22 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "paid",      label: "Recently paid" },
 ];
 
+const FILTER_KEYS: FilterKey[] = FILTERS.map((f) => f.key);
+
 export default function BillsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<FilterKey>(() => {
+    const p = searchParams.get("filter") as FilterKey | null;
+    return p && FILTER_KEYS.includes(p) ? p : "all";
+  });
   const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
+
+  const applyFilter = (key: FilterKey) => {
+    setFilter(key);
+    setSearchParams(key === "all" ? {} : { filter: key }, { replace: true });
+  };
 
   const {
     data: bills = [],
@@ -119,7 +130,7 @@ export default function BillsPage() {
               key={f.key}
               label={f.label}
               active={filter === f.key}
-              onPress={() => setFilter(f.key)}
+              onPress={() => applyFilter(f.key)}
             />
           ))}
         </div>

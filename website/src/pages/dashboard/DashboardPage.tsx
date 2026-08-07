@@ -141,7 +141,7 @@ export default function DashboardPage() {
               Icon={AlertTriangle}
               iconClass="text-error"
               bg="bg-error/10 border border-error/20"
-              onClick={() => navigate("/app/bills")}
+              onClick={() => navigate("/app/bills?filter=overdue")}
             />
             <SummaryPill
               label="Today"
@@ -149,7 +149,7 @@ export default function DashboardPage() {
               Icon={CalendarClock}
               iconClass="text-warning"
               bg="bg-warning/10 border border-warning/20"
-              onClick={() => navigate("/app/bills")}
+              onClick={() => navigate("/app/bills?filter=due_today")}
             />
             <SummaryPill
               label="Upcoming"
@@ -157,6 +157,7 @@ export default function DashboardPage() {
               Icon={Clock}
               iconClass="text-success"
               bg="bg-success/10 border border-success/20"
+              onClick={() => navigate("/app/bills?filter=upcoming")}
             />
           </div>
 
