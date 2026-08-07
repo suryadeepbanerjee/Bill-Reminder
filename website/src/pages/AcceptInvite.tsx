@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { friendlyError } from "@shared/utils/errors";
@@ -155,12 +155,9 @@ export default function AcceptInvite() {
                 You've successfully joined the household. Open the Bill Reminder app to see and manage shared bills.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-                <a href={`bill-reminder://accept-invite?hid=${encodeURIComponent(hid ?? "")}`} className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
-                  Open in App
-                </a>
-                <a href="/" className="btn-outline" style={{ minWidth: 200, textDecoration: "none" }}>
+                <Link to="/" className="btn-primary" style={{ minWidth: 200, textDecoration: "none" }}>
                   Go to Homepage
-                </a>
+                </Link>
               </div>
             </>
           )}

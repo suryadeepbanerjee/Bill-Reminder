@@ -67,6 +67,8 @@ export default function MembersPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  const [resending, setResending] = useState(false);
+
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [showRename, setShowRename] = useState(false);
@@ -137,12 +139,24 @@ export default function MembersPage() {
   const handleResend = async (member: HouseholdMember) => {
     const email = member.invited_email ?? "";
     if (!email || !householdId) return;
+    setResending(true);
     try {
-      await inviteToHousehold(householdId, email);
-      showToast(`Invitation sent to ${email}`, "success");
+      try {
+        await inviteToHousehold(householdId, email);
+        showToast(`Invitation sent to ${email}`, "success");
+      } catch (e) {
+        const raw = e instanceof Error ? e.message : String(e ?? "");
+        if (/already a member/i.test(raw)) {
+          // They've already accepted — just sync the page so the stale
+          // "Pending" row flips to an active member.
+          showToast("This person has already joined the household.", "info");
+        } else {
+          showToast(friendlyError(e), "error");
+        }
+      }
       await loadMembers(householdId);
-    } catch (e) {
-      showToast(friendlyError(e), "error");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -239,6 +253,18 @@ export default function MembersPage() {
 
   return (
     <div className="max-w-xl mx-auto">
+      {/* Soft buffer while resending — brief, translucent, then the list
+          updates in place so a manual refresh (and its household reset) is
+          never needed. */}
+      {resending && (
+        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-[2px] flex items-center justify-center">
+          <div className="bg-surface border border-border rounded-xl px-6 py-5 flex items-center gap-3 shadow-raised">
+            <div className="w-5 h-5 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+            <p className="text-sm text-primary font-medium">Syncing members…</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-1 mb-6">
         <button
           type="button"

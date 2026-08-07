@@ -250,8 +250,7 @@ serve(async (req: Request) => {
       throw new Error("Email service is not configured. Please set RESEND_API_KEY.");
     }
 
-    const webUrl = inviteUrl(householdId);
-    const safeCallerName   = escapeHtml(callerName);
+        const safeCallerName   = escapeHtml(callerName);
     const safeHousehold    = escapeHtml(householdName);
     const safeSubjectName  = escapeHtml(callerName);
     const safeSubjectHH    = escapeHtml(householdName);

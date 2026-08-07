@@ -7,21 +7,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables. Check .env file.");
 }
 
-// Session storage adapter — keeps access/refresh tokens out of localStorage.
-// localStorage persists tokens indefinitely and is readable by any injected
-// script; sessionStorage clears them when the tab closes, shrinking the
-// exposure window (security audit finding F2).
-const sessionStorageAdapter = {
-  getItem: (key: string) => window.sessionStorage.getItem(key),
-  setItem: (key: string, value: string) => window.sessionStorage.setItem(key, value),
-  removeItem: (key: string) => window.sessionStorage.removeItem(key),
+// Persistent storage adapter — keeps the session in localStorage so a signed-in
+// user stays signed in across browser sessions/tabs, matching the standard
+// "remember me" behavior of most sites (previously sessionStorage made users
+// re-authenticate on every fresh visit; req: persistent sign-in).
+const persistentStorageAdapter = {
+  getItem: (key: string) => window.localStorage.getItem(key),
+  setItem: (key: string, value: string) => window.localStorage.setItem(key, value),
+  removeItem: (key: string) => window.localStorage.removeItem(key),
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    storage: sessionStorageAdapter,
+    storage: persistentStorageAdapter,
     detectSessionInUrl: false, // AuthCallback.tsx handles all redirects manually
     flowType: "pkce",
   },

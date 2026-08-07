@@ -154,7 +154,7 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     const { data, error } = await supabase.functions.invoke("invite-member", {
       body: { householdId, email },
     });
-    if (error) throw new Error(error.message ?? "Request failed");
+    if (error) throw new Error(await extractInvokeError(error));
     return data as { success: boolean; message: string };
   };
 
@@ -238,4 +238,24 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     deleteAccount,
     savePushToken,
   };
+}
+
+/**
+ * Surface the server's JSON `error` field from a failed edge-function call.
+ * `FunctionsHttpError` only exposes a generic "non-2xx status code" message;
+ * callers need the real reason (e.g. "already a member") to branch on it.
+ */
+async function extractInvokeError(error: unknown): Promise<string> {
+  try {
+    const res = (error as { context?: Response }).context;
+    if (res && typeof res.json === "function") {
+      const body = await res.json();
+      if (typeof (body as { error?: unknown })?.error === "string") {
+        return (body as { error: string }).error;
+      }
+    }
+  } catch {
+    /* fall through to the generic message */
+  }
+  return (error as { message?: string })?.message ?? "Request failed";
 }
