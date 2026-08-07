@@ -144,31 +144,40 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── 2. Look up the target user by email in auth.users ──────────────────
-    // Use getUserByEmail (stable, explicit) rather than listUsers+filter
-    // because the filter query format changed across GoTrue versions.
-    const { data: targetUserData, error: listError } = await adminClient.auth.admin.getUserByEmail(email);
+    // ── 2. Look up the target user by email in profiles ──────────────────────
+    // Querying the profiles table is faster and more reliable than listUsers.
+    const { data: targetProfile, error: profileError } = await adminClient
+      .from("profiles")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
 
-    if (listError && (listError as { status?: number }).status !== 404) {
-      throw new Error(`Failed to look up user: ${listError.message}`);
+    if (profileError) {
+      throw new Error(`Failed to look up user profile: ${profileError.message}`);
     }
 
-    const targetUser = targetUserData?.user ?? null;
-
-    if (!targetUser) {
+    if (!targetProfile) {
       return json(req,
         { error: "No account found with this email. They must sign up first." },
         404
       );
     }
+    
+    // Create a targetUser object to match the rest of the existing code
+    const targetUser = { id: targetProfile.id };
 
     // ── 3. Check if already a member ───────────────────────────────────────
+    // Use maybeSingle() (not single()) so 0 rows returns null without error.
+    // Order by created_at DESC to pick the most-recent row in cases where a
+    // user was removed and re-invited multiple times (multiple removed rows).
     const { data: existing } = await adminClient
       .from("household_members")
       .select("id, status, invite_count, invite_last_sent_at")
       .eq("household_id", householdId)
       .eq("user_id", targetUser.id)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const nowIso = new Date().toISOString();
     let inviteCode: string;
