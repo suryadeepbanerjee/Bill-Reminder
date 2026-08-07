@@ -112,7 +112,7 @@ export default function RootLayout() {
   // triggering "Couldn't find a navigation context".
   return (
     <QueryClientProvider client={queryClient}>
-      <View style={{ flex: 1 }} className={resolved === "dark" ? "dark" : ""}>
+      <View style={{ flex: 1 }}>
         <NavigationObserver />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />

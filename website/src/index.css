@@ -72,7 +72,11 @@
 		--color-accent-text: #09090b;
 	}
 
-	html, body {
+	html {
+		overscroll-behavior: none;
+	}
+
+	body {
 		background-color: var(--color-canvas);
 		color: var(--color-primary);
 		@apply font-sans antialiased selection:bg-accent selection:text-accent-text;
