@@ -1072,13 +1072,29 @@ export default function MembersScreen() {
                         setSelectedMember(otherAdmins[0]);
                         setShowTransferSheet(true);
                       }}
-                      className="flex-row items-center justify-between py-3 px-4 bg-accent/5 border border-accent/20 rounded-lg"
+                      className="flex-row items-center justify-between py-3 px-4 bg-accent/15 rounded-lg"
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     >
                       <Text className="text-body text-accent font-medium">
                         Transfer Ownership
                       </Text>
                       <Ionicons name="swap-horizontal" size={18} className="text-accent" />
+                    </Pressable>
+                  </View>
+                  <View className="gap-3 pt-2 border-b border-border pb-4">
+                    <Text className="text-body text-secondary">
+                      Remove yourself from this household.
+                    </Text>
+                    <Pressable
+                      onPress={() => {
+                        Alert.alert("Action Required", "As the Owner, you must transfer ownership to another Admin before you can leave. Alternatively, you can delete the household.");
+                      }}
+                      className="flex-row items-center justify-between py-3 px-4 bg-error/5 rounded-lg"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    >
+                      <Text className="text-body text-error font-medium">
+                        Leave Household
+                      </Text>
                     </Pressable>
                   </View>
                   <View className="gap-3 pt-2">
@@ -1114,7 +1130,7 @@ export default function MembersScreen() {
                           ]
                         );
                       }}
-                      className="flex-row items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg"
+                      className="flex-row items-center justify-between py-3 px-4 bg-error/10 rounded-lg"
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     >
                       <Text className="text-body text-error font-medium" numberOfLines={1}>

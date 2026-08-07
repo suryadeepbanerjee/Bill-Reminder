@@ -572,7 +572,7 @@ export default function MembersPage() {
                         </span>
                       )}
                       {m.member.status === "invited" && (
-                        <span className="bg-accent/10 px-1.5 py-0.5 rounded-sm text-[10px] text-accent font-bold uppercase tracking-wider shrink-0 border border-accent/20">
+                        <span className="bg-accent/10 px-1.5 py-0.5 rounded-sm text-[10px] text-accent font-bold uppercase tracking-wider shrink-0">
                           Pending
                         </span>
                       )}
@@ -749,9 +749,24 @@ export default function MembersPage() {
                     setSelectedMember(otherAdmins[0]);
                     setShowTransferModal(true);
                   }}
-                  className="w-full flex items-center justify-between py-3 px-4 bg-accent/5 border border-accent/20 rounded-lg text-accent hover:bg-accent/10 transition-colors"
+                  className="w-full flex items-center justify-between py-3 px-4 bg-accent/15 rounded-lg text-accent hover:bg-accent/25 transition-colors"
                 >
                   <span className="text-sm font-medium">Transfer Ownership</span>
+                </button>
+              </div>
+
+              <div className="space-y-3 pt-2 border-b border-border pb-4">
+                <p className="text-sm text-secondary">
+                  Remove yourself from this household. 
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    showToast("As the Owner, you must transfer ownership to another Admin before you can leave. Alternatively, you can delete the household.", "error");
+                  }}
+                  className="w-full flex items-center justify-between py-3 px-4 bg-error/5 rounded-lg text-error hover:bg-error/10 transition-colors"
+                >
+                  <span className="text-sm font-medium">Leave Household</span>
                 </button>
               </div>
 
@@ -785,7 +800,7 @@ export default function MembersPage() {
                       }
                     }
                   }}
-                  className="w-full flex items-center justify-between py-3 px-4 bg-error/5 border border-error/20 rounded-lg text-error hover:bg-error/10 transition-colors"
+                  className="w-full flex items-center justify-between py-3 px-4 bg-error/10 rounded-lg text-error hover:bg-error/20 transition-colors"
                 >
                   <span className="text-sm font-medium">Delete Household</span>
                   <AlertTriangle size={18} />
