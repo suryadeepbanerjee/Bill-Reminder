@@ -339,6 +339,14 @@ export default function SignUp() {
         >
           {googleLoading ? "Redirecting…" : "Continue with Google"}
         </Button>
+
+        {/* Google OAuth scope disclosure */}
+        <p className="text-[11.5px] text-secondary/60 text-center mt-2 leading-relaxed">
+          Google Sign-In is used for authentication only. We access your name and email address — not Gmail, Drive, Calendar, Photos, or Contacts.{" "}
+          <Link to="/privacy" className="underline underline-offset-2 hover:text-secondary transition-colors">
+            Privacy Policy
+          </Link>
+        </p>
       </form>
 
       <p className="text-center text-[13px] text-secondary mt-6">

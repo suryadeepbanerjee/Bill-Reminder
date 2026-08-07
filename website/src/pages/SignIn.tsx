@@ -188,6 +188,14 @@ export default function SignIn() {
           {googleLoading ? "Redirecting…" : "Continue with Google"}
         </Button>
 
+        {/* Google OAuth scope disclosure */}
+        <p className="text-[11.5px] text-secondary/60 text-center mt-2 leading-relaxed">
+          Google Sign-In is used for authentication only. We access your name and email address — not Gmail, Drive, Calendar, Photos, or Contacts.{" "}
+          <Link to="/privacy" className="underline underline-offset-2 hover:text-secondary transition-colors">
+            Privacy Policy
+          </Link>
+        </p>
+
         {/* OTP code — separate page */}
         <Link to="/sign-in-code" className="mt-3 no-underline">
           <Button variant="ghost" className="w-full justify-center flex gap-2 h-11" icon={

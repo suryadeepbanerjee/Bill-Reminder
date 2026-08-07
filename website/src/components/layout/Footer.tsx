@@ -29,6 +29,7 @@ export default function Footer() {
               <p className={headingClass}>Product</p>
               <div className="flex flex-col gap-2.5">
                 {[
+                  { label: "About", href: "/#about" },
                   { label: "Features", href: "/#features" },
                   { label: "How it Works", href: "/#how-it-works" },
                   { label: "Download", href: "/#download" },
@@ -53,6 +54,8 @@ export default function Footer() {
               <p className={headingClass}>Links</p>
               <div className="flex flex-col gap-2.5">
                 <a href="https://github.com/suryadeepbanerjee/Bill-Reminder" target="_blank" rel="noopener noreferrer" className={linkClass}>GitHub</a>
+                <a href="mailto:official@suryadeepbanerjee.in" className={linkClass}>Contact</a>
+                <a href="mailto:official@suryadeepbanerjee.in" className={linkClass}>Support</a>
                 <Link to="/sign-in" className={linkClass}>Sign In</Link>
               </div>
             </div>
