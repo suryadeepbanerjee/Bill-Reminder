@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Pencil, Plus, Trash2, Shield, User, CheckCircle2, AlertCircle, Settings, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Pencil, Plus, Trash2, Shield, User, CheckCircle2, AlertCircle, Settings, AlertTriangle, ChevronRight } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/auth-store";
 import { useHouseholdStore } from "../../stores/household-store";
 import {
