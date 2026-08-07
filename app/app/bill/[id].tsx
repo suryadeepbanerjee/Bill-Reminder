@@ -818,22 +818,34 @@ export default function BillDetailScreen() {
         title={bill.title}
         showBack
         rightAction={
-          canEdit ? (
-            <View className="flex-row gap-3">
-              <IconButton
-                icon={<Ionicons name="create-outline" size={20} className="text-primary" />}
-                onPress={() => setShowEditBill(true)}
-                accessibilityLabel="Edit bill"
-                variant="ghost"
-              />
-              <IconButton
-                icon={<Ionicons name="trash-outline" size={20} className="text-error" />}
-                onPress={handleDelete}
-                accessibilityLabel="Delete bill"
-                variant="danger"
-              />
-            </View>
-          ) : undefined
+          <View className="flex-row gap-3">
+            <IconButton
+              icon={<Ionicons name="create-outline" size={20} className="text-primary" />}
+              onPress={() => {
+                if (activeHousehold?.member.role === "member") {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                  Alert.alert("Permission Denied", "You are a member of this group, you cannot perform this action.");
+                  return;
+                }
+                setShowEditBill(true);
+              }}
+              accessibilityLabel="Edit bill"
+              variant="ghost"
+            />
+            <IconButton
+              icon={<Ionicons name="trash-outline" size={20} className="text-error" />}
+              onPress={() => {
+                if (activeHousehold?.member.role === "member") {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                  Alert.alert("Permission Denied", "You are a member of this group, you cannot perform this action.");
+                  return;
+                }
+                handleDelete();
+              }}
+              accessibilityLabel="Delete bill"
+              variant="danger"
+            />
+          </View>
         }
       />
 

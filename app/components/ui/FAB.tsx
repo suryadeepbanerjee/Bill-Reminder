@@ -9,8 +9,19 @@ interface FABProps {
   accessibilityLabel?: string;
 }
 
+import { useHouseholdStore } from "../../stores/household-store";
+
 export function FAB({ onPress, label = "Add Bill", accessibilityLabel = "Add new bill" }: FABProps) {
+  const role = useHouseholdStore(s => s.activeHousehold?.member.role);
+
   const handlePress = () => {
+    if (role === "member") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      import("react-native").then(({ Alert }) => {
+        Alert.alert("Permission Denied", "You are a member of this group, you cannot perform this action.");
+      });
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onPress();
   };

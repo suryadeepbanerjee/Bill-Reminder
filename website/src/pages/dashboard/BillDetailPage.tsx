@@ -10,6 +10,7 @@ import { useBill, useUpdateBill, useDeleteBill } from "../../hooks/useBills";
 import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
 import { updateBillSchema, type UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas/bill";
+import { useHouseholdStore } from "../../stores/household-store";
 import LoadingSkeleton from "../../components/ui/LoadingSkeleton";
 import ErrorView from "../../components/ui/ErrorView";
 import Modal from "../../components/ui/Modal";
@@ -165,7 +166,13 @@ export default function BillDetailPage() {
             <button
               type="button"
               aria-label="Edit bill"
-              onClick={() => setShowEdit(true)}
+              onClick={() => {
+                if (useHouseholdStore.getState().activeHousehold?.member.role === "member") {
+                  showToast("You are a member of this group, you cannot perform this action.", "error");
+                  return;
+                }
+                setShowEdit(true);
+              }}
               className="p-2 rounded-lg text-secondary hover:bg-input hover:text-primary transition-colors"
             >
               <Pencil size={17} />
@@ -173,7 +180,13 @@ export default function BillDetailPage() {
             <button
               type="button"
               aria-label="Delete bill"
-              onClick={handleDeleteBill}
+              onClick={() => {
+                if (useHouseholdStore.getState().activeHousehold?.member.role === "member") {
+                  showToast("You are a member of this group, you cannot perform this action.", "error");
+                  return;
+                }
+                handleDeleteBill();
+              }}
               className="p-2 rounded-lg text-error hover:bg-error/10 transition-colors"
             >
               <Trash2 size={17} />

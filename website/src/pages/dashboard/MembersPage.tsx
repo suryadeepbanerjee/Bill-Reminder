@@ -103,6 +103,16 @@ export default function MembersPage() {
   const [transferVerifying, setTransferVerifying] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferCooldown, setTransferCooldown] = useState(0);
+  const [showTransferSelectModal, setShowTransferSelectModal] = useState(false);
+
+  const [showDeleteHouseholdModal, setShowDeleteHouseholdModal] = useState(false);
+  const [householdToDelete, setHouseholdToDelete]               = useState<string | null>(null);
+  const [deleteHouseholdStep, setDeleteHouseholdStep]           = useState<"confirm" | "otp">("confirm");
+  const [deleteHouseholdOtp, setDeleteHouseholdOtp]             = useState("");
+  const [deleteHouseholdError, setDeleteHouseholdError]         = useState<string | null>(null);
+  const [deleteHouseholdSending, setDeleteHouseholdSending]     = useState(false);
+  const [deleteHouseholdVerifying, setDeleteHouseholdVerifying] = useState(false);
+  const [deleteHouseholdCooldown, setDeleteHouseholdCooldown]   = useState(0);
 
   const householdId = activeHousehold?.household.id ?? "";
   const myRole = activeHousehold?.member.role ?? null;
@@ -144,6 +154,12 @@ export default function MembersPage() {
     const timer = setTimeout(() => setTransferCooldown(c => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [transferCooldown]);
+
+  useEffect(() => {
+    if (deleteHouseholdCooldown <= 0) return;
+    const timer = setTimeout(() => setDeleteHouseholdCooldown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [deleteHouseholdCooldown]);
 
   const activeMembers = useMemo(
     () =>
@@ -311,61 +327,92 @@ export default function MembersPage() {
     }
   };
 
+  const handleSendDeleteHouseholdOtp = async () => {
+    setDeleteHouseholdError(null);
+    setDeleteHouseholdSending(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
+      if (otpError) throw otpError;
+      setDeleteHouseholdStep("otp");
+      setDeleteHouseholdCooldown(60);
+    } catch (e: any) {
+      setDeleteHouseholdError(friendlyError(e));
+    } finally {
+      setDeleteHouseholdSending(false);
+    }
+  };
+
+  const handleResendDeleteHouseholdOtp = async () => {
+    if (deleteHouseholdCooldown > 0) return;
+    setDeleteHouseholdError(null);
+    setDeleteHouseholdSending(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
+      if (otpError) throw otpError;
+      setDeleteHouseholdCooldown(60);
+    } catch (e: any) {
+      setDeleteHouseholdError(friendlyError(e));
+    } finally {
+      setDeleteHouseholdSending(false);
+    }
+  };
+
+  const handleVerifyAndDeleteHousehold = async () => {
+    if (deleteHouseholdOtp.length !== 6) {
+      setDeleteHouseholdError("Please enter the 6-digit code.");
+      return;
+    }
+    if (!householdToDelete) return;
+
+    setDeleteHouseholdError(null);
+    setDeleteHouseholdVerifying(true);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: user?.email ?? "",
+        token: deleteHouseholdOtp,
+        type: "magiclink",
+      });
+      if (verifyError) throw verifyError;
+
+      await deleteHousehold(householdToDelete);
+      
+      const remaining = households.filter((h) => h.household.id !== householdToDelete);
+      setHouseholds(remaining);
+      if (activeHousehold?.household.id === householdToDelete && remaining.length > 0) {
+        useHouseholdStore.getState().setActiveHousehold(remaining[0]);
+      }
+      queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["bills", householdToDelete] });
+      showToast("Household deleted successfully", "success");
+      
+      setShowDeleteHouseholdModal(false);
+      setTimeout(() => {
+        setDeleteHouseholdStep("confirm");
+        setDeleteHouseholdOtp("");
+        setDeleteHouseholdError(null);
+        setHouseholdToDelete(null);
+      }, 200);
+
+    } catch (e: any) {
+      setDeleteHouseholdError(friendlyError(e));
+    } finally {
+      setDeleteHouseholdVerifying(false);
+    }
+  };
+
   const handleDeleteHousehold = async (targetId: string) => {
     const target = households.find((h) => h.household.id === targetId);
     if (!target) return;
-    if (targetId === activeHousehold?.household.id) {
-      showToast("You cannot delete your default household. Set another household as default first.", "error");
+    if (households.length <= 1) {
+      showToast("You cannot delete your only household.", "error");
       return;
     }
-    const confirmed = await confirm({
-      title: "Delete Household",
-      message: `Are you sure you want to delete "${target.household.name}"? This will permanently remove all bills, members, and data.`,
-      confirmLabel: "Delete",
-      destructive: true,
-    });
-    
-    if (confirmed) {
-      setSyncing(true);
-      try {
-        const { exists, status } = await membershipExists(targetId, user?.id ?? "");
-        if (!exists || status !== "super_admin") {
-          await refreshHouseholds();
-          setSyncing(false);
-          showToast(`"${target.household.name}" could not be deleted or you do not have permission.`, "error");
-          return;
-        }
-      } catch (e) {
-        setSyncing(false);
-        showToast(friendlyError(e), "error");
-        return;
-      }
-      setSyncing(false);
-
-      setDeleting(true);
-      try {
-        await deleteHousehold(targetId);
-        const remaining = households.filter((h) => h.household.id !== targetId);
-        setHouseholds(remaining);
-        if (activeHousehold?.household.id === targetId && remaining.length > 0) {
-          setActiveHousehold(remaining[0]);
-        }
-        queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
-        queryClient.invalidateQueries({ queryKey: ["bills", targetId] });
-        queryClient.invalidateQueries({ queryKey: ["dashboard", targetId] });
-        showToast(`"${target.household.name}" deleted.`, "success");
-      } catch (e) {
-        const raw = e instanceof Error ? e.message : String(e ?? "");
-        if (/only owner|only-owner/i.test(raw)) {
-          showToast(friendlyError(e), "error");
-        } else {
-          await refreshHouseholds();
-          showToast(`"${target.household.name}" has already been deleted.`, "info");
-        }
-      } finally {
-        setDeleting(false);
-      }
+    if (target.member.role !== "super_admin") {
+      showToast(`You do not have permission to delete "${target.household.name}".`, "error");
+      return;
     }
+    setHouseholdToDelete(targetId);
+    setShowDeleteHouseholdModal(true);
   };
 
   const handleCreateHousehold = async () => {
@@ -655,15 +702,28 @@ export default function MembersPage() {
                 </div>
               </div>
 
-              {!isDefault && (
-                <button
-                  type="button"
-                  onClick={() => setActiveHousehold(h)}
-                  className="ml-2 bg-accent/10 px-3 py-1.5 rounded-full text-xs text-accent font-semibold hover:bg-accent/20 transition-colors shrink-0"
-                >
-                  Set default
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {!isDefault && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveHousehold(h)}
+                    className="bg-accent/10 px-3 py-1.5 rounded-full text-xs text-accent font-semibold hover:bg-accent/20 transition-colors shrink-0"
+                  >
+                    Set default
+                  </button>
+                )}
+                {isSuperAdmin(h.member.role) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteHousehold(h.household.id)}
+                    className="p-1.5 text-secondary hover:text-error hover:bg-error/10 rounded-md transition-colors shrink-0"
+                    title="Delete household"
+                    disabled={deleting}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
@@ -746,8 +806,7 @@ export default function MembersPage() {
                       showToast("You must promote a member to Admin before you can transfer ownership.", "error");
                       return;
                     }
-                    setSelectedMember(otherAdmins[0]);
-                    setShowTransferModal(true);
+                    setShowTransferSelectModal(true);
                   }}
                   className="w-full flex items-center justify-between py-3 px-4 bg-accent/15 rounded-lg text-accent hover:bg-accent/25 transition-colors"
                 >
@@ -762,54 +821,47 @@ export default function MembersPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    showToast("As the Owner, you must transfer ownership to another Admin before you can leave. Alternatively, you can delete the household.", "error");
+                    showToast("As the Owner, you must transfer ownership to another Admin before you can leave. Alternatively, you can delete the household using the trash icon in Your Households.", "error");
                   }}
                   className="w-full flex items-center justify-between py-3 px-4 bg-error/5 rounded-lg text-error hover:bg-error/10 transition-colors"
                 >
                   <span className="text-sm font-medium">Leave Household</span>
                 </button>
               </div>
-
-              <div className="space-y-3 pt-2">
-                <p className="text-sm text-secondary">
-                  Delete this household and remove all its bills and members permanently.
-                </p>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (households.length <= 1) {
-                      showToast("You cannot delete your only household.", "error");
-                      return;
-                    }
-                    const confirmed = await confirm({
-                      title: "Delete Household",
-                      message: `Are you sure you want to delete "${activeHousehold?.household.name ?? "this household"}"? This action is permanent and cannot be undone.`,
-                      confirmLabel: "Delete Household",
-                      destructive: true,
-                    });
-                    if (confirmed) {
-                      setSyncing(true);
-                      try {
-                        await deleteHousehold(householdId);
-                        await refreshHouseholds();
-                        showToast("Household deleted.", "success");
-                      } catch (e: any) {
-                        showToast(friendlyError(e), "error");
-                      } finally {
-                        setSyncing(false);
-                      }
-                    }
-                  }}
-                  className="w-full flex items-center justify-between py-3 px-4 bg-error/10 rounded-lg text-error hover:bg-error/20 transition-colors"
-                >
-                  <span className="text-sm font-medium">Delete Household</span>
-                  <AlertTriangle size={18} />
-                </button>
-              </div>
             </div>
           </div>
         </>
       )}
+
+      {/* ── Transfer Ownership Selection Modal ───────────────────────────────────── */}
+      <Modal
+        open={showTransferSelectModal}
+        onClose={() => setShowTransferSelectModal(false)}
+        title="Select New Owner"
+      >
+        <div className="space-y-3 mt-4">
+          <p className="text-sm text-secondary mb-4">
+            Select an Admin to transfer ownership to:
+          </p>
+          {activeMembers.filter(m => m.member.role === "admin" && m.member.status === "active").map(admin => (
+            <button
+              key={admin.member.id}
+              onClick={() => {
+                setSelectedMember(admin);
+                setShowTransferSelectModal(false);
+                setShowTransferModal(true);
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-lg border border-border bg-surface hover:border-accent/40 transition-colors text-left"
+            >
+              <div>
+                <span className="block text-sm font-medium text-primary">{getMemberName(admin)}</span>
+                <span className="block text-xs text-secondary">{getMemberEmail(admin)}</span>
+              </div>
+              <ChevronRight size={18} className="text-secondary" />
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       {/* ── Transfer Ownership Modal ───────────────────────────────────── */}
       <Modal
@@ -897,6 +949,98 @@ export default function MembersPage() {
                 className={`text-xs font-medium ${transferCooldown > 0 ? "text-secondary cursor-not-allowed" : "text-primary hover:text-accent"} transition-colors`}
               >
                 {transferCooldown > 0 ? `Resend code in ${transferCooldown}s` : "Resend code"}
+              </button>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* ── Delete Household Modal ───────────────────────────────────── */}
+      <Modal
+        open={showDeleteHouseholdModal}
+        onClose={() => {
+          if (deleteHouseholdVerifying) return;
+          setShowDeleteHouseholdModal(false);
+          setTimeout(() => {
+            setDeleteHouseholdStep("confirm");
+            setDeleteHouseholdOtp("");
+            setDeleteHouseholdError(null);
+            setHouseholdToDelete(null);
+          }, 200);
+        }}
+        title={deleteHouseholdStep === "confirm" ? "Delete Household" : "Verify your identity"}
+        dismissable={deleteHouseholdStep === "confirm" && !deleteHouseholdVerifying}
+        footer={
+          deleteHouseholdStep === "confirm" ? (
+            <>
+              <Button variant="secondary" onClick={() => setShowDeleteHouseholdModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleSendDeleteHouseholdOtp} loading={deleteHouseholdSending} className="flex-1">
+                Send code
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={() => setShowDeleteHouseholdModal(false)} className="flex-1" disabled={deleteHouseholdVerifying}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleVerifyAndDeleteHousehold} loading={deleteHouseholdVerifying} disabled={deleteHouseholdOtp.length !== 6} className="flex-1">
+                Delete Household
+              </Button>
+            </>
+          )
+        }
+      >
+        <div className="space-y-4">
+          {deleteHouseholdError && (
+            <div className="bg-error/10 text-error px-3 py-2 rounded-lg text-sm flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{deleteHouseholdError}</span>
+            </div>
+          )}
+
+          {deleteHouseholdStep === "confirm" ? (
+            <>
+              <div className="bg-error/10 p-4 rounded-lg space-y-2 border border-error/20">
+                <div className="flex items-start gap-2 text-error">
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                  <p className="text-sm leading-relaxed font-semibold">
+                    Are you absolutely sure?
+                  </p>
+                </div>
+                <ul className="text-xs text-error/80 list-disc ml-8 space-y-1">
+                  <li>This action cannot be undone.</li>
+                  <li>All bills, members, and data will be permanently removed.</li>
+                </ul>
+              </div>
+              <p className="text-sm text-secondary">
+                A verification code will be sent to <span className="font-medium text-primary">{user?.email}</span> to confirm this action.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-secondary">
+                Enter the 6-digit code sent to <span className="font-medium text-primary">{user?.email}</span>
+              </p>
+              <TextInput
+                label="Verification code"
+                placeholder="000000"
+                value={deleteHouseholdOtp}
+                onChange={(e) => {
+                  setDeleteHouseholdOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6));
+                  if (deleteHouseholdError) setDeleteHouseholdError(null);
+                }}
+                maxLength={6}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleResendDeleteHouseholdOtp}
+                disabled={deleteHouseholdCooldown > 0}
+                className={`text-xs font-medium ${deleteHouseholdCooldown > 0 ? "text-secondary cursor-not-allowed" : "text-primary hover:text-accent"} transition-colors`}
+              >
+                {deleteHouseholdCooldown > 0 ? `Resend code in ${deleteHouseholdCooldown}s` : "Resend code"}
               </button>
             </>
           )}

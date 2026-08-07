@@ -366,6 +366,16 @@ export default function MembersScreen() {
   const [showRoleChangeSheet, setShowRoleChangeSheet] = useState(false);
   const [selectedMember, setSelectedMember] = useState<{member: HouseholdMember, profile: Profile | null} | null>(null);
   const [showTransferSheet, setShowTransferSheet] = useState(false);
+  const [showTransferSelectSheet, setShowTransferSelectSheet] = useState(false);
+
+  const [showDeleteHouseholdSheet, setShowDeleteHouseholdSheet] = useState(false);
+  const [householdToDelete, setHouseholdToDelete]               = useState<string | null>(null);
+  const [deleteHouseholdStep, setDeleteHouseholdStep]           = useState<"confirm" | "otp">("confirm");
+  const [deleteHouseholdOtp, setDeleteHouseholdOtp]             = useState("");
+  const [deleteHouseholdError, setDeleteHouseholdError]         = useState<string | null>(null);
+  const [deleteHouseholdSending, setDeleteHouseholdSending]     = useState(false);
+  const [deleteHouseholdVerifying, setDeleteHouseholdVerifying] = useState(false);
+  const [deleteHouseholdCooldown, setDeleteHouseholdCooldown]   = useState(0);
 
   const queryClient = useQueryClient();
 
@@ -374,6 +384,12 @@ export default function MembersScreen() {
   const isOwner = isSuperAdmin(myRole);
   const canEdit = canEditBills(myRole);
   const canInvite = canInviteMembers(myRole);
+
+  useEffect(() => {
+    if (deleteHouseholdCooldown <= 0) return;
+    const timer = setTimeout(() => setDeleteHouseholdCooldown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [deleteHouseholdCooldown]);
 
   const refreshHouseholds = async () => {
     if (!user?.id) return;
@@ -443,20 +459,6 @@ export default function MembersScreen() {
       setInviteError(friendlyError(e));
     } finally {
       setInviting(false);
-    }
-  };
-
-  const handleResend = async (member: HouseholdMember) => {
-    const email = member.invited_email ?? "";
-    if (!email || !householdId) return;
-    try {
-      await inviteToHousehold(householdId, email);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const updated = await fetchHouseholdMembers(householdId);
-      setMembers(updated);
-    } catch (e: any) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Couldn't Resend", friendlyError(e));
     }
   };
 
@@ -580,64 +582,91 @@ export default function MembersScreen() {
     }
   };
 
+  const handleSendDeleteHouseholdOtp = async () => {
+    setDeleteHouseholdError(null);
+    setDeleteHouseholdSending(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
+      if (otpError) throw otpError;
+      setDeleteHouseholdStep("otp");
+      setDeleteHouseholdCooldown(60);
+    } catch (e: any) {
+      setDeleteHouseholdError(friendlyError(e));
+    } finally {
+      setDeleteHouseholdSending(false);
+    }
+  };
+
+  const handleResendDeleteHouseholdOtp = async () => {
+    if (deleteHouseholdCooldown > 0) return;
+    setDeleteHouseholdError(null);
+    setDeleteHouseholdSending(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
+      if (otpError) throw otpError;
+      setDeleteHouseholdCooldown(60);
+    } catch (e: any) {
+      setDeleteHouseholdError(friendlyError(e));
+    } finally {
+      setDeleteHouseholdSending(false);
+    }
+  };
+
+  const handleVerifyAndDeleteHousehold = async () => {
+    if (deleteHouseholdOtp.length !== 6) {
+      setDeleteHouseholdError("Please enter the 6-digit code.");
+      return;
+    }
+    if (!householdToDelete) return;
+
+    setDeleteHouseholdError(null);
+    setDeleteHouseholdVerifying(true);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: user?.email ?? "",
+        token: deleteHouseholdOtp,
+        type: "magiclink",
+      });
+      if (verifyError) throw verifyError;
+
+      await deleteHousehold(householdToDelete);
+      
+      const remaining = households.filter((h) => h.household.id !== householdToDelete);
+      setHouseholds(remaining);
+      if (activeHousehold?.household.id === householdToDelete && remaining.length > 0) {
+        useHouseholdStore.getState().setActiveHousehold(remaining[0]);
+      }
+      queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["bills", householdToDelete] });
+      
+      setShowDeleteHouseholdSheet(false);
+      setTimeout(() => {
+        setDeleteHouseholdStep("confirm");
+        setDeleteHouseholdOtp("");
+        setDeleteHouseholdError(null);
+        setHouseholdToDelete(null);
+      }, 300);
+
+    } catch (e: any) {
+      setDeleteHouseholdError(friendlyError(e));
+    } finally {
+      setDeleteHouseholdVerifying(false);
+    }
+  };
+
   const handleDeleteHousehold = (targetId: string) => {
     const target = households.find(h => h.household.id === targetId);
     if (!target) return;
-    if (targetId === activeHousehold?.household.id) {
-      Alert.alert("Cannot delete", "You cannot delete your default household. Set another household as default first.");
+    if (households.length <= 1) {
+      Alert.alert("Cannot delete", "You cannot delete your only household.");
       return;
     }
-    Alert.alert(
-      "Delete Household",
-      `Are you sure you want to delete "${target.household.name}"? This will permanently remove all bills, members, and data.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setSyncing(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-
-              const { exists, status } = await membershipExists(targetId, user?.id ?? "");
-              if (!exists || status !== "super_admin") {
-                await refreshHouseholds();
-                setSyncing(false);
-                Alert.alert("Error", `"${target.household.name}" could not be deleted or you do not have permission.`);
-                return;
-              }
-              setSyncing(false);
-
-              setDeleting(true);
-              await deleteHousehold(targetId);
-              const remaining = households.filter((h) => h.household.id !== targetId);
-              setHouseholds(remaining);
-              if (activeHousehold?.household.id === targetId && remaining.length > 0) {
-                useHouseholdStore.getState().setActiveHousehold(remaining[0]);
-              }
-              queryClient.invalidateQueries({ queryKey: ["households", user?.id] });
-              queryClient.invalidateQueries({ queryKey: ["bills", targetId] });
-              queryClient.invalidateQueries({ queryKey: ["dashboard", targetId] });
-              queryClient.invalidateQueries({ queryKey: ["householdCategories", targetId] });
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } catch (e: any) {
-              setSyncing(false);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              const raw = e instanceof Error ? e.message : String(e ?? "");
-              if (/only owner|only-owner/i.test(raw)) {
-                Alert.alert("Error", friendlyError(e));
-              } else {
-                await refreshHouseholds();
-                Alert.alert("Already Deleted", `"${target.household.name}" has already been deleted.`);
-              }
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ]
-    );
+    if (target.member.role !== "super_admin") {
+      Alert.alert("Permission Denied", "You do not have permission to delete this household.");
+      return;
+    }
+    setHouseholdToDelete(targetId);
+    setShowDeleteHouseholdSheet(true);
   };
 
   const handleLeaveHousehold = async () => {
@@ -846,15 +875,15 @@ export default function MembersScreen() {
                         index < activeMembers.length - 1 ? "border-b border-border" : ""
                       }`}
                     >
-                      <View className="flex-row items-center gap-3 flex-1">
-                        <View className="w-10 h-10 rounded-full bg-accent/20 items-center justify-center">
+                      <View className="flex-row items-center gap-3 flex-1 shrink">
+                        <View className="w-10 h-10 rounded-full bg-accent/20 items-center justify-center shrink-0">
                           <Text className="text-accent font-semibold">
                             {name.charAt(0).toUpperCase()}
                           </Text>
                         </View>
-                        <View className="flex-1 mr-2">
-                          <View className="flex-row items-center gap-2">
-                            <Text className="text-body text-primary font-medium" numberOfLines={1}>
+                        <View className="flex-1 mr-2 shrink min-w-0">
+                          <View className="flex-row items-center gap-2 pr-2">
+                            <Text className="text-body text-primary font-medium shrink" numberOfLines={1}>
                               {name}
                             </Text>
                             {role === "super_admin" && (
@@ -889,14 +918,14 @@ export default function MembersScreen() {
                               </View>
                             )}
                           </View>
-                          <Text className="text-caption text-secondary" numberOfLines={1}>
+                          <Text className="text-caption text-secondary shrink" numberOfLines={1}>
                             {email}
                           </Text>
                         </View>
                       </View>
 
                       {isOwner && !isMe && m.member.status === "active" && (
-                        <View className="flex-row items-center gap-2">
+                        <View className="flex-row items-center gap-2 shrink-0">
                           <Pressable
                             onPress={() => {
                               setSelectedMember(m);
@@ -918,7 +947,7 @@ export default function MembersScreen() {
                       )}
 
                       {canInvite && !isMe && m.member.status === "invited" && (
-                        <View className="flex-row items-center gap-2">
+                        <View className="flex-row items-center gap-2 shrink-0">
                           <InviteResendButton
                             member={m.member}
                             onResend={() => handleResend(m.member)}
@@ -975,15 +1004,26 @@ export default function MembersScreen() {
                       </View>
                     </View>
 
-                    {!isDefault && (
-                      <Pressable
-                        onPress={() => handleSetDefault(h)}
-                        hitSlop={8}
-                        className="ml-2 bg-accent/10 px-3 py-1.5 rounded-full"
-                      >
-                        <Text className="text-[12px] text-accent font-semibold">Set default</Text>
-                      </Pressable>
-                    )}
+                    <View className="flex-row items-center gap-2">
+                      {!isDefault && (
+                        <Pressable
+                          onPress={() => handleSetDefault(h)}
+                          hitSlop={8}
+                          className="bg-accent/10 px-3 py-1.5 rounded-full shrink-0"
+                        >
+                          <Text className="text-[12px] text-accent font-semibold">Set default</Text>
+                        </Pressable>
+                      )}
+                      {h.member.role === "super_admin" && (
+                        <Pressable
+                          onPress={() => handleDeleteHousehold(h.household.id)}
+                          hitSlop={8}
+                          className="p-1.5 shrink-0"
+                        >
+                          <Ionicons name="trash-outline" size={18} className="text-secondary" />
+                        </Pressable>
+                      )}
+                    </View>
                   </View>
                 );
               })}
@@ -1069,8 +1109,7 @@ export default function MembersScreen() {
                           Alert.alert("No Admins Found", "You must promote a member to Admin before you can transfer ownership to them.");
                           return;
                         }
-                        setSelectedMember(otherAdmins[0]);
-                        setShowTransferSheet(true);
+                        setShowTransferSelectSheet(true);
                       }}
                       className="flex-row items-center justify-between py-3 px-4 bg-accent/15 rounded-lg"
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -1081,13 +1120,13 @@ export default function MembersScreen() {
                       <Ionicons name="swap-horizontal" size={18} className="text-accent" />
                     </Pressable>
                   </View>
-                  <View className="gap-3 pt-2 border-b border-border pb-4">
+                  <View className="gap-3 pt-2">
                     <Text className="text-body text-secondary">
                       Remove yourself from this household.
                     </Text>
                     <Pressable
                       onPress={() => {
-                        Alert.alert("Action Required", "As the Owner, you must transfer ownership to another Admin before you can leave. Alternatively, you can delete the household.");
+                        Alert.alert("Action Required", "As the Owner, you must transfer ownership to another Admin before you can leave. Alternatively, you can delete the household using the trash icon in Your Households.");
                       }}
                       className="flex-row items-center justify-between py-3 px-4 bg-error/5 rounded-lg"
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -1097,54 +1136,168 @@ export default function MembersScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                  <View className="gap-3 pt-2">
-                    <Text className="text-body text-secondary">
-                      Delete this household and remove all its bills and members permanently.
-                    </Text>
-                    <Pressable
-                      onPress={async () => {
-                        if (households.length <= 1) {
-                          Alert.alert("Cannot delete", "You cannot delete your only household.");
-                          return;
-                        }
-                        Alert.alert(
-                          "Delete Household",
-                          `Are you sure you want to delete "${activeHousehold?.household.name ?? "this household"}"? This action is permanent and cannot be undone.`,
-                          [
-                            { text: "Cancel", style: "cancel" },
-                            {
-                              text: "Delete",
-                              style: "destructive",
-                              onPress: async () => {
-                                setSyncing(true);
-                                try {
-                                  await deleteHousehold(householdId);
-                                  await refreshHouseholds();
-                                } catch (e: any) {
-                                  Alert.alert("Error", friendlyError(e));
-                                } finally {
-                                  setSyncing(false);
-                                }
-                              }
-                            }
-                          ]
-                        );
-                      }}
-                      className="flex-row items-center justify-between py-3 px-4 bg-error/10 rounded-lg"
-                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                    >
-                      <Text className="text-body text-error font-medium" numberOfLines={1}>
-                        Delete Household
-                      </Text>
-                      <Ionicons name="trash-outline" size={18} className="text-error" />
-                    </Pressable>
-                  </View>
                 </View>
               </Surface>
             </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── Transfer Select Sheet ────────────────────────────────────────── */}
+      <Modal visible={showTransferSelectSheet} onClose={() => setShowTransferSelectSheet(false)}>
+        <View className="px-6 pb-6 pt-2">
+          <Text className="text-h3 text-primary mb-2 font-semibold">Select New Owner</Text>
+          <Text className="text-body text-secondary mb-4">Select an Admin to transfer ownership to:</Text>
+          
+          <ScrollView className="max-h-64 mb-6">
+            {activeMembers.filter(m => m.member.role === "admin" && m.member.status === "active").map(admin => (
+              <Pressable
+                key={admin.member.id}
+                onPress={() => {
+                  setSelectedMember(admin);
+                  setShowTransferSelectSheet(false);
+                  setTimeout(() => setShowTransferSheet(true), 400);
+                }}
+                className="flex-row items-center justify-between py-4 border-b border-border"
+              >
+                <View>
+                  <Text className="text-body text-primary font-medium">{getMemberName(admin)}</Text>
+                  <Text className="text-caption text-secondary mt-0.5">{getMemberEmail(admin)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} className="text-secondary" />
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Button
+            title="Cancel"
+            variant="secondary"
+            fullWidth
+            onPress={() => setShowTransferSelectSheet(false)}
+          />
+        </View>
+      </Modal>
+
+      {/* ── Delete Household Sheet ───────────────────────────────────────── */}
+      <Modal
+        visible={showDeleteHouseholdSheet}
+        onClose={() => {
+          if (deleteHouseholdVerifying) return;
+          setShowDeleteHouseholdSheet(false);
+          setTimeout(() => {
+            setDeleteHouseholdStep("confirm");
+            setDeleteHouseholdOtp("");
+            setDeleteHouseholdError(null);
+            setHouseholdToDelete(null);
+          }, 300);
+        }}
+      >
+        <View className="px-6 pb-6 pt-2">
+          <Text className="text-h3 text-primary mb-2 font-semibold">
+            {deleteHouseholdStep === "confirm" ? "Delete Household" : "Verify your identity"}
+          </Text>
+
+          {deleteHouseholdError && (
+            <View className="bg-error/10 p-3 rounded-lg flex-row items-start gap-2 mb-4">
+              <Ionicons name="alert-circle" size={16} className="text-error mt-0.5 shrink-0" />
+              <Text className="text-sm text-error flex-1">{deleteHouseholdError}</Text>
+            </View>
+          )}
+
+          <View className="mb-6">
+            {deleteHouseholdStep === "confirm" ? (
+              <>
+                <View className="bg-error/10 p-4 rounded-lg mb-4">
+                  <View className="flex-row gap-2 mb-2">
+                    <Ionicons name="warning" size={18} className="text-error mt-0.5 shrink-0" />
+                    <Text className="text-body text-error font-medium flex-1">
+                      Are you absolutely sure?
+                    </Text>
+                  </View>
+                  <Text className="text-sm text-error ml-6 mb-1">
+                    • This action cannot be undone.
+                  </Text>
+                  <Text className="text-sm text-error ml-6">
+                    • All bills, members, and data will be permanently removed.
+                  </Text>
+                </View>
+                <Text className="text-body text-secondary">
+                  A verification code will be sent to <Text className="font-medium text-primary">{user?.email}</Text> to confirm this action.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text className="text-body text-secondary mb-4">
+                  Enter the 6-digit code sent to <Text className="font-medium text-primary">{user?.email}</Text>
+                </Text>
+                <TextInput
+                  placeholder="000000"
+                  value={deleteHouseholdOtp}
+                  onChangeText={(v) => {
+                    setDeleteHouseholdOtp(v.replace(/[^0-9]/g, "").slice(0, 6));
+                    if (deleteHouseholdError) setDeleteHouseholdError(null);
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                />
+                <Pressable 
+                  onPress={handleResendDeleteHouseholdOtp}
+                  disabled={deleteHouseholdCooldown > 0}
+                  className="mt-4"
+                >
+                  <Text className={`text-sm font-medium ${deleteHouseholdCooldown > 0 ? "text-secondary" : "text-primary"}`}>
+                    {deleteHouseholdCooldown > 0 ? `Resend code in ${deleteHouseholdCooldown}s` : "Resend code"}
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Button 
+                title="Cancel" 
+                variant="secondary" 
+                onPress={() => {
+                  setShowDeleteHouseholdSheet(false);
+                  setTimeout(() => {
+                    setDeleteHouseholdStep("confirm");
+                    setDeleteHouseholdOtp("");
+                    setDeleteHouseholdError(null);
+                    setHouseholdToDelete(null);
+                  }, 300);
+                }}
+                disabled={deleteHouseholdVerifying}
+                fullWidth 
+              />
+            </View>
+            {deleteHouseholdStep === "confirm" ? (
+              <View className="flex-1">
+                <Button
+                  title="Send code"
+                  variant="destructive"
+                  onPress={handleSendDeleteHouseholdOtp}
+                  loading={deleteHouseholdSending}
+                  fullWidth
+                />
+              </View>
+            ) : (
+              <View className="flex-1">
+                <Button
+                  title="Delete"
+                  variant="destructive"
+                  onPress={handleVerifyAndDeleteHousehold}
+                  loading={deleteHouseholdVerifying}
+                  disabled={deleteHouseholdOtp.length !== 6}
+                  fullWidth
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
 
       <RoleChangeSheet
         visible={showRoleChangeSheet}
