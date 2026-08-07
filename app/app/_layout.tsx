@@ -130,7 +130,7 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
-        {/* Gentle crossfade that hides the theme swap behind a soft dissolve. */}
+        {/* Buffer screen that hides the theme swap behind an animated cover. */}
         <ThemeTransition />
         {/* Overlay the loading screen until the session has been restored.
             Rendered on top of Stack so it covers all screens, and dismissed

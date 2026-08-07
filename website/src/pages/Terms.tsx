@@ -48,7 +48,7 @@ export default function Terms() {
             <UL items={[
               "Maintaining the security of your account credentials.",
               "All activity that occurs under your account.",
-              "Notifying us immediately of any unauthorised access at privacy@billreminder.suryadeepbanerjee.in.",
+              "Notifying us immediately of any unauthorised access at official@suryadeepbanerjee.in.",
             ]} />
           </Section>
 
@@ -83,7 +83,7 @@ export default function Terms() {
           </Section>
 
           <Section title="Contact">
-            <P>Questions about these Terms? Email us at <a href="mailto:legal@billreminder.suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>legal@billreminder.suryadeepbanerjee.in</a>.</P>
+            <P>Questions about these Terms? Email us at <a href="mailto:official@suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>official@suryadeepbanerjee.in</a>.</P>
           </Section>
         </div>
 

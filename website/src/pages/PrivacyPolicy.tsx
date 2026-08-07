@@ -73,7 +73,7 @@ export default function PrivacyPolicy() {
               "Request deletion of your account and all associated data.",
               "Update your email address or display name from within the app.",
             ]} />
-            <P>To exercise any of these rights, email <a href="mailto:privacy@billreminder.suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>privacy@billreminder.suryadeepbanerjee.in</a>. We will respond within 30 days.</P>
+            <P>To exercise any of these rights, email <a href="mailto:official@suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>official@suryadeepbanerjee.in</a>. We will respond within 30 days.</P>
           </Section>
 
           <Section title="Changes to this policy">
