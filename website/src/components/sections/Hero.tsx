@@ -266,8 +266,8 @@ export default function Hero() {
 		<section
 			id="hero"
 			aria-labelledby="hero-heading"
-			className="relative mx-auto w-full pt-[94px] md:pt-[118px] pb-0 px-6 md:px-8
-      min-h-[calc(100vh-40px)] overflow-hidden
+			className="relative mx-auto w-full flex flex-col justify-center pt-[94px] md:pt-[118px] pb-12 md:pb-16 px-6 md:px-8
+      min-h-screen overflow-hidden
       bg-[linear-gradient(to_bottom,#fff,#ffffff_45%,var(--color-canvas)_100%)]
       dark:bg-[linear-gradient(to_bottom,#000,var(--color-canvas)_38%,#1c1e24_70%,var(--color-canvas)_100%)]
       rounded-b-xl"
