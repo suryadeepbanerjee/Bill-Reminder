@@ -37,16 +37,19 @@ begin
   end if;
 end $$;
 
-alter table public.household_members
-  add constraint household_members_role_check
-  check (role in ('super_admin', 'admin', 'member'));
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. Backfill existing rows to the new role vocabulary
 -- ─────────────────────────────────────────────────────────────────────────────
 update public.household_members set role = 'super_admin' where role = 'admin';
 update public.household_members set role = 'admin'       where role = 'editor';
 update public.household_members set role = 'member'      where role = 'viewer';
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 3. Add the new constraint
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table public.household_members
+  add constraint household_members_role_check
+  check (role in ('super_admin', 'admin', 'member'));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. New-household trigger assigns super_admin to the creator
