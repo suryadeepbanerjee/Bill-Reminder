@@ -5,6 +5,7 @@ import {
   ScrollView,
   Alert,
   Pressable,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
@@ -17,6 +18,7 @@ import { useBill, useUpdateBill }         from "../../hooks/useBills";
 import { useDeleteBill }                 from "../../hooks/useBills";
 import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
+import { useNotificationPermission } from "../../hooks/useNotificationPermission";
 import { useAuthStore }       from "../../stores/auth-store";
 import { savePendingRoute }   from "../../lib/pending-route";
 
@@ -548,7 +550,15 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
 
 // ── Reminder rule row ─────────────────────────────────────────────────────────
 
-function ReminderRuleRow({ rule, billId }: { rule: BillReminderRule; billId: string }) {
+function ReminderRuleRow({
+  rule,
+  billId,
+  notificationsLocked,
+}: {
+  rule: BillReminderRule;
+  billId: string;
+  notificationsLocked: boolean;
+}) {
   const { mutate: toggle, isPending } = useToggleReminderRule();
 
   const offsetLabel = rule.offset_days === 0
@@ -560,6 +570,13 @@ function ReminderRuleRow({ rule, billId }: { rule: BillReminderRule; billId: str
   const channelIcon: keyof typeof Ionicons.glyphMap =
     rule.channel === "push"  ? "notifications-outline" :
     rule.channel === "email" ? "mail-outline"          : "sync-outline";
+
+  // Push delivery (and "both") needs device notification permission; email
+  // reminders keep working without it.
+  const pushChannel = rule.channel === "push" || rule.channel === "both";
+  const locked = notificationsLocked && pushChannel;
+
+  const onToggle = () => toggle({ id: rule.id, enabled: !rule.enabled, billId });
 
   return (
     <View className="flex-row items-center gap-3 px-4 py-3.5">
@@ -574,14 +591,26 @@ function ReminderRuleRow({ rule, billId }: { rule: BillReminderRule; billId: str
           {getReminderAnchorLabel(rule.anchor)} · {rule.channel === "both" ? "Push + Email" : rule.channel}
         </Text>
       </View>
-      <Switch
-        value={rule.enabled}
-        onValueChange={(enabled) =>
-          toggle({ id: rule.id, enabled, billId })
-        }
-        disabled={isPending}
-        accessibilityLabel={`${offsetLabel} reminder ${rule.enabled ? "on" : "off"}`}
-      />
+      {locked ? (
+        <View className="items-end gap-1">
+          <Switch
+            value={rule.enabled}
+            onValueChange={onToggle}
+            disabled
+            accessibilityLabel={`${offsetLabel} reminder blocked — enable notifications in settings`}
+          />
+          <Text className="text-[10px] text-secondary">
+            Enable notifications to turn on
+          </Text>
+        </View>
+      ) : (
+        <Switch
+          value={rule.enabled}
+          onValueChange={onToggle}
+          disabled={isPending}
+          accessibilityLabel={`${offsetLabel} reminder ${rule.enabled ? "on" : "off"}`}
+        />
+      )}
     </View>
   );
 }
@@ -647,6 +676,7 @@ export default function BillDetailScreen() {
   const { data: occurrences = [] } = useBillOccurrences(id);
   const { data: reminderRules = [] } = useReminderRules(id);
   const { mutateAsync: deleteBill, isPending: isDeleting } = useDeleteBill();
+  const { granted: notificationsGranted, refresh: refreshNotifications } = useNotificationPermission();
 
   // Current (most actionable) occurrence — scan EARLIEST cycle first so a
   // materialized overdue chain (explicit past next-due selection) surfaces the
@@ -689,9 +719,23 @@ export default function BillDetailScreen() {
     );
   }, [bill?.title, deleteBill, id]);
 
+  const handleEnableNotifications = useCallback(async () => {
+    try {
+      const Notifications = await import("expo-notifications");
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status === "granted") {
+        refreshNotifications();
+      } else {
+        Linking.openSettings();
+      }
+    } catch {
+      Linking.openSettings();
+    }
+  }, [refreshNotifications]);
+
   // Deep link opened while signed out — offer sign-in and return here after.
-  if (authLoading) {
-    return (
+
+  if (authLoading) {    return (
       <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
         <Header title="Bill details" showBack />
         <LoadingSkeleton variant="detail" />
@@ -908,14 +952,43 @@ export default function BillDetailScreen() {
               <Text className="text-body text-secondary">No reminders set</Text>
             </Surface>
           ) : (
-            <Surface level="resting" bordered rounded="card">
-              {reminderRules.map((rule, idx) => (
-                <View key={rule.id}>
-                  <ReminderRuleRow rule={rule} billId={id!} />
-                  {idx < reminderRules.length - 1 && <Divider inset={16} />}
-                </View>
-              ))}
-            </Surface>
+            <>
+              {!notificationsGranted &&
+                reminderRules.some((r) => r.channel === "push" || r.channel === "both") && (
+                  <View className="bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-card px-4 py-3 mb-2">
+                    <View className="flex-row items-center gap-2">
+                      <Ionicons name="notifications-off" size={16} className="text-secondary" />
+                      <Text className="text-label text-primary font-medium flex-1">
+                        Notifications are off
+                      </Text>
+                    </View>
+                    <Text className="text-caption text-secondary mt-1 mb-2.5">
+                      Push reminders are blocked. Enable notifications from your device
+                      settings to turn them on.
+                    </Text>
+                    <Button
+                      title="Enable notifications"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Ionicons name="settings-outline" size={15} className="text-primary" />}
+                      guardKey="enable-notifications"
+                      onPress={handleEnableNotifications}
+                    />
+                  </View>
+                )}
+              <Surface level="resting" bordered rounded="card">
+                {reminderRules.map((rule, idx) => (
+                  <View key={rule.id}>
+                    <ReminderRuleRow
+                      rule={rule}
+                      billId={id!}
+                      notificationsLocked={!notificationsGranted}
+                    />
+                    {idx < reminderRules.length - 1 && <Divider inset={16} />}
+                  </View>
+                ))}
+              </Surface>
+            </>
           )}
         </View>
 

@@ -1,17 +1,20 @@
 import { Stack } from "expo-router";
-import { Colors } from "../../../lib/theme";
+import { useAppTokens } from "../../../lib/tokens";
 
 export default function AddLayout() {
+  const tokens = useAppTokens();
+
   return (
     <Stack
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: Colors.neutral[50] },
+        headerStyle: { backgroundColor: tokens.canvas },
         headerShadowVisible: false,
+        headerTintColor: tokens.primary,
         headerTitleStyle: {
           fontSize: 22,
           fontWeight: "600",
-          color: Colors.neutral[900],
+          color: tokens.primary,
         },
       }}
     />

@@ -11,6 +11,7 @@ import { TextInput } from "../../../components/ui/TextInput";
 import { Surface } from "../../../components/ui/Surface";
 import { InviteResendButton } from "../../../components/household/InviteResendButton";
 import { useAuthStore } from "../../../stores/auth-store";
+import { useAppTokens } from "../../../lib/tokens";
 import { useHouseholdStore } from "../../../stores/household-store";
 import {
   fetchHouseholdMembers,
@@ -41,6 +42,7 @@ function isInviteWithinCooldown(createdAt: string): boolean {
 
 export default function MembersScreen() {
   const { user } = useAuthStore();
+  const tokens = useAppTokens();
   const activeHousehold = useHouseholdStore((s) => s.activeHousehold);
   const setHouseholds = useHouseholdStore((s) => s.setHouseholds);
   const households = useHouseholdStore((s) => s.households);
@@ -277,15 +279,15 @@ export default function MembersScreen() {
           title: "Manage Household",
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: "#0A0A0A" },
-          headerTintColor: "#F5F5F5",
+          headerStyle: { backgroundColor: tokens.canvas },
+          headerTintColor: tokens.primary,
           headerLeft: () => (
             <Pressable
               onPress={() => router.back()}
               className="mr-4"
               hitSlop={8}
             >
-              <Ionicons name="chevron-back" size={24} color="#F5F5F5" />
+              <Ionicons name="chevron-back" size={24} color={tokens.primary} />
             </Pressable>
           ),
         }}

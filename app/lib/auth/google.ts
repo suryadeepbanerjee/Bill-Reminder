@@ -25,11 +25,6 @@ GoogleSignin.configure({
   offlineAccess: false,
 });
 
-console.warn(
-  "[GoogleAuth] configured webClientId:",
-  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-);
-
 export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -90,12 +85,13 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
 
         case "10":
           console.warn(
-            "[GoogleAuth] DEVELOPER_ERROR — code 10. Full native error:",
-            JSON.stringify(error),
-            "| message:",
+            "[GoogleAuth] DEVELOPER_ERROR — code 10. Check webClientId / SHA-1 fingerprint:",
             error?.message
           );
-          return { status: "error", message: "Sign-in configuration error. Please contact support." };
+          return {
+            status: "error",
+            message: "Google sign-in is not configured. Please re-install the app.",
+          };
 
         case "7":
           return { status: "error", message: "No internet connection. Please check and try again." };

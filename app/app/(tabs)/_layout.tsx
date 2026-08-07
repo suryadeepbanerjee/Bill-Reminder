@@ -1,7 +1,7 @@
 import { Tabs, router } from "expo-router";
 import { useEffect } from "react";
 import { useAuthStore } from "../../stores/auth-store";
-import { useThemeStore } from "../../stores/theme-store";
+import { useAppTokens } from "../../lib/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,26 +11,24 @@ type IoniconName = keyof typeof Ionicons.glyphMap;
 function TabIcon({
   name,
   focused,
-  resolved,
+  tokens,
 }: {
   name: [IoniconName, IoniconName];
   focused: boolean;
-  resolved: "light" | "dark";
+  tokens: ReturnType<typeof useAppTokens>;
 }) {
-  const activeColor   = resolved === "dark" ? "#F5F5F5" : "#1C1C1E";
-  const inactiveColor = resolved === "dark" ? "#525252" : "#A3A3A3";
   return (
     <Ionicons
       name={focused ? name[1] : name[0]}
       size={22}
-      color={focused ? activeColor : inactiveColor}
+      color={focused ? tokens.primary : tokens.secondary}
     />
   );
 }
 
 export default function TabsLayout() {
   const { session, isLoading } = useAuthStore();
-  const { resolved } = useThemeStore();
+  const tokens = useAppTokens();
   const insets = useSafeAreaInsets();
 
   // Use router.replace() inside useEffect rather than <Redirect>.
@@ -44,18 +42,16 @@ export default function TabsLayout() {
 
   if (isLoading || !session) return null;
 
-  const isDark = resolved === "dark";
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor:   isDark ? "#F5F5F5" : "#1C1C1E",
-        tabBarInactiveTintColor: isDark ? "#525252" : "#A3A3A3",
+        tabBarActiveTintColor:   tokens.primary,
+        tabBarInactiveTintColor: tokens.secondary,
         tabBarStyle: {
           borderTopWidth:   0.5,
-          borderTopColor:   isDark ? "#262626" : "#E5E5E5",
-          backgroundColor:  isDark ? "#0A0A0A" : "#FAFAFA",
+          borderTopColor:   tokens.border,
+          backgroundColor:  tokens.canvas,
           elevation:        0,
           height:           Platform.OS === "android" ? 60 + insets.bottom : undefined,
           paddingBottom:    Platform.OS === "android" ? insets.bottom : undefined,
@@ -81,7 +77,7 @@ export default function TabsLayout() {
             <TabIcon
               name={["grid-outline", "grid"]}
               focused={focused}
-              resolved={resolved}
+              tokens={tokens}
             />
           ),
         }}
@@ -94,7 +90,7 @@ export default function TabsLayout() {
             <TabIcon
               name={["receipt-outline", "receipt"]}
               focused={focused}
-              resolved={resolved}
+              tokens={tokens}
             />
           ),
         }}
@@ -115,7 +111,7 @@ export default function TabsLayout() {
             <TabIcon
               name={["person-circle-outline", "person-circle"]}
               focused={focused}
-              resolved={resolved}
+              tokens={tokens}
             />
           ),
         }}

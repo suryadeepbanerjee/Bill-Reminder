@@ -353,6 +353,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function ReminderRuleRow({ rule, billId }: { rule: any; billId: string }) {
   const toggle = useToggleReminderRule();
   const Icon = getChannelIcon(rule.channel);
+  // Push delivery and "both" reminders run through the mobile app only — no
+  // notification permission exists on web, so they render read-only here.
+  const isPush = rule.channel === "push" || rule.channel === "both";
 
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
@@ -365,12 +368,18 @@ function ReminderRuleRow({ rule, billId }: { rule: any; billId: string }) {
           {getReminderAnchorLabel(rule.anchor)} · {getChannelLabel(rule.channel)}
         </p>
       </div>
-      <Switch
-        checked={rule.enabled}
-        disabled={toggle.isPending}
-        onChange={(enabled) => toggle.mutate({ id: rule.id, enabled, billId })}
-        label={`${getOffsetLabel(rule.offset_days)} reminder ${rule.enabled ? "on" : "off"}`}
-      />
+      {isPush ? (
+        <span className="text-[11px] text-secondary font-medium shrink-0">
+          In the mobile app
+        </span>
+      ) : (
+        <Switch
+          checked={rule.enabled}
+          disabled={toggle.isPending}
+          onChange={(enabled) => toggle.mutate({ id: rule.id, enabled, billId })}
+          label={`${getOffsetLabel(rule.offset_days)} reminder ${rule.enabled ? "on" : "off"}`}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +11,7 @@ import { useAuthStore } from "../stores/auth-store";
 import { useThemeStore } from "../stores/theme-store";
 import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
+import { ThemeTransition } from "../components/ui/ThemeTransition";
 
 // Side-effect: patches expo-router's routing queue so every navigation call
 // (router.*, Link, Redirect) is deduped per destination — silent, cooldown-based.
@@ -71,7 +72,7 @@ export default function RootLayout() {
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setColorScheme(resolved);
   }, [resolved, setColorScheme]);
 
@@ -129,6 +130,8 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
+        {/* Gentle crossfade that hides the theme swap behind a soft dissolve. */}
+        <ThemeTransition />
         {/* Overlay the loading screen until the session has been restored.
             Rendered on top of Stack so it covers all screens, and dismissed
             automatically once isLoading → false (no Stack remount needed). */}
