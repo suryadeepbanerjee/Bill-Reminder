@@ -147,8 +147,8 @@ export default function DashboardPage() {
               label="Today"
               count={data.today.length}
               Icon={CalendarClock}
-              iconClass="text-accent"
-              bg="bg-accent/10 border border-accent/20"
+              iconClass="text-warning"
+              bg="bg-warning/10 border border-warning/20"
               onClick={() => navigate("/app/bills")}
             />
             <SummaryPill
