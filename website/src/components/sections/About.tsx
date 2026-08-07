@@ -31,7 +31,7 @@ export default function About() {
     <section
       id="about"
       ref={ref}
-      className="section bg-[#131418] border-y border-white/5"
+      className="section"
       aria-labelledby="about-heading"
     >
       <div className="container max-w-5xl mx-auto px-6 md:px-10">
