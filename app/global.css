@@ -27,24 +27,26 @@
     --color-warning: 245 158 11;
   }
 
-  .dark {
-    /* ── Better Material-style dark mode ── */
-    --color-canvas: 18 18 18;
-    --color-surface: 30 30 30;
-    --color-input: 44 44 44;
-    --color-border: 51 51 51;
-    --color-toggle-active: 18 18 18;
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* ── Better Material-style dark mode ── */
+      --color-canvas: 18 18 18;
+      --color-surface: 30 30 30;
+      --color-input: 44 44 44;
+      --color-border: 51 51 51;
+      --color-toggle-active: 18 18 18;
 
-    --color-primary: 249 250 251;
-    --color-secondary: 156 163 175;
+      --color-primary: 249 250 251;
+      --color-secondary: 156 163 175;
 
-    --color-accent: 209 169 32;
-    --color-accent-hover: 234 179 8;
-    --color-accent-muted: rgba(209, 169, 32, 0.12);
-    --color-accent-text: 18 18 18; /* High contrast text on gold */
+      --color-accent: 209 169 32;
+      --color-accent-hover: 234 179 8;
+      --color-accent-muted: rgba(209, 169, 32, 0.12);
+      --color-accent-text: 18 18 18; /* High contrast text on gold */
 
-    --color-error: 248 113 113;
-    --color-success: 52 211 153;
-    --color-warning: 251 191 36;
+      --color-error: 248 113 113;
+      --color-success: 52 211 153;
+      --color-warning: 251 191 36;
+    }
   }
 }

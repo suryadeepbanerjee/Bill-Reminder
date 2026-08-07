@@ -48,11 +48,14 @@ export default function CategoryIconBadge({ icon, color, size = 40 }: CategoryIc
         height: size,
         borderRadius: size / 4,
         backgroundColor: `${color}1f`,
-        color,
       }}
       aria-hidden
     >
-      <Icon size={Math.round(size * 0.45)} style={{ color }} />
+      <Icon
+        size={Math.round(size * 0.45)}
+        className="text-[var(--icon-color)] [.dark_&]:!text-[var(--color-primary)]"
+        style={{ "--icon-color": color } as React.CSSProperties}
+      />
     </div>
   );
 }

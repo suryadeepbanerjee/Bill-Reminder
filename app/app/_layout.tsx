@@ -39,24 +39,23 @@ const queryClient = new QueryClient({
   },
 });
 
-function NavigationObserver() {
-  const pathname = usePathname();
-  useEffect(() => {
-    // Screen blur / navigation: release any in-flight guard locks so the
-    // dedupe state never leaks across screens or sticks after a remount.
-    releaseAllActions();
-  }, [pathname]);
-  return null;
-}
 
 export default function RootLayout() {
   const { setSession, setLoading, isLoading } = useAuthStore();
   const { resolved, _hydrate } = useThemeStore();
   const { setColorScheme } = useColorScheme();
   const resetHousehold = useHouseholdStore((s) => s.reset);
+  const pathname = usePathname();
+
   useEffect(() => {
     _hydrate();
   }, []);
+
+  useEffect(() => {
+    // Screen blur / navigation: release any in-flight guard locks so the
+    // dedupe state never leaks across screens or sticks after a remount.
+    releaseAllActions();
+  }, [pathname]);
 
   useEffect(() => {
     // Lazy-load expo-notifications so its native module doesn't init during
@@ -113,7 +112,6 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <View style={{ flex: 1 }}>
-        <NavigationObserver />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
