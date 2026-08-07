@@ -37,6 +37,11 @@ const SAFE_MESSAGES = new Set([
   "Something went wrong. Please try again.",
   "Invalid verification code. Please try again.",
   "We couldn't verify you're human. Please try again.",
+  // Household invite messages (from invite-member edge function)
+  "No account found with this email. They must sign up first.",
+  "Only the household owner can invite members.",
+  "This user is already a member of this household.",
+  "This invite has reached the maximum number of sends.",
 ]);
 
 /** Generic fallback messages by context. */
@@ -101,6 +106,11 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
 
     // Invite resend rate-limit messages (server-generated, safe to show verbatim)
     if (lower.includes("before sending another invite") || lower.includes("invites sent to this email")) {
+      return raw;
+    }
+
+    // Invite member-specific messages (from edge function, safe to show)
+    if (lower.includes("must sign up first") || lower.includes("household owner") || lower.includes("already a member")) {
       return raw;
     }
 

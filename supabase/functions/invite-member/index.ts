@@ -145,21 +145,19 @@ serve(async (req: Request) => {
     }
 
     // ── 2. Look up the target user by email in auth.users ──────────────────
-    const { data: authUsers, error: listError } = await adminClient.auth.admin.listUsers({
-      filter: `email=${email}`,
-    });
+    // Use getUserByEmail (stable, explicit) rather than listUsers+filter
+    // because the filter query format changed across GoTrue versions.
+    const { data: targetUserData, error: listError } = await adminClient.auth.admin.getUserByEmail(email);
 
-    if (listError) {
+    if (listError && (listError as { status?: number }).status !== 404) {
       throw new Error(`Failed to look up user: ${listError.message}`);
     }
 
-    const targetUser = authUsers?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
+    const targetUser = targetUserData?.user ?? null;
 
     if (!targetUser) {
       return json(req,
-        { error: "No account found with this email. They must create an account first." },
+        { error: "No account found with this email. They must sign up first." },
         404
       );
     }
