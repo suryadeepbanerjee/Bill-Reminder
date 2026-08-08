@@ -1081,7 +1081,7 @@ export default function MembersPage() {
               {selectedMember?.member.role === "admin" && <CheckCircle2 size={18} className="text-blue-500" />}
             </div>
             <p className="text-xs text-secondary mt-1 leading-relaxed">
-              Can manage bills, edit household details, and invite members. Cannot delete household or transfer ownership.
+              Can manage bills and edit household details. Cannot invite or remove members, delete the household, or transfer ownership.
             </p>
           </button>
 

@@ -15,6 +15,7 @@ import { InviteResendButton } from "../../../components/household/InviteResendBu
 import { useAuthStore } from "../../../stores/auth-store";
 import { useAppTokens } from "../../../lib/tokens";
 import { useHouseholdStore } from "../../../stores/household-store";
+import { supabase } from "../../../lib/supabase/client";
 import {
   fetchHouseholdMembers,
   ensureAtLeastOneHousehold,
@@ -307,7 +308,7 @@ function RoleChangeSheet({
               {currentRole === "admin" && <Ionicons name="checkmark-circle" size={20} className="text-accent" />}
             </View>
             <Text className="text-caption text-secondary">
-              Can manage bills, edit household details, and invite members. Cannot delete household or transfer ownership.
+              Can manage bills and edit household details. Cannot invite or remove members, delete the household, or transfer ownership.
             </Text>
           </Pressable>
 
