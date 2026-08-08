@@ -346,6 +346,7 @@ export default function MembersScreen() {
   const { user } = useAuthStore();
   const tokens = useAppTokens();
   const activeHousehold = useHouseholdStore((s) => s.activeHousehold);
+  const defaultHouseholdId = useHouseholdStore((s) => s.defaultHouseholdId);
   const setHouseholds = useHouseholdStore((s) => s.setHouseholds);
   const households = useHouseholdStore((s) => s.households);
   const [emailToInvite, setEmailToInvite] = useState("");
@@ -579,7 +580,7 @@ export default function MembersScreen() {
   const handleSetDefault = async (hh: { household: any; member: any }) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      useHouseholdStore.getState().setActiveHousehold(hh);
+      await useHouseholdStore.getState().setDefaultHousehold(hh);
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "Could not set default.");
     }
@@ -1002,7 +1003,7 @@ export default function MembersScreen() {
             </Text>
             <Surface level="resting" bordered rounded="card" className="overflow-hidden">
               {households.map((h, index) => {
-                const isDefault = h.household.id === activeHousehold?.household.id;
+                const isDefault = h.household.id === defaultHouseholdId;
                 return (
                   <View
                     key={h.household.id}

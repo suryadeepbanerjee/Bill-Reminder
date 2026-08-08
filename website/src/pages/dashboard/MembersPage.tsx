@@ -69,6 +69,8 @@ export default function MembersPage() {
   const queryClient = useQueryClient();
   const activeHousehold = useHouseholdStore((s) => s.activeHousehold);
   const setActiveHousehold = useHouseholdStore((s) => s.setActiveHousehold);
+  const defaultHouseholdId = useHouseholdStore((s) => s.defaultHouseholdId);
+  const setDefaultHousehold = useHouseholdStore((s) => s.setDefaultHousehold);
   const setHouseholds = useHouseholdStore((s) => s.setHouseholds);
   const households = useHouseholdStore((s) => s.households);
   const { confirm } = useConfirm();
@@ -679,7 +681,7 @@ export default function MembersPage() {
       <SectionHeader>Your Households</SectionHeader>
       <div className="bg-surface border border-border rounded-card overflow-hidden">
         {households.map((h, index) => {
-          const isDefault = h.household.id === activeHousehold?.household.id;
+          const isDefault = h.household.id === defaultHouseholdId;
           return (
             <div
               key={h.household.id}
@@ -707,7 +709,7 @@ export default function MembersPage() {
                 {!isDefault && (
                   <button
                     type="button"
-                    onClick={() => setActiveHousehold(h)}
+                    onClick={() => setDefaultHousehold(h)}
                     className="bg-accent/10 px-3 py-1.5 rounded-full text-xs text-accent font-semibold hover:bg-accent/20 transition-colors shrink-0"
                   >
                     Set default
