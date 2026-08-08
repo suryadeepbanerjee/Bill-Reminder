@@ -276,6 +276,8 @@ function RoleChangeSheet({
     try {
       await onRoleChange(role);
       onClose();
+    } catch {
+      // Keep the sheet open; the parent surfaced the error.
     } finally {
       setSaving(false);
     }
@@ -308,7 +310,7 @@ function RoleChangeSheet({
               {currentRole === "admin" && <Ionicons name="checkmark-circle" size={20} className="text-accent" />}
             </View>
             <Text className="text-caption text-secondary">
-              Can manage bills and edit household details. Cannot invite or remove members, delete the household, or transfer ownership.
+              Can create, edit, and manage bills. Cannot edit household details, invite or remove members, delete the household, or transfer ownership.
             </Text>
           </Pressable>
 
@@ -325,7 +327,7 @@ function RoleChangeSheet({
               {currentRole === "member" && <Ionicons name="checkmark-circle" size={20} className="text-accent" />}
             </View>
             <Text className="text-caption text-secondary">
-              Can view bills and receive notifications. Cannot add, edit, or mark bills as paid.
+              Can view bills. Cannot add, edit, or mark bills as paid.
             </Text>
           </Pressable>
         </View>
@@ -463,6 +465,25 @@ export default function MembersScreen() {
     }
   };
 
+  const handleResend = async (member: HouseholdMember) => {
+    const email = member.invited_email ?? "";
+    if (!email || !householdId) return;
+    try {
+      await inviteToHousehold(householdId, email);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const updated = await fetchHouseholdMembers(householdId);
+      setMembers(updated);
+    } catch (e: any) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const raw = e instanceof Error ? e.message : String(e ?? "");
+      if (/already a member/i.test(raw)) {
+        Alert.alert("Already a Member", "This person has already joined the household.");
+      } else {
+        Alert.alert("Invite Failed", friendlyError(e));
+      }
+    }
+  };
+
   const handleRemoveMember = (memberId: string, memberName: string) => {
     Alert.alert(
       "Remove Member",
@@ -519,6 +540,7 @@ export default function MembersScreen() {
     } catch (e: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Role Update Failed", friendlyError(e));
+      throw e;
     }
   };
 
