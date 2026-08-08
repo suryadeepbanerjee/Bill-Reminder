@@ -207,7 +207,7 @@ export default function BillDetailPage() {
             {displayAmount != null ? formatCurrency(displayAmount, bill.currency) : "Variable"}
           </p>
           {currentOccurrence && (
-            <div className="mt-3 flex flex-col items-center gap-1">
+            <div className="mt-2.5 flex flex-col items-center gap-1">
               <BillStateChip state={currentOccurrence.state} label={chipLabel} dueDate={dueDate} />
               {showDateCaption && (
                 <p className="text-xs text-secondary">{formatDate(dueDate)}</p>
@@ -423,7 +423,9 @@ function OccurrenceRow({
           {formatCurrency(occurrence.paid_amount)}
         </span>
       )}
-      <BillStateChip state={occurrence.state} />
+      <span className="translate-y-1">
+        <BillStateChip state={occurrence.state} />
+      </span>
       <button
         type="button"
         aria-label="Delete transaction"

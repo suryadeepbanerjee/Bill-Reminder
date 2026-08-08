@@ -1,0 +1,117 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@*": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    }
+  },
+  "redirects": {
+    "https://esm.sh/uncrypto@^0.1.3?target=denonext": "https://esm.sh/uncrypto@0.1.3?target=denonext"
+  },
+  "remote": {
+    "https://esm.sh/@upstash/redis@1.37.0": "5a1515d9d369f9d272bcefec093b7cce71dc8e6a8507cf3ef5ec5bd54961665f",
+    "https://esm.sh/@upstash/redis@1.37.0/denonext/chunk-IH7W44G6.mjs": "f63502b6d78ce70f5d2818cc1d3bf47c23ce2e9fdd51eb0a0d3d8d0f99135739",
+    "https://esm.sh/@upstash/redis@1.37.0/denonext/redis.mjs": "df7d94e2b212d6f7c818337ef0947ef5ea67202e3e7ef3be3fec5fd4fc6ced0a",
+    "https://esm.sh/uncrypto@0.1.3/denonext/uncrypto.mjs": "610754e3fadd2110d6623dc68ce172f530491167504ce8b1b886c9e071cfe14f",
+    "https://esm.sh/uncrypto@0.1.3?target=denonext": "bc6d905780a009deb8e198516e0b404a22cb7ca992fbd372fef508e0ad534e02"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@types/react@^19.1.0"
+      ]
+    },
+    "members": {
+      "app": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@bill-reminder/shared@*",
+            "npm:@expo/vector-icons@^15.0.3",
+            "npm:@hookform/resolvers@^3.9.0",
+            "npm:@react-native-google-signin/google-signin@^16.1.4",
+            "npm:@supabase/supabase-js@^2.49.0",
+            "npm:@tanstack/react-query@^5.62.0",
+            "npm:@types/react@19.1",
+            "npm:babel-preset-expo@~54.0.10",
+            "npm:expo-auth-session@7.0",
+            "npm:expo-constants@18.0",
+            "npm:expo-font@~14.0.12",
+            "npm:expo-haptics@~15.0.8",
+            "npm:expo-linking@8.0",
+            "npm:expo-notifications@0.32",
+            "npm:expo-router@6.0",
+            "npm:expo-secure-store@~15.0.8",
+            "npm:expo-splash-screen@~31.0.13",
+            "npm:expo-sqlite@~16.0.10",
+            "npm:expo-status-bar@3.0",
+            "npm:expo-web-browser@~15.0.11",
+            "npm:expo@54.0",
+            "npm:nativewind@4.2.1",
+            "npm:postcss@^8.5.26",
+            "npm:react-dom@19.1.0",
+            "npm:react-hook-form@^7.54.0",
+            "npm:react-native-css-interop@0.2.6",
+            "npm:react-native-gesture-handler@2.28",
+            "npm:react-native-reanimated@~4.1.1",
+            "npm:react-native-safe-area-context@5.6.1",
+            "npm:react-native-screens@4.16",
+            "npm:react-native-webview@13.15.0",
+            "npm:react-native-worklets@0.5.1",
+            "npm:react-native@0.81.5",
+            "npm:react-refresh@0.18",
+            "npm:react@19.1.0",
+            "npm:tailwindcss@3.4.17",
+            "npm:typescript@~5.9.2",
+            "npm:zod@^3.24.0",
+            "npm:zustand@5"
+          ]
+        }
+      },
+      "packages/shared": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@supabase/supabase-js@^2.49.0",
+            "npm:zod@^3.24.0"
+          ]
+        }
+      },
+      "website": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@bill-reminder/shared@*",
+            "npm:@hookform/resolvers@^5.7.1",
+            "npm:@supabase/supabase-js@^2.49.0",
+            "npm:@tanstack/react-query@^5.101.4",
+            "npm:@types/react-dom@^18.3.1",
+            "npm:@types/react@^18.3.12",
+            "npm:@vercel/analytics@^2.0.1",
+            "npm:@vitejs/plugin-react@^4.3.4",
+            "npm:autoprefixer@^10.4.20",
+            "npm:framer-motion@^11.15.0",
+            "npm:lucide-react@^1.28.0",
+            "npm:postcss@^8.4.49",
+            "npm:react-dom@^18.3.1",
+            "npm:react-hook-form@^7.84.0",
+            "npm:react-router-dom@^7.18.2",
+            "npm:react@^18.3.1",
+            "npm:tailwindcss@^3.4.17",
+            "npm:typescript@^5.7.2",
+            "npm:vite@^6.0.5",
+            "npm:zod@^4.4.3",
+            "npm:zustand@^5.0.14"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { getRateLimiter } from "../_shared/rate-limit.ts";
 
 /**
  * transfer-ownership — allows a super_admin to transfer ownership to an admin.
@@ -58,6 +59,14 @@ serve(async (req: Request) => {
     if (!caller) {
       return json(req, { error: "Not authenticated" }, 401);
     }
+
+    // Rate limit: both phases together, per authenticated user
+    // (the per-phase DB gates of 3/hr and 5/hr remain below)
+    const blocked = await getRateLimiter().enforce(req, "transfer-ownership", {
+      type: "user",
+      value: caller.id,
+    });
+    if (blocked) return blocked;
 
     // 2. Verify caller is super_admin of the household
     const { data: callerMember } = await adminClient

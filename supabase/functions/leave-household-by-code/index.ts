@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { getRateLimiter, clientIp } from "../_shared/rate-limit.ts";
 
 /**
  * leave-household-by-code — public endpoint (no JWT required).
@@ -27,6 +28,13 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Rate limit: public endpoint, anonymous → per IP
+    const blocked = await getRateLimiter().enforce(req, "leave-household-by-code", {
+      type: "ip",
+      value: clientIp(req),
+    });
+    if (blocked) return blocked;
+
     const { code, householdId } = await req.json();
 
     if (!code || !householdId) {

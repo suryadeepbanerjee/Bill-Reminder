@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
 import { leaveUrl } from "../_shared/site.ts";
+import { getRateLimiter } from "../_shared/rate-limit.ts";
 
 /**
  * leave-household — sends a one-time verification link to the caller's email.
@@ -64,6 +65,13 @@ serve(async (req: Request) => {
     if (!caller) {
       return json(req, { error: "Not authenticated" }, 401);
     }
+
+    // Rate limit: per authenticated user (the DB 5/hr gate below stays)
+    const blocked = await getRateLimiter().enforce(req, "leave-household", {
+      type: "user",
+      value: caller.id,
+    });
+    if (blocked) return blocked;
 
     const { data: member } = await adminClient
       .from("household_members")

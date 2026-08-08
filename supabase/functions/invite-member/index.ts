@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
 import { inviteUrl } from "../_shared/site.ts";
+import { getRateLimiter } from "../_shared/rate-limit.ts";
 
 // ── Invite resend policy ─────────────────────────────────────────────────────
 // 2 minute cooldown between sends, max 3 resends (4 total sends),
@@ -112,6 +113,15 @@ serve(async (req: Request) => {
     if (!caller) {
       return json(req,{ error: "Not authenticated" }, 401);
     }
+
+    // Rate limit: 20 invite emails per account per day (protects the Resend
+    // quota — the existing 2-min/3-resend DB policy and the 20/hr gate remain
+    // untouched below).
+    const blocked = await getRateLimiter().enforce(req, "invite-member", {
+      type: "user",
+      value: caller.id,
+    });
+    if (blocked) return blocked;
 
     const { data: callerMember } = await adminClient
       .from("household_members")

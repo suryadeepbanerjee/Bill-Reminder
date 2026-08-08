@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { getRateLimiter } from "../_shared/rate-limit.ts";
 
 /* Mask an email for display so an API response never discloses a full address
  * to a caller who is not its owner (the invitation-email leak finding). */
@@ -47,6 +48,13 @@ serve(async (req: Request) => {
         { status: 401, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
+
+    // Rate limit: per authenticated user
+    const blocked = await getRateLimiter().enforce(req, "accept-invite", {
+      type: "user",
+      value: caller.id,
+    });
+    if (blocked) return blocked;
 
     // ── 2. Find the pending invite ─────────────────────────────────────────
     // Invites are email-scoped: match by user_id OR the invited email

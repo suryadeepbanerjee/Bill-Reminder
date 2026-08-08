@@ -6,6 +6,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { getRateLimiter } from "../_shared/rate-limit.ts";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -42,6 +43,13 @@ serve(async (req: Request) => {
         { headers: { ...corsHeaders(req), "Content-Type": "application/json" }, status: 401 }
       );
     }
+
+    // Rate limit: destructive action, per authenticated user
+    const blocked = await getRateLimiter().enforce(req, "delete-account", {
+      type: "user",
+      value: user.id,
+    });
+    if (blocked) return blocked;
 
     const userId = user.id;
     console.log(`[delete-account] Starting deletion for user`);

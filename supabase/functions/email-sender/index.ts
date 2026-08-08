@@ -6,6 +6,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
+import { getRateLimiter } from "../_shared/rate-limit.ts";
 import {
 	renderNotificationEmail,
 	statusColorMap,
@@ -57,6 +58,19 @@ serve(async (req: Request) => {
 				headers: { ...corsHeaders(req), "Content-Type": "application/json" },
 				status: 400,
 			});
+		}
+
+		// Rate limit: this call sends ONE digest email to ONE recipient — cap
+		// per recipient at 30/hour and 150/day so no single account (even
+		// with hundreds of bills) can drain the Resend quota.
+		const recipientId = batch[0].userId?.trim() || "";
+		if (recipientId) {
+			const limiter = getRateLimiter();
+			const identity = { type: "user" as const, value: recipientId };
+			const hourly = await limiter.enforce(req, "email-digest-hour", identity);
+			if (hourly) return hourly;
+			const daily = await limiter.enforce(req, "email-digest-day", identity);
+			if (daily) return daily;
 		}
 
 		const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
