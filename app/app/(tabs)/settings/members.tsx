@@ -745,7 +745,12 @@ export default function MembersScreen() {
   };
 
   const getMemberName = (m: { member: HouseholdMember; profile: Profile | null }) => {
-    return m.profile?.display_name ?? m.member.invited_email?.split("@")[0] ?? "Unknown";
+    const displayName = m.profile?.display_name?.trim();
+    if (displayName) return displayName;
+    const invitedLocal = m.member.invited_email?.split("@")[0]?.trim();
+    if (invitedLocal) return invitedLocal;
+    const profileEmail = m.profile?.email?.split("@")[0]?.trim();
+    return profileEmail || "Unknown";
   };
 
   const getMemberEmail = (m: { member: HouseholdMember; profile: Profile | null }) => {

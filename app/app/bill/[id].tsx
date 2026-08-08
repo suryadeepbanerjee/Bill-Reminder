@@ -18,6 +18,10 @@ import { useBill, useUpdateBill }         from "../../hooks/useBills";
 import { useDeleteBill }                 from "../../hooks/useBills";
 import { useBillOccurrences } from "../../hooks/useOccurrences";
 import { useReminderRules, useToggleReminderRule } from "../../hooks/useReminders";
+import {
+  useBillNotificationPreference,
+  useSetBillNotificationPreference,
+} from "../../hooks/useNotificationPrefs";
 import { useNotificationPermission } from "../../hooks/useNotificationPermission";
 import { useAuthStore }       from "../../stores/auth-store";
 import { useHouseholdStore }  from "../../stores/household-store";
@@ -54,7 +58,7 @@ import { Colors }                         from "../../lib/theme";
 import { humanize }                       from "@shared/utils/errors";
 import { canEditBills }                   from "@shared/utils/roles";
 import { updateBillSchema, UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas";
-import type { Bill, BillOccurrence, BillReminderRule } from "@shared/types";
+import type { Bill, BillOccurrence, BillNotificationPreference, BillReminderRule } from "@shared/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -680,6 +684,8 @@ export default function BillDetailScreen() {
   const { data: bill, isLoading, isError, error, refetch } = useBill(id, Boolean(user));
   const { data: occurrences = [] } = useBillOccurrences(id);
   const { data: reminderRules = [] } = useReminderRules(id);
+  const { data: myPref } = useBillNotificationPreference(id, user?.id);
+  const { mutateAsync: setPref, isPending: prefPending } = useSetBillNotificationPreference();
   const { mutateAsync: deleteBill, isPending: isDeleting } = useDeleteBill();
   const { granted: notificationsGranted, refresh: refreshNotifications } = useNotificationPermission();
 
@@ -699,6 +705,21 @@ export default function BillDetailScreen() {
   const paidOccurrences = useMemo(
     () => occurrences.filter(o => o.state === "paid"),
     [occurrences]
+  );
+
+  const handleSetPref = useCallback(
+    async (patch: Partial<Pick<BillNotificationPreference, "push_enabled" | "email_enabled">>) => {
+      if (!id || !user?.id) return;
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        await setPref({ billId: id, userId: user.id, patch });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (e: any) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert("Could not update", humanize(e));
+      }
+    },
+    [id, user?.id, setPref]
   );
 
   const handleDelete = useCallback(() => {
@@ -1009,6 +1030,58 @@ export default function BillDetailScreen() {
               </Surface>
             </>
           )}
+        </View>
+
+        {/* ── My notifications ────────────────────────────────────────── */}
+        <View className="px-4 mb-4">
+          <Text className="text-caption text-secondary font-medium mb-1.5">
+            My notifications for this bill
+          </Text>
+          <Surface level="resting" bordered rounded="card" className="overflow-hidden">
+            <View className="flex-row items-center gap-3 px-4 py-3.5">
+              <View className="w-8 h-8 rounded-input bg-neutral-100 dark:bg-neutral-800 items-center justify-center">
+                <Ionicons name="notifications-outline" size={16} className="text-primary" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-label text-primary font-medium">Push notifications</Text>
+                <Text className="text-caption text-secondary mt-0.5">
+                  Get a push when this bill is due or overdue
+                </Text>
+              </View>
+              <Switch
+                value={myPref?.push_enabled ?? false}
+                onValueChange={(v) => handleSetPref({ push_enabled: v })}
+                disabled={prefPending || !canEdit || !user?.id}
+                accessibilityLabel="Push notifications for this bill"
+              />
+            </View>
+            {canEdit ? (
+              <Divider inset={16} />
+            ) : (
+              <View className="px-4 pb-3 -mt-1">
+                <Text className="text-[10px] text-secondary">
+                  Members can't change notification settings — they're always off
+                </Text>
+              </View>
+            )}
+            <View className="flex-row items-center gap-3 px-4 py-3.5">
+              <View className="w-8 h-8 rounded-input bg-neutral-100 dark:bg-neutral-800 items-center justify-center">
+                <Ionicons name="mail-outline" size={16} className="text-primary" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-label text-primary font-medium">Email reminders</Text>
+                <Text className="text-caption text-secondary mt-0.5">
+                  Get an email when this bill is due or overdue
+                </Text>
+              </View>
+              <Switch
+                value={myPref?.email_enabled ?? false}
+                onValueChange={(v) => handleSetPref({ email_enabled: v })}
+                disabled={prefPending || !canEdit}
+                accessibilityLabel="Email reminders for this bill"
+              />
+            </View>
+          </Surface>
         </View>
 
         {/* ── Payment history ─────────────────────────────────────────── */}

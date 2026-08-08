@@ -1,13 +1,16 @@
 // Edge Function: email-sender
 // Called by reminder-dispatcher
-// Responsibility: Calls Resend API, writes notification_log
+// Responsibility: Calls Resend API (one digest email per user), writes notification_log per bill
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
-import { SITE_URL, billUrl } from "../_shared/site.ts";
-import { renderNotificationEmail } from "./templates/notification.ts";
+import {
+	renderNotificationEmail,
+	statusColorMap,
+	type BillCardData,
+} from "./templates/notification.ts";
 
 /* H-4: HTML-escape user-controlled values before they reach the email
  * template — a malicious bill title must render as text, not markup. */
@@ -17,8 +20,19 @@ function escapeHtml(value: string): string {
 		.replace(/</g, "&lt;")
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+		.replace(/'/g, "&#39;")
+		.toString();
 }
+
+type EmailItem = {
+	reminderId: string;
+	userId: string;
+	billId: string;
+	billName: string;
+	amount: string;
+	dueDate: string;
+	status: string;
+};
 
 serve(async (req: Request) => {
 	if (req.method === "OPTIONS") {
@@ -35,7 +49,15 @@ serve(async (req: Request) => {
 	}
 
 	try {
-		const { reminderId, userId, billId, email, subject, billName, amount, dueDate, status } = await req.json();
+		const { email, subject, items } = await req.json();
+		const batch: EmailItem[] = Array.isArray(items) && items.length > 0 ? items : [];
+
+		if (!email || batch.length === 0) {
+			return new Response(JSON.stringify({ error: "email and items[] are required" }), {
+				headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+				status: 400,
+			});
+		}
 
 		const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 		const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -47,33 +69,61 @@ serve(async (req: Request) => {
 
 		const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-		// Build status-aware message
-		const messageMap: Record<string, string> = {
-			overdue: `Your bill <strong>${escapeHtml(billName || "Your Bill")}</strong> is <strong style="color:#dc2626;">overdue</strong>. Please make the payment at your earliest convenience.`,
-			due_today: `Your bill <strong>${escapeHtml(billName || "Your Bill")}</strong> is <strong style="color:#ea580c;">due today</strong>. Don't forget to make the payment.`,
-			expected_payment: `Your bill <strong>${escapeHtml(billName || "Your Bill")}</strong> has a payment expected soon. Please ensure sufficient funds.`,
-			generated: `A new occurrence for <strong>${escapeHtml(billName || "Your Bill")}</strong> has been generated. Review the details below.`,
-			upcoming: `Your bill <strong>${escapeHtml(billName || "Your Bill")}</strong> is coming up. Here's a heads-up so you don't miss it.`,
-		};
-		const message =
-			messageMap[status || "upcoming"] ||
-			`Your bill "<strong>${escapeHtml(billName || "Your Bill")}</strong>" is due on <strong>${escapeHtml(dueDate || "soon")}</strong>.`;
+		// Map each reminder item into escaped template card data.
+		const bills: BillCardData[] = batch.map((item) => ({
+			billName: escapeHtml(item.billName || "Your Bill"),
+			amount: escapeHtml(item.amount || "Check details"),
+			dueDate: escapeHtml(item.dueDate || "Check details"),
+			status: item.status || "upcoming",
+			statusColor: statusColorMap[item.status || "upcoming"] || "#64748b",
+		}));
 
-		// Render HTML using template module.
-		// `title` (the subject, which embeds the user-controlled bill title)
-		// reaches the template's <h1>{{title}}</h1> — escape it so a malicious
-		// bill title cannot inject markup into the email (audit finding).
+		// Build content: single bill keeps the exact per-status copy; a digest
+		// summarises the batch and shows every bill as its own card.
+		const title = batch.length === 1
+			? escapeHtml(batch[0].billName || "Bill Reminder")
+			: `${batch.length} bills need your attention`;
+
+		const subjectLine = subject || (batch.length === 1
+			? `Bill Reminder: ${batch[0].billName || "Bill due"}`
+			: `Bill Reminder: ${batch.length} bills need your attention`);
+
+		let message: string;
+		if (batch.length === 1) {
+			const item = batch[0];
+			const name = escapeHtml(item.billName || "Your Bill");
+			const messageMap: Record<string, string> = {
+				overdue: `Your bill <strong>${name}</strong> is <strong style="color:#dc2626;">overdue</strong>. Please make the payment at your earliest convenience. You can review all overdue bills below.`,
+				due_today: `Your bill <strong>${name}</strong> is <strong style="color:#ea580c;">due today</strong>. Don't forget to make the payment.`,
+				expected_payment: `Your bill <strong>${name}</strong> has a payment expected soon. Please ensure sufficient funds.`,
+				generated: `A new occurrence for <strong>${name}</strong> has been generated. Review the details below.`,
+				upcoming: `Your bill <strong>${name}</strong> is coming up. Here's a heads-up so you don't miss it.`,
+			};
+			message =
+				messageMap[item.status || "upcoming"] ||
+				`Your bill "<strong>${name}</strong>" is due on <strong>${escapeHtml(item.dueDate || "soon")}</strong>.`;
+		} else {
+			const overdue = batch.filter((b) => b.status === "overdue").length;
+			const dueToday = batch.filter((b) => b.status === "due_today").length;
+			const parts: string[] = [];
+			if (overdue > 0) {
+				parts.push(`<strong style="color:#dc2626;">${overdue} overdue</strong>`);
+			}
+			if (dueToday > 0) {
+				parts.push(`<strong style="color:#ea580c;">${dueToday} due today</strong>`);
+			}
+			const summary = parts.length > 0 ? parts.join(" and ") : `${batch.length} bills`;
+			message = `You have ${summary} bill${batch.length === 1 ? "" : "s"} pending. Review each bill below and make payments at your earliest convenience.`;
+		}
+
 		const htmlBody = renderNotificationEmail({
-			title: escapeHtml(subject || "Bill Reminder"),
+			title: escapeHtml(subject || title),
+			subtitle: batch.length === 1 ? undefined : "Summary of bills that need your attention",
 			message,
-			billName: escapeHtml(billName || "Your Bill"),
-			amount: escapeHtml(amount || "Check details"),
-			dueDate: escapeHtml(dueDate || "Check details"),
-			status: status || "upcoming",
-			actionUrl: billId ? billUrl(billId) : SITE_URL,
+			bills,
 		});
 
-		// Send email via Resend
+		// Send the ONE digest email via Resend
 		const response = await fetch("https://api.resend.com/emails", {
 			method: "POST",
 			headers: {
@@ -84,44 +134,40 @@ serve(async (req: Request) => {
 				from: "Bill Reminder <billalert@billreminder.suryadeepbanerjee.in>",
 				reply_to: "official@suryadeepbanerjee.in",
 				to: email,
-				subject: subject || "Bill Reminder",
+				subject: subjectLine,
 				html: htmlBody,
 			}),
 		});
 
 		const result = await response.json();
 
-		if (!response.ok) {
-			// Log failure
+		// Log + mark each item together (one shared outcome for the batch)
+		const outcomeStatus = response.ok ? "sent" : "failed";
+
+		for (const item of batch) {
 			await supabase.from("notification_log").insert({
-				scheduled_reminder_id: reminderId,
-				user_id: userId,
+				scheduled_reminder_id: item.reminderId,
+				user_id: item.userId,
 				channel: "email",
-				provider_message_id: result.id,
-				status: "failed",
-				error: result.message || `HTTP ${response.status}`,
+				provider_message_id: result.id ?? null,
+				status: outcomeStatus,
+				...(response.ok ? {} : { error: result.message || `HTTP ${response.status}` }),
 			});
 
-			await supabase.from("scheduled_reminders").update({ status: "failed", sent_at: new Date().toISOString() }).eq("id", reminderId);
+			await supabase
+				.from("scheduled_reminders")
+				.update({ status: outcomeStatus, sent_at: new Date().toISOString() })
+				.eq("id", item.reminderId);
+		}
 
+		if (!response.ok) {
 			return new Response(JSON.stringify({ success: false, error: result.message }), {
 				headers: { ...corsHeaders(req), "Content-Type": "application/json" },
 				status: 200,
 			});
 		}
 
-		// Log success
-		await supabase.from("notification_log").insert({
-			scheduled_reminder_id: reminderId,
-			user_id: userId,
-			channel: "email",
-			provider_message_id: result.id,
-			status: "sent",
-		});
-
-		await supabase.from("scheduled_reminders").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", reminderId);
-
-		return new Response(JSON.stringify({ success: true, messageId: result.id }), {
+		return new Response(JSON.stringify({ success: true, messageId: result.id, count: batch.length }), {
 			headers: { ...corsHeaders(req), "Content-Type": "application/json" },
 			status: 200,
 		});

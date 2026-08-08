@@ -1,199 +1,225 @@
 // Edge Function: reminder-dispatcher
 // Trigger: pg_cron, every 5 min
-// Responsibility: Claims pending reminders, routes to push-sender or email-sender
+// Purpose: Claims pending reminders, routes each to push-sender or email-sender.
+//          Email reminders are batched into ONE digest email per user per run.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
 
+type EmailItem = {
+	reminderId: string;
+	userId: string;
+	billId: string;
+	billName: string;
+	amount: string;
+	dueDate: string;
+	status: string;
+};
+
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders(req) });
-  }
+	if (req.method === "OPTIONS") {
+		return new Response("ok", { headers: corsHeaders(req) });
+	}
 
-  // Guard: only allow calls with a valid CRON_SECRET
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
-      status: 401,
-    });
-  }
+	// Guard: only allow calls with a valid CRON_SECRET (pg_cron sender)
+	const authHeader = req.headers.get("Authorization") ?? "";
+	const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+	if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+		return new Response(JSON.stringify({ error: "unauthorized" }), {
+			headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+			status: 401,
+		});
+	}
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+	try {
+		const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+		const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+		const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Claim pending reminders atomically
-    const { data: pendingReminders, error: claimError } = await supabase
-      .rpc("claim_pending_reminders");
+		// Claim pending reminders atomically
+		const { data: pendingReminders, error: claimError } = await supabase
+			.rpc("claim_pending_reminders");
 
-    if (claimError) throw claimError;
+		if (claimError) throw claimError;
 
-    let pushedSent = 0;
-    let emailsSent = 0;
-    let failed = 0;
+		let pushedSent = 0;
+		let emailsSent = 0; // count of digest emails (one per user)
+		let failed = 0;
 
-    // Dispatch each claimed reminder
-    for (const reminder of pendingReminders || []) {
-      try {
-        // Get occurrence and bill details for the notification content
-        const { data: occurrence, error: occError } = await supabase
-          .from("bill_occurrences")
-          .select(`
-            *,
-            bills!inner (
-              id,
-              title,
-              provider_name,
-              amount_expected,
-              household_id
-            )
-          `)
-          .eq("id", reminder.occurrence_id)
-          .single();
+		// Email batch accumulation per recipient (user_id → items)
+		const emailBatchByUser = new Map<string, EmailItem[]>();
 
-        if (occError || !occurrence) {
-          console.error(`Failed to fetch occurrence ${reminder.occurrence_id}:`, occError?.message);
-          failed++;
-          // Mark as failed
-          await supabase
-            .from("scheduled_reminders")
-            .update({ status: "failed", sent_at: new Date().toISOString() })
-            .eq("id", reminder.id);
-          continue;
-        }
+		// Dispatch each claimed reminder
+		for (const reminder of pendingReminders || []) {
+			try {
+				// Get occurrence and bill details for the notification content
+				const { data: occurrence, error: occError } = await supabase
+					.from("bill_occurrences")
+					.select("id, bill_id, due_date, status")
+					.eq("id", reminder.occurrence_id)
+					.single();
 
-        const bill = occurrence.bills;
-        const title = `Bill Reminder: ${bill.title}`;
-        const body = `Your bill "${bill.title}"${bill.provider_name ? ` (${bill.provider_name})` : ""} is due on ${occurrence.due_date || "soon"}.`;
+				if (occError) throw occError;
 
-        if (reminder.channel === "push") {
-          // Call push-sender
-          const pushResponse = await supabase.functions.invoke("push-sender", {
-            body: {
-              reminderId: reminder.id,
-              userId: reminder.user_id,
-              billId: bill.id,
-              title,
-              body,
-            },
-            headers: { "x-cron-secret": cronSecret },
-          });
+				// Get bill details
+				const { data: bill, error: billError } = await supabase
+					.from("bills")
+					.select("id, name, amount, currency_id, household_id")
+					.eq("id", occurrence?.bill_id)
+					.single();
 
-          if (pushResponse.error) {
-            console.error(`Push send failed for reminder ${reminder.id}:`, pushResponse.error);
-            failed++;
-            await supabase
-              .from("scheduled_reminders")
-              .update({ status: "failed", sent_at: new Date().toISOString() })
-              .eq("id", reminder.id);
-          } else {
-            pushedSent++;
-          }
-        } else if (reminder.channel === "email") {
-          // House rule: email reminders only reach admin + super_admin members.
-          // Members get push notifications only (they just track the bill).
-          const { data: memberRole, error: roleError } = await supabase
-            .from("household_members")
-            .select("role")
-            .eq("household_id", bill.household_id)
-            .eq("user_id", reminder.user_id)
-            .eq("status", "active")
-            .maybeSingle();
+				if (billError) throw billError;
 
-          if (roleError) {
-            throw new Error(`Role lookup failed: ${roleError.message}`);
-          }
-          if (!memberRole || memberRole.role !== "admin" && memberRole.role !== "super_admin") {
-            await supabase
-              .from("scheduled_reminders")
-              .update({ status: "skipped", sent_at: new Date().toISOString() })
-              .eq("id", reminder.id);
-            continue;
-          }
+				// Decide routing based on the reminder's channel
+				if (reminder.channel === "push") {
+					// Get the user's push tokens
+					const { data: pushTokens, error: tokensError } = await supabase
+						.from("push_tokens")
+						.select("id, platform")
+						.eq("user_id", reminder.user_id);
 
-          // Get user's email
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("email, email_notifications_enabled")
-            .eq("id", reminder.user_id)
-            .single();
+					if (tokensError) throw tokensError;
 
-          if (profileError || !profile || !profile.email) {
-            console.error(`Failed to fetch profile for user ${reminder.user_id}:`, profileError?.message);
-            failed++;
-            await supabase
-              .from("scheduled_reminders")
-              .update({ status: "skipped", sent_at: new Date().toISOString() })
-              .eq("id", reminder.id);
-            continue;
-          }
+					if (!pushTokens || pushTokens.length === 0) {
+						await updateReminderStatus(supabase, reminder.id);
+						continue;
+					}
 
-          // Check email notification preference
-          if (!profile.email_notifications_enabled) {
-            await supabase
-              .from("scheduled_reminders")
-              .update({ status: "skipped", sent_at: new Date().toISOString() })
-              .eq("id", reminder.id);
-            continue;
-          }
+					// Call push-sender with the reminder payload
+					const pushResponse = await fetch(
+						`${supabaseUrl}/functions/v1/push-sender`,
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								"x-cron-secret": cronSecret,
+							},
+							body: JSON.stringify({
+								reminderId: reminder.id,
+								userId: reminder.user_id,
+								title: `Bill due: ${bill.name}`,
+							}),
+						}
+					);
 
-          // Call email-sender
-          const emailResponse = await supabase.functions.invoke("email-sender", {
-            body: {
-              reminderId: reminder.id,
-              userId: reminder.user_id,
-              billId: bill.id,
-              email: profile.email,
-              subject: title,
-              billName: bill.title,
-              amount: bill.amount_expected ? `₹${bill.amount_expected}` : "Variable",
-              dueDate: occurrence.due_date || "Soon",
-              status: occurrence.state,
-            },
-            headers: { "x-cron-secret": cronSecret },
-          });
+					if (!pushResponse.ok) {
+						throw new Error(`push-sender failed (status ${pushResponse.status})`);
+					}
 
-          if (emailResponse.error) {
-            console.error(`Email send failed for reminder ${reminder.id}:`, emailResponse.error);
-            failed++;
-            await supabase
-              .from("scheduled_reminders")
-              .update({ status: "failed", sent_at: new Date().toISOString() })
-              .eq("id", reminder.id);
-          } else {
-            emailsSent++;
-          }
-        }
-      } catch (e) {
-        console.error(`Error dispatching reminder ${reminder.id}:`, e);
-        failed++;
-        await supabase
-          .from("scheduled_reminders")
-          .update({ status: "failed", sent_at: new Date().toISOString() })
-          .eq("id", reminder.id);
-      }
-    }
+					pushedSent++;
+				} else {
+					// ── Email channel ──────────────────────────────────────────────
+					// House rule: only admins and super_admins receive email — check role.
+					const { data: memberRole, error: roleError } = await supabase
+						.from("household_members")
+						.select("role")
+						.eq("household_id", bill.household_id)
+						.eq("user_id", reminder.user_id)
+						.single();
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        dispatched: pendingReminders?.length || 0,
-        pushedSent,
-        emailsSent,
-        failed,
-        timestamp: new Date().toISOString(),
-      }),
-      {
-        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return internalError(req, "reminder-dispatcher", error);
-  }
+					if (roleError) throw roleError;
+
+					const canEmail =
+						memberRole?.role === "admin" || memberRole?.role === "super_admin";
+
+					const { data: profile, error: profileError } = await supabase
+						.from("profiles")
+						.select("email, email_notifications_enabled")
+						.eq("id", reminder.user_id)
+						.single();
+
+					if (profileError) throw profileError;
+
+					if (!profile?.email_notifications_enabled || !canEmail) {
+						await updateReminderStatus(supabase, reminder.id);
+						continue;
+					}
+
+					const amountText = `${bill.amount} ${bill.currency_id}`;
+					const item: EmailItem = {
+						reminderId: reminder.id,
+						userId: reminder.user_id,
+						billId: bill.id,
+						billName: bill.name,
+						amount: amountText,
+						dueDate: occurrence?.due_date ?? "",
+						status: occurrence?.status ?? "upcoming",
+					};
+
+					const existing = emailBatchByUser.get(reminder.user_id) ?? [];
+					existing.push(item);
+					emailBatchByUser.set(reminder.user_id, existing);
+				}
+			} catch (e) {
+				failed++;
+				await updateReminderStatus(supabase, reminder.id);
+			}
+		}
+
+		// Send ONE digest email per user with all their overdue/today bills
+		for (const [userId, items] of emailBatchByUser) {
+			try {
+				const { data: profile, error: profileError } = await supabase
+					.from("profiles")
+					.select("email")
+					.eq("id", userId)
+					.single();
+
+				if (profileError || !profile?.email) {
+					failed += items.length;
+					for (const item of items) {
+						await updateReminderStatus(supabase, item.reminderId);
+					}
+					continue;
+				}
+
+				const emailResponse = await fetch(
+					`${supabaseUrl}/functions/v1/email-sender`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							"x-cron-secret": cronSecret,
+						},
+						body: JSON.stringify({
+							email: profile.email,
+							items,
+						}),
+					}
+				);
+
+				if (!emailResponse.ok) {
+					throw new Error(`email-sender failed (status ${emailResponse.status})`);
+				}
+
+				emailsSent++;
+			} catch (e) {
+				failed += items.length;
+				for (const item of items) {
+					await updateReminderStatus(supabase, item.reminderId);
+				}
+			}
+		}
+
+		return new Response(
+			JSON.stringify({ pushedSent, emailsSent, failed }),
+			{ headers: { ...corsHeaders(req), "Content-Type": "application/json" } },
+		);
+	} catch (e) {
+		return internalError(req, "reminder-dispatcher", e);
+	}
 });
+
+async function updateReminderStatus(
+	supabase: ReturnType<typeof createClient>,
+	reminderId: string,
+	status = "failed",
+) {
+	const { error } = await supabase
+		.from("scheduled_reminders")
+		.update({ status })
+		.eq("id", reminderId);
+	if (error) throw error;
+}

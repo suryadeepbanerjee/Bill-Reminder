@@ -185,178 +185,7 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
                                     {{message}}
                                 </p>
 
-                                <!-- BILL CARD -->
-                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="
-                                    margin:0 0 28px;
-                                    border:1px solid #2a2a2a;
-                                    border-radius:12px;
-                                    overflow:hidden;
-                                    background-color:#111111;
-                                ">
-                                    <tr>
-                                        <td style="
-                                            background-color:#1a1a1a;
-                                            padding:14px 20px;
-                                            border-bottom:1px solid #2a2a2a;
-                                        ">
-                                            <p class="card-title" style="
-                                                margin:0;
-                                                font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                font-size:11px;
-                                                font-weight:700;
-                                                color:#b69318;
-                                                text-transform:uppercase;
-                                                letter-spacing:1.2px;
-                                            ">
-                                                Bill Details
-                                            </p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding:0;">
-                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                                <tr>
-                                                    <td class="bill-label" style="
-                                                        padding:16px 20px;
-                                                        border-bottom:1px solid #1e1e1e;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:11px;
-                                                        color:#888888;
-                                                        text-transform:uppercase;
-                                                        letter-spacing:0.7px;
-                                                        width:36%;
-                                                        vertical-align:top;
-                                                        background-color:#0f0f0f;
-                                                    ">
-                                                        Bill Name
-                                                    </td>
-                                                    <td class="bill-value" style="
-                                                        padding:16px 20px;
-                                                        border-bottom:1px solid #1e1e1e;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:15px;
-                                                        color:#ffffff;
-                                                        font-weight:600;
-                                                        vertical-align:top;
-                                                    ">
-                                                        {{billName}}
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding:0;">
-                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                                <tr>
-                                                    <td class="bill-label" style="
-                                                        padding:16px 20px;
-                                                        border-bottom:1px solid #1e1e1e;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:11px;
-                                                        color:#888888;
-                                                        text-transform:uppercase;
-                                                        letter-spacing:0.7px;
-                                                        width:36%;
-                                                        vertical-align:top;
-                                                        background-color:#0f0f0f;
-                                                    ">
-                                                        Amount
-                                                    </td>
-                                                    <td class="bill-value" style="
-                                                        padding:16px 20px;
-                                                        border-bottom:1px solid #1e1e1e;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:18px;
-                                                        color:#ffffff;
-                                                        font-weight:700;
-                                                        vertical-align:top;
-                                                        letter-spacing:-0.3px;
-                                                    ">
-                                                        {{amount}}
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding:0;">
-                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                                <tr>
-                                                    <td class="bill-label" style="
-                                                        padding:16px 20px;
-                                                        border-bottom:1px solid #1e1e1e;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:11px;
-                                                        color:#888888;
-                                                        text-transform:uppercase;
-                                                        letter-spacing:0.7px;
-                                                        width:36%;
-                                                        vertical-align:top;
-                                                        background-color:#0f0f0f;
-                                                    ">
-                                                        Due Date
-                                                    </td>
-                                                    <td class="bill-value" style="
-                                                        padding:16px 20px;
-                                                        border-bottom:1px solid #1e1e1e;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:15px;
-                                                        color:#ffffff;
-                                                        font-weight:600;
-                                                        vertical-align:top;
-                                                    ">
-                                                        {{dueDate}}
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding:0;">
-                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                                <tr>
-                                                    <td class="bill-label" style="
-                                                        padding:16px 20px;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:11px;
-                                                        color:#888888;
-                                                        text-transform:uppercase;
-                                                        letter-spacing:0.7px;
-                                                        width:36%;
-                                                        vertical-align:top;
-                                                        background-color:#0f0f0f;
-                                                        border-bottom:none !important;
-                                                    ">
-                                                        Status
-                                                    </td>
-                                                    <td class="bill-value" style="
-                                                        padding:16px 20px;
-                                                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                                                        font-size:13px;
-                                                        font-weight:700;
-                                                        vertical-align:top;
-                                                        border-bottom:none !important;
-                                                    ">
-                                                        <span style="
-                                                            display:inline-block;
-                                                            background-color:{{statusColor}}20;
-                                                            color:{{statusColor}};
-                                                            padding:6px 14px;
-                                                            border-radius:20px;
-                                                            font-size:11px;
-                                                            letter-spacing:0.6px;
-                                                            text-transform:uppercase;
-                                                            border:1px solid {{statusColor}}40;
-                                                        ">
-                                                            {{status}}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                </table>
+                                {{billCards}}
 
                                 <!-- CTA BUTTON -->
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0;">
@@ -430,44 +259,116 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export function renderNotificationEmail(data: {
-	title: string;
-	message: string;
+export type BillCardData = {
 	billName: string;
 	amount: string;
 	dueDate: string;
 	status: string;
-	actionUrl: string;
+	statusColor: string;
+};
+
+export const statusColorMap: Record<string, string> = {
+	overdue: "#dc2626",
+	due_today: "#ea580c",
+	expected_payment: "#b69317",
+	generated: "#2563eb",
+	upcoming: "#64748b",
+	paid: "#16a34a",
+};
+
+export function billCardHtml(item: BillCardData): string {
+	const statusLabel = item.status.replace(/_/g, " ");
+	return `<!-- BILL CARD -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 28px; border:1px solid #2a2a2a; border-radius:12px; overflow:hidden; background-color:#111111;">
+                                    <tr>
+                                        <td style="background-color:#1a1a1a; padding:14px 20px; border-bottom:1px solid #2a2a2a;">
+                                            <p class="card-title" style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; color:#b69318; text-transform:uppercase; letter-spacing:1.2px;">
+                                                Bill Details
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0;">
+                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                <tr>
+                                                    <td class="bill-label" style="padding:16px 20px; border-bottom:1px solid #1e1e1e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#888888; text-transform:uppercase; letter-spacing:0.7px; width:36%; vertical-align:top; background-color:#0f0f0f;">
+                                                        Bill Name
+                                                    </td>
+                                                    <td class="bill-value" style="padding:16px 20px; border-bottom:1px solid #1e1e1e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; color:#ffffff; font-weight:600; vertical-align:top;">
+                                                        ${item.billName}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0;">
+                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                <tr>
+                                                    <td class="bill-label" style="padding:16px 20px; border-bottom:1px solid #1e1e1e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#888888; text-transform:uppercase; letter-spacing:0.7px; width:36%; vertical-align:top; background-color:#0f0f0f;">
+                                                        Amount
+                                                    </td>
+                                                    <td class="bill-value" style="padding:16px 20px; border-bottom:1px solid #1e1e1e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:18px; color:#ffffff; font-weight:700; vertical-align:top; letter-spacing:-0.3px;">
+                                                        ${item.amount}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0;">
+                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                <tr>
+                                                    <td class="bill-label" style="padding:16px 20px; border-bottom:1px solid #1e1e1e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#888888; text-transform:uppercase; letter-spacing:0.7px; width:36%; vertical-align:top; background-color:#0f0f0f;">
+                                                        Due Date
+                                                    </td>
+                                                    <td class="bill-value" style="padding:16px 20px; border-bottom:1px solid #1e1e1e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; color:#ffffff; font-weight:600; vertical-align:top;">
+                                                        ${item.dueDate}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0;">
+                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                <tr>
+                                                    <td class="bill-label" style="padding:16px 20px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#888888; text-transform:uppercase; letter-spacing:0.7px; width:36%; vertical-align:top; background-color:#0f0f0f; border-bottom:none !important;">
+                                                        Status
+                                                    </td>
+                                                    <td class="bill-value" style="padding:16px 20px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:700; vertical-align:top; border-bottom:none !important;">
+                                                        <span style="display:inline-block; background-color:${item.statusColor}20; color:${item.statusColor}; padding:6px 14px; border-radius:20px; font-size:11px; letter-spacing:0.6px; text-transform:uppercase; border:1px solid ${item.statusColor}40;">
+                                                            ${statusLabel}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>`;
+}
+
+export function renderNotificationEmail(data: {
+	title: string;
+	message: string;
+	bills: BillCardData[];
 	subtitle?: string;
 }): string {
-	const statusColorMap: Record<string, string> = {
-		overdue: "#dc2626",
-		due_today: "#ea580c",
-		expected_payment: "#b69317",
-		generated: "#2563eb",
-		upcoming: "#64748b",
-		paid: "#16a34a",
-	};
-	const statusColor = statusColorMap[data.status] || "#64748b";
+	const cardsHtml = data.bills.map((bill) => billCardHtml(bill)).join("\n");
 
 	const subtitleMap: Record<string, string> = {
 		overdue: "Overdue — action needed",
 		due_today: "Due today",
-		expected_payment: "Payment expected soon",
-		generated: "New occurrence generated",
-		upcoming: "Upcoming bill",
-		paid: "Marked as paid",
 	};
-	const subtitle = data.subtitle || subtitleMap[data.status] || "Bill Reminder";
+	const subtitle =
+		data.subtitle ??
+		(data.bills.length === 1 && data.bills[0]
+			? subtitleMap[data.bills[0].status] || "Bill Reminder"
+			: "Summary of bills that need your attention");
 
 	return notificationEmailTemplate
 		.replace(/\{\{title\}\}/g, data.title)
 		.replace(/\{\{subtitle\}\}/g, subtitle)
 		.replace(/\{\{message\}\}/g, data.message)
-		.replace(/\{\{billName\}\}/g, data.billName)
-		.replace(/\{\{amount\}\}/g, data.amount)
-		.replace(/\{\{dueDate\}\}/g, data.dueDate)
-		.replace(/\{\{status\}\}/g, data.status.replace(/_/g, " "))
-		.replace(/\{\{statusColor\}\}/g, statusColor)
-		.replace(/\{\{actionUrl\}\}/g, data.actionUrl);
+		.replace(/\{\{billCards\}\}/g, cardsHtml);
 }

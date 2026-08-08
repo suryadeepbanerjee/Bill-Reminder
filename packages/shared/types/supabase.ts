@@ -138,6 +138,18 @@ export interface PushToken {
   last_used_at:    string;
 }
 
+/** Per-account, per-bill notification preference. Members are blocked — their
+ * rows are force-set to OFF and RLS denies writes, so UI must show locked. */
+export interface BillNotificationPreference {
+  id:            string;
+  bill_id:       string;
+  user_id:       string;
+  push_enabled:  boolean;
+  email_enabled: boolean;
+  created_at:    string;
+  updated_at:    string;
+}
+
 // ── Dashboard-specific aggregated type ──────────────────────────────────────
 
 export interface DashboardOccurrence extends BillOccurrence {

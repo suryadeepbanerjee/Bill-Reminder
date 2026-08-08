@@ -13,6 +13,7 @@ export type {
   Bill,
   BillOccurrence,
   BillReminderRule,
+  BillNotificationPreference,
   ScheduledReminder,
   PushToken,
   DashboardOccurrence,

@@ -1,6 +1,8 @@
 // Edge Function: reminder-materializer
 // Trigger: pg_cron, every 15 min
-// Responsibility: Reads bill_reminder_rules + open occurrences, inserts due scheduled_reminders rows
+// Responsibility: Reads bill_reminder_rules + open occurrences, inserts due
+// scheduled_reminders rows — one row PER USER whose per-bill preferences
+// enable that channel (bill_notification_preferences).
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -50,6 +52,28 @@ serve(async (req: Request) => {
       try {
         rulesProcessed++;
 
+        // Per-account, per-bill preferences for this bill: which users want
+        // push and which want email for THIS bill.
+        const { data: prefs, error: prefsError } = await supabase
+          .from("bill_notification_preferences")
+          .select("user_id, push_enabled, email_enabled")
+          .eq("bill_id", rule.bills.id);
+
+        if (prefsError) {
+          console.error(`Error fetching prefs for bill ${rule.bills.id}:`, prefsError.message);
+          continue;
+        }
+
+        const pushUsers = (prefs ?? [])
+          .filter((p) => p.push_enabled)
+          .map((p) => p.user_id);
+        const emailUsers = (prefs ?? [])
+          .filter((p) => p.email_enabled)
+          .map((p) => p.user_id);
+
+        // If nobody in the household opted into any channel, nothing to do.
+        if (pushUsers.length === 0 && emailUsers.length === 0) continue;
+
         // Find open occurrences for this bill (exclude soft-deleted)
         const { data: occurrences, error: occError } = await supabase
           .from("bill_occurrences")
@@ -82,74 +106,60 @@ serve(async (req: Request) => {
           scheduledFor.setDate(scheduledFor.getDate() + rule.offset_days);
           scheduledFor.setHours(9, 0, 0, 0); // 9:00 AM
 
-          // Determine channels to create
-          const channels: string[] = [];
+          // Pick recipients per channel from the per-account prefs.
+          // If the rule broadcasts to the channel, each opted-in user gets
+          // their own scheduled_reminders row (unique per user now).
+          const channelRecipients: { users: string[]; channel: string }[] = [];
           if (rule.channel === "push" || rule.channel === "both") {
-            channels.push("push");
+            channelRecipients.push({ users: pushUsers, channel: "push" });
           }
           if (rule.channel === "email" || rule.channel === "both") {
-            channels.push("email");
+            channelRecipients.push({ users: emailUsers, channel: "email" });
           }
-
-          // Check user's email notification preference
-          let profile = null;
-          if (rule.bills.created_by) {
-            const { data } = await supabase
-              .from("profiles")
-              .select("email_notifications_enabled")
-              .eq("id", rule.bills.created_by)
-              .single();
-            profile = data;
-          }
-
-          // Filter out email if user has disabled email notifications
-          const enabledChannels = channels.filter(ch => {
-            if (ch === "email" && profile && !profile.email_notifications_enabled) {
-              return false;
-            }
-            return true;
-          });
 
           // For overdue occurrences: create daily reminders regardless of offset_days.
-          // Check if we already created a reminder for today for this occurrence+rule.
           if (occurrence.state === "overdue" || occurrence.state === "due_today") {
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            for (const channel of enabledChannels) {
-              const { count } = await supabase
-                .from("scheduled_reminders")
-                .select("id", { count: "exact", head: true })
-                .eq("occurrence_id", occurrence.id)
-                .eq("rule_id", rule.id)
-                .eq("channel", channel)
-                .gte("scheduled_for", todayStart.toISOString());
+            for (const { users, channel } of channelRecipients) {
+              for (const userId of users) {
+                const { count } = await supabase
+                  .from("scheduled_reminders")
+                  .select("id", { count: "exact", head: true })
+                  .eq("occurrence_id", occurrence.id)
+                  .eq("rule_id", rule.id)
+                  .eq("channel", channel)
+                  .eq("user_id", userId)
+                  .gte("scheduled_for", todayStart.toISOString());
 
-              if (count && count > 0) continue; // Already have one for today
+                if (count && count > 0) continue; // Already have one for today
 
-              // Create reminder scheduled for today at 9AM (or now if past 9AM)
-              const todayAt9 = new Date();
-              todayAt9.setHours(9, 0, 0, 0);
-              if (todayAt9.getTime() < Date.now()) {
-                todayAt9.setTime(Date.now()); // fire immediately if past 9AM
-              }
+                // Create reminder scheduled for today at 9AM (or now if past 9AM)
+                const todayAt9 = new Date();
+                todayAt9.setHours(9, 0, 0, 0);
+                if (todayAt9.getTime() < Date.now()) {
+                  todayAt9.setTime(Date.now()); // fire immediately if past 9AM
+                }
 
-              const { error: insertError } = await supabase
-                .from("scheduled_reminders")
-                .insert({
-                  occurrence_id: occurrence.id,
-                  rule_id: rule.id,
-                  scheduled_for: todayAt9.toISOString(),
-                  channel,
-                  status: "pending",
-                })
-                .select()
-                .single();
+                const { error: insertError } = await supabase
+                  .from("scheduled_reminders")
+                  .insert({
+                    occurrence_id: occurrence.id,
+                    rule_id: rule.id,
+                    user_id: userId,
+                    scheduled_for: todayAt9.toISOString(),
+                    channel,
+                    status: "pending",
+                  })
+                  .select()
+                  .single();
 
-              if (insertError && insertError.code !== "23505") {
-                console.error(`Error inserting daily overdue reminder:`, insertError.message);
-              } else if (!insertError) {
-                remindersCreated++;
+                if (insertError && insertError.code !== "23505") {
+                  console.error(`Error inserting daily overdue reminder:`, insertError.message);
+                } else if (!insertError) {
+                  remindersCreated++;
+                }
               }
             }
             continue; // Handled overdue/due_today separately, skip standard logic
@@ -160,25 +170,28 @@ serve(async (req: Request) => {
           todayStart.setHours(0, 0, 0, 0);
           if (scheduledFor.getTime() < todayStart.getTime()) continue;
 
-          // Insert scheduled reminders (idempotent via unique constraint)
-          for (const channel of enabledChannels) {
-            const { error: insertError } = await supabase
-              .from("scheduled_reminders")
-              .insert({
-                occurrence_id: occurrence.id,
-                rule_id: rule.id,
-                scheduled_for: scheduledFor.toISOString(),
-                channel,
-                status: "pending",
-              })
-              .select()
-              .single();
+          // Insert scheduled reminders per user (idempotent via unique constraint)
+          for (const { users, channel } of channelRecipients) {
+            for (const userId of users) {
+              const { error: insertError } = await supabase
+                .from("scheduled_reminders")
+                .insert({
+                  occurrence_id: occurrence.id,
+                  rule_id: rule.id,
+                  user_id: userId,
+                  scheduled_for: scheduledFor.toISOString(),
+                  channel,
+                  status: "pending",
+                })
+                .select()
+                .single();
 
-            // Unique constraint violation means it already exists — that's fine
-            if (insertError && insertError.code !== "23505") {
-              console.error(`Error inserting scheduled reminder:`, insertError.message);
-            } else if (!insertError) {
-              remindersCreated++;
+              // Unique constraint violation means it already exists — that's fine
+              if (insertError && insertError.code !== "23505") {
+                console.error(`Error inserting scheduled reminder:`, insertError.message);
+              } else if (!insertError) {
+                remindersCreated++;
+              }
             }
           }
         }
