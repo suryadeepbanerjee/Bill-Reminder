@@ -30,17 +30,22 @@ export const useHouseholdStore = create<HouseholdState>((set, get) => ({
 
   setHouseholds: (list) => {
     set((state) => {
-      const defaultStillExists =
-        !state.defaultHouseholdId || list.some((h) => h.household.id === state.defaultHouseholdId);
-      if (!defaultStillExists) {
+      let defaultId = state.defaultHouseholdId;
+      if (defaultId && !list.some((h) => h.household.id === defaultId)) {
+        defaultId = null;
         try {
           localStorage.removeItem(DEFAULT_STORAGE_KEY);
         } catch { /* non-critical */ }
       }
-      return {
-        households: list,
-        defaultHouseholdId: defaultStillExists ? state.defaultHouseholdId : null,
-      };
+      // A lone household (e.g. the one ensureAtLeastOneHousehold auto-creates)
+      // is always the default unless the user has explicitly picked another.
+      if (!defaultId && list.length === 1) {
+        defaultId = list[0].household.id;
+        try {
+          localStorage.setItem(DEFAULT_STORAGE_KEY, defaultId);
+        } catch { /* non-critical */ }
+      }
+      return { households: list, defaultHouseholdId: defaultId };
     });
   },
 

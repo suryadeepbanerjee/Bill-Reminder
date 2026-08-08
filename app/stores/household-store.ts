@@ -31,14 +31,18 @@ export const useHouseholdStore = create<HouseholdState>((set, get) => ({
 
   setHouseholds: (list) => {
     set((s) => {
-      const defaultStillExists = !s.defaultHouseholdId || list.some((h) => h.household.id === s.defaultHouseholdId);
-      if (!defaultStillExists) {
+      let defaultId = s.defaultHouseholdId;
+      if (defaultId && !list.some((h) => h.household.id === defaultId)) {
+        defaultId = null;
         SecureStore.deleteItemAsync(DEFAULT_STORAGE_KEY).catch(() => {});
       }
-      return {
-        households: list,
-        defaultHouseholdId: defaultStillExists ? s.defaultHouseholdId : null,
-      };
+      // A lone household (e.g. the one ensureAtLeastOneHousehold auto-creates)
+      // is always the default unless the user has explicitly picked another.
+      if (!defaultId && list.length === 1) {
+        defaultId = list[0].household.id;
+        SecureStore.setItemAsync(DEFAULT_STORAGE_KEY, defaultId).catch(() => {});
+      }
+      return { households: list, defaultHouseholdId: defaultId };
     });
   },
 
