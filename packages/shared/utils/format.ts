@@ -40,6 +40,13 @@ export function formatDateShort(date: string | Date | null | undefined): string 
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
+/** Zero-padded day + short month + year — e.g. "08 Sep 2026" */
+export function formatDateFull(date: string | Date | null | undefined): string {
+  if (!date) return "—";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 export function formatRelativeDate(date: string | Date | null | undefined): string {
   if (!date) return "—";
   const d       = typeof date === "string" ? new Date(date + "T00:00:00") : date;

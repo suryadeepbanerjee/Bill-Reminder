@@ -49,10 +49,11 @@ import { DeleteTransactionModal, DeleteTransactionTarget } from "../../component
 import {
   formatCurrency,
   formatDate,
-  formatRelativeDate,
+  formatDateFull,
   formatOverdueLabel,
   formatRepeatKind,
   formatBehaviorType,
+  daysUntil,
 } from "@shared/utils/format";
 import { Colors }                         from "../../lib/theme";
 import { humanize }                       from "@shared/utils/errors";
@@ -830,8 +831,17 @@ export default function BillDetailScreen() {
   const cat              = bill.categories!;
   const displayAmount    = currentOccurrence?.amount ?? bill.amount_expected;
   const dueDate          = currentOccurrence?.due_date ?? currentOccurrence?.expected_payment_date;
-  const dueDateLabel     = dueDate ? formatRelativeDate(dueDate) : null;
   const canMarkPaid      = currentOccurrence && isActionableState(currentOccurrence.state);
+
+  // Hero must describe the NEXT open occurrence — never the paid (history) row.
+  const isCurrentPaid    = currentOccurrence?.state === "paid";
+  const dueDays          = !isCurrentPaid && dueDate ? daysUntil(dueDate) : null;
+  const nextDueDate      = !isCurrentPaid && dueDate
+    ? `Next date: ${formatDateFull(dueDate)}`
+    : null;
+  const daysLeftLabel    = dueDays != null && dueDays > 0
+    ? dueDays === 1 ? "1 day left" : `${dueDays} days left`
+    : null;
 
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
@@ -909,12 +919,17 @@ export default function BillDetailScreen() {
                     label={
                       ["overdue","due_today"].includes(currentOccurrence.state) && dueDate
                         ? formatOverdueLabel(dueDate)
-                        : dueDateLabel ?? undefined
+                        : undefined
                     }
                   />
-                  {dueDate && !["overdue","due_today"].includes(currentOccurrence.state) && (
+                  {nextDueDate && (
                     <Text className="text-caption text-secondary">
-                      {formatDate(dueDate)}
+                      {nextDueDate}
+                    </Text>
+                  )}
+                  {daysLeftLabel && (
+                    <Text className="text-caption text-secondary font-medium">
+                      {daysLeftLabel}
                     </Text>
                   )}
                 </View>

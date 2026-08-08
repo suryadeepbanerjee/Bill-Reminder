@@ -33,8 +33,8 @@ import { useToast } from "../../components/ui/Toast";
 import { useConfirm } from "../../components/ui/Confirm";
 import { friendlyError } from "@shared/utils/errors";
 import {
-  formatCurrency, formatDate, formatRelativeDate, formatOverdueLabel,
-  formatBehaviorType, formatRepeatKind, ordinalSuffix,
+  formatCurrency, formatDate, formatDateFull, formatOverdueLabel,
+  formatBehaviorType, formatRepeatKind, ordinalSuffix, daysUntil,
 } from "@shared/utils/format";
 import type { BillOccurrence } from "@shared/types";
 
@@ -134,10 +134,20 @@ export default function BillDetailPage() {
     currentOccurrence && currentOccurrence.state !== "paid"
       ? currentOccurrence.state === "overdue" || currentOccurrence.state === "due_today"
         ? formatOverdueLabel(dueDate)
-        : formatRelativeDate(dueDate)
+        : undefined
       : undefined;
 
-  const showDateCaption = !!currentOccurrence;
+  // Hero must describe the NEXT open occurrence — never the paid (history) row.
+  const isCurrentPaid = currentOccurrence?.state === "paid";
+  const nextDueDate =
+    currentOccurrence && !isCurrentPaid && dueDate
+      ? `Next date: ${formatDateFull(dueDate)}`
+      : null;
+  const dueDays = currentOccurrence && !isCurrentPaid && dueDate ? daysUntil(dueDate) : null;
+  const daysLeftLabel =
+    dueDays != null && dueDays > 0
+      ? dueDays === 1 ? "1 day left" : `${dueDays} days left`
+      : null;
 
   const handleDeleteBill = async () => {
     const ok = await confirm({
@@ -209,8 +219,11 @@ export default function BillDetailPage() {
           {currentOccurrence && (
             <div className="mt-3 flex flex-col items-center gap-1">
               <BillStateChip state={currentOccurrence.state} label={chipLabel} dueDate={dueDate} />
-              {showDateCaption && (
-                <p className="text-xs text-secondary">{formatDate(dueDate)}</p>
+              {nextDueDate && (
+                <p className="text-xs text-secondary">{nextDueDate}</p>
+              )}
+              {daysLeftLabel && (
+                <p className="text-xs text-secondary font-medium">{daysLeftLabel}</p>
               )}
             </div>
           )}
