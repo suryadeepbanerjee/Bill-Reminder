@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FontAwesome } from "@expo/vector-icons";
 import { supabase, webRedirectUri } from "../../lib/supabase/client";
 import { signInWithGoogle } from "../../lib/auth/google";
+import { withCaptcha } from "../../lib/captcha";
 import { tempAuth } from "../../lib/tempAuth";
 import { signUpSchema, SignUpFormData } from "@shared/schemas/../";
 import { humanize } from "@shared/utils/errors";
@@ -60,14 +61,17 @@ export default function SignUpScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await withCaptcha("signup", (o) =>
+        supabase.auth.signUp({
           email:    data.email,
           password: data.password,
           options: {
+            ...o,
             data:            { display_name: data.displayName },
             emailRedirectTo: webRedirectUri,
           },
-        });
+        })
+      );
 
       if (authError) {
         if (authError.message.toLowerCase().includes("rate limit")) {

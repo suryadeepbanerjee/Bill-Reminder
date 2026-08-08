@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -12,6 +12,7 @@ import { useThemeStore } from "../stores/theme-store";
 import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
 import { ThemeTransition } from "../components/ui/ThemeTransition";
+import { isCaptchaEnabled } from "../lib/captcha";
 
 // Side-effect: patches expo-router's routing queue so every navigation call
 // (router.*, Link, Redirect) is deduped per destination — silent, cooldown-based.
@@ -76,6 +77,21 @@ export default function RootLayout() {
     setColorScheme(resolved);
   }, [resolved, setColorScheme]);
 
+  // Lazy-mount the CAPTCHA popup host (react-native-webview is a native
+  // module — never on the cold-start path). Only loads when a site key is
+  // configured AND someone actually requests a token.
+  const [CaptchaHost, setCaptchaHost] = useState<React.ComponentType | null>(null);
+  useEffect(() => {
+    if (!isCaptchaEnabled) return;
+    let mounted = true;
+    import("../components/ui/CaptchaHost").then((m) => {
+      if (mounted) setCaptchaHost(() => m.CaptchaHost);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     // Hide the splash as soon as the first frame paints — the LoadingScreen
     // below uses the same background (#080810), so the handoff is seamless
@@ -132,6 +148,8 @@ export default function RootLayout() {
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
         {/* Buffer screen that hides the theme swap behind an animated cover. */}
         <ThemeTransition />
+        {/* CAPTCHA popup (lazy — only mounts when the site key is configured). */}
+        {CaptchaHost && <CaptchaHost />}
         {/* Overlay the loading screen until the session has been restored.
             Rendered on top of Stack so it covers all screens, and dismissed
             automatically once isLoading → false (no Stack remount needed). */}

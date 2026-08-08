@@ -39,6 +39,10 @@ import {
 import type { BillOccurrence } from "@shared/types";
 
 const ACTIONABLE_STATES = ["due_today", "overdue", "expected_payment", "generated"];
+// Everything an occurrence can be in while it is the CURRENT one — includes
+// "upcoming", which is NOT actionable (cannot be paid early) but MUST win over
+// paid history in the hero, or the detail page shows the old paid row forever.
+const CURRENT_STATES = ["due_today", "overdue", "expected_payment", "generated", "upcoming"];
 
 function getReminderAnchorLabel(anchor: string): string {
   switch (anchor) {
@@ -86,7 +90,7 @@ export default function BillDetailPage() {
 
   const currentOccurrence = useMemo(
     () =>
-      sortedAsc.find((o) => ACTIONABLE_STATES.includes(o.state)) ??
+      sortedAsc.find((o) => CURRENT_STATES.includes(o.state)) ??
       sortedAsc[0],
     [sortedAsc]
   );
@@ -130,24 +134,49 @@ export default function BillDetailPage() {
   const canMarkPaid = currentOccurrence != null && ACTIONABLE_STATES.includes(currentOccurrence.state);
   const isPrepaidOrWallet = ["prepaid_validity", "wallet_balance"].includes(bill.behavior_type);
 
-  const chipLabel =
-    currentOccurrence && currentOccurrence.state !== "paid"
-      ? currentOccurrence.state === "overdue" || currentOccurrence.state === "due_today"
-        ? formatOverdueLabel(dueDate)
-        : undefined
-      : undefined;
+  // ── Hero badge spec ──────────────────────────────────────────────────────
+  // Different on the day the bill was paid vs. afterwards:
+  //   · Paid TODAY          → "Paid" + paid date + "(Next: <date>)" in brackets
+  //   · From tomorrow on    → the open occurrence rolls into the hero:
+  //     upcoming            → "N days left" + exact next date below
+  //     due today           → "Due today" + today's date
+  //     overdue             → "N days overdue" + overdue date
+  const latestPaid = paidOccurrences[0]; // occurrences are newest-first
+  const isPaidToday =
+    !!latestPaid && latestPaid.paid_at != null &&
+    new Date(latestPaid.paid_at).toDateString() === new Date().toDateString();
+  const heroOccurrence = isPaidToday ? latestPaid : currentOccurrence;
+  const heroDue = heroOccurrence
+    ? (heroOccurrence.due_date ?? heroOccurrence.expected_payment_date ?? null)
+    : null;
+  const heroIsPaid = heroOccurrence?.state === "paid";
 
-  // Hero must describe the NEXT open occurrence — never the paid (history) row.
-  const isCurrentPaid = currentOccurrence?.state === "paid";
-  const nextDueDate =
-    currentOccurrence && !isCurrentPaid && dueDate
-      ? `Next date: ${formatDateFull(dueDate)}`
-      : null;
-  const dueDays = currentOccurrence && !isCurrentPaid && dueDate ? daysUntil(dueDate) : null;
-  const daysLeftLabel =
-    dueDays != null && dueDays > 0
-      ? dueDays === 1 ? "1 day left" : `${dueDays} days left`
-      : null;
+  const nextOpenDue = useMemo(() => {
+    const next = (occurrences ?? []).find((o) => CURRENT_STATES.includes(o.state));
+    const d = next ? (next.due_date ?? next.expected_payment_date ?? null) : null;
+    return d;
+  }, [occurrences]);
+
+  const heroDaysLeft = heroDue && !heroIsPaid ? daysUntil(heroDue) : null;
+
+  const heroChipLabel = heroIsPaid
+    ? undefined
+    : heroOccurrence?.state === "overdue"
+      ? (heroDue ? formatOverdueLabel(heroDue) : undefined)
+      : heroOccurrence?.state === "due_today"
+        ? undefined
+        : heroDaysLeft != null && heroDaysLeft > 0
+          ? heroDaysLeft === 1 ? "1 day left" : `${heroDaysLeft} days left`
+          : undefined;
+
+  const heroCaption =
+    heroIsPaid && heroDue
+      ? isPaidToday && nextOpenDue
+        ? `${formatDateFull(heroDue)} (Next: ${formatDateFull(nextOpenDue)})`
+        : formatDateFull(heroDue)
+      : heroDue && !heroIsPaid
+        ? formatDateFull(heroDue)
+        : null;
 
   const handleDeleteBill = async () => {
     const ok = await confirm({
@@ -216,14 +245,11 @@ export default function BillDetailPage() {
           <p className="text-3xl font-bold text-primary mt-2 font-mono tabular-nums">
             {displayAmount != null ? formatCurrency(displayAmount, bill.currency) : "Variable"}
           </p>
-          {currentOccurrence && (
+          {heroOccurrence && (
             <div className="mt-3 flex flex-col items-center gap-1">
-              <BillStateChip state={currentOccurrence.state} label={chipLabel} dueDate={dueDate} />
-              {nextDueDate && (
-                <p className="text-xs text-secondary">{nextDueDate}</p>
-              )}
-              {daysLeftLabel && (
-                <p className="text-xs text-secondary font-medium">{daysLeftLabel}</p>
+              <BillStateChip state={heroOccurrence.state} label={heroChipLabel} dueDate={heroDue ?? undefined} />
+              {heroCaption && (
+                <p className="text-xs text-secondary">{heroCaption}</p>
               )}
             </div>
           )}

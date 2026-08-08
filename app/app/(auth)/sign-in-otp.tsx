@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase/client";
+import { withCaptcha } from "../../lib/captcha";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { AlertBadge } from "../../components/ui/AlertBadge";
@@ -37,10 +38,12 @@ export default function SignInOtpScreen() {
     }
     setSendLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await withCaptcha("otp_request", (o) =>
+        supabase.auth.signInWithOtp({
           email: email.trim(),
-          options: { shouldCreateUser: false },
-        });
+          options: { ...o, shouldCreateUser: false },
+        })
+      );
       if (error) {
         setEmailError(humanize(error, "auth"));
         return;
@@ -61,10 +64,12 @@ export default function SignInOtpScreen() {
     setOtpCode("");
     setSendLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await withCaptcha("otp_request", (o) =>
+        supabase.auth.signInWithOtp({
           email: email.trim(),
-          options: { shouldCreateUser: false },
-        });
+          options: { ...o, shouldCreateUser: false },
+        })
+      );
       if (error) {
         setOtpError(humanize(error, "auth"));
         return;
@@ -105,11 +110,14 @@ export default function SignInOtpScreen() {
 
     setVerifyLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { error } = await withCaptcha("otp_verify", (o) =>
+        supabase.auth.verifyOtp({
           email: email.trim(),
           token: code,
           type:  "email",
-        });
+          options: o,
+        })
+      );
       if (error) {
         const msg = error.message.toLowerCase();
         if (msg.includes("expired") || msg.includes("otp") || msg.includes("invalid")) {

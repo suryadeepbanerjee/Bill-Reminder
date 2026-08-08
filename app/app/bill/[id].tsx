@@ -79,6 +79,14 @@ function ordinalSuffix(n: number): string {
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth()    === b.getMonth() &&
+    a.getDate()     === b.getDate()
+  );
+}
+
 // ── Bill type options ────────────────────────────────────────────────────────
 
 const BEHAVIOR_OPTIONS = [
@@ -833,15 +841,52 @@ export default function BillDetailScreen() {
   const dueDate          = currentOccurrence?.due_date ?? currentOccurrence?.expected_payment_date;
   const canMarkPaid      = currentOccurrence && isActionableState(currentOccurrence.state);
 
-  // Hero must describe the NEXT open occurrence — never the paid (history) row.
-  const isCurrentPaid    = currentOccurrence?.state === "paid";
-  const dueDays          = !isCurrentPaid && dueDate ? daysUntil(dueDate) : null;
-  const nextDueDate      = !isCurrentPaid && dueDate
-    ? `Next date: ${formatDateFull(dueDate)}`
+  // ── Hero badge spec ──────────────────────────────────────────────────────
+  // Different on the day the bill was paid vs. afterwards:
+  //   · Paid TODAY          → "Paid" + paid date + "(Next: <date>)" in brackets
+  //   · From tomorrow on    → the open occurrence rolls into the hero:
+  //     upcoming            → "N days left" + exact next date below
+  //     due today           → "Due today" + today's date
+  //     overdue             → "N days overdue" + overdue date
+  const latestPaid       = paidOccurrences[0]; // occurrences are newest-first
+  const isPaidToday      = !!latestPaid && latestPaid.paid_at != null
+    && isSameDay(new Date(latestPaid.paid_at), new Date());
+  const heroOccurrence   = isPaidToday ? latestPaid : currentOccurrence;
+  const heroDue          = heroOccurrence
+    ? (heroOccurrence.due_date ?? heroOccurrence.expected_payment_date)
     : null;
-  const daysLeftLabel    = dueDays != null && dueDays > 0
-    ? dueDays === 1 ? "1 day left" : `${dueDays} days left`
-    : null;
+  const heroIsPaid       = heroOccurrence?.state === "paid";
+
+  // Next open occurrence — feeds the "(Next: …)" bracket after a same-day payment.
+  const nextOpenDue = useMemo(() => {
+    const next = occurrences.find((o) =>
+      ["due_today","overdue","expected_payment","generated","upcoming"].includes(o.state)
+    );
+    const d = next ? (next.due_date ?? next.expected_payment_date) : null;
+    return d ?? null;
+  }, [occurrences]);
+
+  const heroDaysLeft = useMemo(() => {
+    if (!heroDue || heroIsPaid) return null;
+    const d = daysUntil(heroDue);
+    return d != null && d > 0 ? d : null;
+  }, [heroDue, heroIsPaid]);
+
+  const heroChipLabel =
+    heroIsPaid                      ? undefined
+    : heroOccurrence?.state === "overdue"   ? (heroDue ? formatOverdueLabel(heroDue) : undefined)
+    : heroOccurrence?.state === "due_today" ? undefined
+    : heroDaysLeft != null                 ? (heroDaysLeft === 1 ? "1 day left" : `${heroDaysLeft} days left`)
+    : undefined;
+
+  const heroCaption =
+    heroIsPaid && heroDue
+      ? isPaidToday && nextOpenDue
+        ? `${formatDateFull(heroDue)} (Next: ${formatDateFull(nextOpenDue)})`
+        : formatDateFull(heroDue)
+      : heroDue && !heroIsPaid
+        ? formatDateFull(heroDue)
+        : null;
 
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
@@ -912,24 +957,15 @@ export default function BillDetailScreen() {
                 <Text className="text-amount-lg text-secondary">Variable</Text>
               )}
 
-              {currentOccurrence && (
+              {heroOccurrence && (
                 <View className="items-center gap-1.5">
                   <BillStateChip
-                    state={currentOccurrence.state}
-                    label={
-                      ["overdue","due_today"].includes(currentOccurrence.state) && dueDate
-                        ? formatOverdueLabel(dueDate)
-                        : undefined
-                    }
+                    state={heroOccurrence.state}
+                    label={heroChipLabel}
                   />
-                  {nextDueDate && (
+                  {heroCaption && (
                     <Text className="text-caption text-secondary">
-                      {nextDueDate}
-                    </Text>
-                  )}
-                  {daysLeftLabel && (
-                    <Text className="text-caption text-secondary font-medium">
-                      {daysLeftLabel}
+                      {heroCaption}
                     </Text>
                   )}
                 </View>
