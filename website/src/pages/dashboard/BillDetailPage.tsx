@@ -423,7 +423,7 @@ function OccurrenceRow({
           {formatCurrency(occurrence.paid_amount)}
         </span>
       )}
-      <span className="translate-y-0.5">
+      <span className="translate-y-0.2 mr-[-2.5px]">
         <BillStateChip state={occurrence.state} />
       </span>
       <button
