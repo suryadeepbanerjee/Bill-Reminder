@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { withCaptcha } from "../../lib/captcha";
+import CaptchaField from "../../components/ui/CaptchaField";
 import { useProfile, useUpdateProfile } from "../../hooks/useProfile";
 import { useAuthStore } from "../../stores/auth-store";
 import { Button } from "../../components/ui/Button";
@@ -232,6 +233,7 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
             maxLength={6}
             autoFocus={oldEmailVerified}
           />
+          <CaptchaField />
           <Button
             variant="accent"
             fullWidth
@@ -358,6 +360,7 @@ function PasswordSection({ profileEmail }: { profileEmail: string | null }) {
             maxLength={6}
             autoFocus
           />
+          <CaptchaField />
           <Button
             variant="accent"
             fullWidth

@@ -7,6 +7,7 @@ import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
+import CaptchaField from "../components/ui/CaptchaField";
 
 const RESEND_COOLDOWN = 60;
 type Stage = "email" | "otp";
@@ -172,6 +173,8 @@ export default function SignInCode() {
           />
         </div>
 
+        <CaptchaField theme="dark" />
+
         <Button
           type="button"
           onClick={handleSendCode}
@@ -227,6 +230,8 @@ export default function SignInCode() {
           className="tracking-[0.3em] text-[22px] text-center"
         />
       </div>
+
+      <CaptchaField theme="dark" />
 
       <Button
         type="button"

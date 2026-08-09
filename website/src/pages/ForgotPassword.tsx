@@ -7,6 +7,7 @@ import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
+import CaptchaField from "../components/ui/CaptchaField";
 
 export default function ForgotPassword() {
   const [email, setEmail]     = useState("");
@@ -102,6 +103,7 @@ export default function ForgotPassword() {
         </div>
 
         <div className="flex flex-col gap-2.5">
+          <CaptchaField theme="dark" />
           <Button type="submit" disabled={loading} loading={loading} className="w-full justify-center h-11">
             Send reset link
           </Button>

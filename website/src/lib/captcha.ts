@@ -1,18 +1,19 @@
 /**
  * Web CAPTCHA helper (Vite + Cloudflare Turnstile).
  *
- * Loads Turnstile's script once and runs it in invisible mode
- * (`render: explicit`). Silent challenges resolve without interaction;
- * when an interactive challenge is needed Turnstile presents it in its own
- * overlay — native web UX.
+ * ALWAYS-VISIBLE widget: every sensitive form embeds the Turnstile checkbox
+ * inline via <CaptchaField/> (see components/ui/CaptchaField.tsx). No more
+ * hidden/overlay flow — the user sees and completes the checkbox themselves.
  *
- * Public API matches the native helper in app/lib/captcha.ts:
- *   captchaOptions() / withCaptcha()
- * No-op when no site key is configured (dev / CAPTCHA disabled).
+ * Contract:
+ *   mountCaptchaWidget(host, onState) – render the widget into a container
+ *   hasSolvedCaptcha() / getWidgetState() – read-only widget state
+ *   captchaOptions()                – fresh token per call (resets the widget)
+ *   withCaptcha(action, execute)    – token + abuse-prevention gate + retry
  *
- * Site key comes from EXPO_PUBLIC_CAPTCHA_SITE_KEY (task requirement) with
- * VITE_CAPTCHA_SITE_KEY as the conventional Vite fallback. Vite is configured
- * with envPrefix ["VITE_", "EXPO_PUBLIC_"] so both work in .env / CI env.
+ * Each captchaOptions() call regenerates the token: the widget resets and the
+ * promise resolves on its next callback. Clean traffic auto-passes instantly;
+ * challenged traffic re-asks for the checkbox interaction.
  */
 
 import { runWithCaptcha, type CaptchaOptions } from "@shared/utils/captcha";
@@ -28,7 +29,6 @@ interface TurnstileOptions {
   sitekey: string;
   theme?: "light" | "dark" | "auto";
   size?: "normal" | "compact";
-  // "interaction-only" = silent for clean traffic, shows challenge for suspicious IPs (VPN etc.)
   appearance?: "always" | "execute" | "interaction-only";
   callback?: (token: string) => void;
   "error-callback"?: () => void;
@@ -42,6 +42,7 @@ interface TurnstileApi {
   remove(container: string | HTMLElement): void;
   reset(container: string | HTMLElement): void;
   execute(container: string | HTMLElement): void;
+  getResponse(container: string | HTMLElement): string | undefined;
 }
 
 declare global {
@@ -79,31 +80,153 @@ function loadTurnstileScript(): Promise<void> {
   return scriptPromise;
 }
 
-const TOKEN_TIMEOUT_MS = 60000;
+// ── Widget registry ───────────────────────────────────────────────────────────
+// A single visible widget per page. Pages mount it with <CaptchaField/> which
+// calls `mountCaptchaWidget(host, { onState })`.
+
+export type CaptchaWidgetState = "idle" | "solving" | "solved" | "expired" | "error";
+
+let widgetHost: HTMLElement | null = null;
+let widgetState: CaptchaWidgetState = "idle";
+
+type StateListener = (next: CaptchaWidgetState) => void;
+const stateListeners = new Set<StateListener>();
+
+interface TokenWaiter {
+  resolve: (token: string) => void;
+  reject: (err: Error) => void;
+}
+let tokenWaiters: TokenWaiter[] = [];
+
+function setWidgetState(next: CaptchaWidgetState): void {
+  widgetState = next;
+  stateListeners.forEach((l) => l(next));
+}
+
+function buildWidgetOptions(theme: "light" | "dark" | "auto" = "dark"): TurnstileOptions {
+  return {
+    sitekey: SITE_KEY,
+    size: "normal", // 300×65 standard checkbox — always visible
+    theme,
+    callback: (token) => {
+      const waiters = tokenWaiters;
+      tokenWaiters = [];
+      waiters.forEach((w) => w.resolve(token));
+      setWidgetState("solved");
+    },
+    "error-callback": () => {
+      const waiters = tokenWaiters;
+      tokenWaiters = [];
+      waiters.forEach((w) => w.reject(new Error("CAPTCHA challenge failed")));
+      setWidgetState("error");
+    },
+    "expired-callback": () => {
+      setWidgetState("expired");
+    },
+    "before-interactive-callback": () => {
+      setWidgetState("solving");
+    },
+  };
+}
+
+export interface CaptchaMountHandle {
+  readonly element: HTMLElement;
+  destroy(): void;
+}
+
+/** Render the ALWAYS-VISIBLE Turnstile widget into `host` (a plain <div>). */
+export async function mountCaptchaWidget(
+  host: HTMLElement,
+  onState?: (state: CaptchaWidgetState) => void,
+  options?: { theme?: "light" | "dark" | "auto" },
+): Promise<CaptchaMountHandle> {
+  await loadTurnstileScript();
+  if (!window.turnstile) throw new Error("CAPTCHA widget is not ready");
+  if (widgetHost && widgetHost !== host) {
+    try {
+      window.turnstile.remove(widgetHost);
+    } catch {
+      /* noop */
+    }
+  }
+  widgetHost = host;
+  window.turnstile.render(host, buildWidgetOptions(options?.theme));
+  if (onState) stateListeners.add(onState);
+  return {
+    element: host,
+    destroy: () => {
+      try {
+        window.turnstile?.remove(host);
+      } catch {
+        /* noop */
+      }
+      if (widgetHost === host) {
+        widgetHost = null;
+      }
+      if (onState) stateListeners.delete(onState);
+    },
+  };
+}
+
+/** True when the widget holds a solved (unused) token. */
+export function hasSolvedCaptcha(): boolean {
+  return widgetState === "solved";
+}
+
+/** Current widget state — mirrors <CaptchaField/> states. */
+export function getWidgetState(): CaptchaWidgetState {
+  return widgetState;
+}
+
+function clearTokenWaiters(): void {
+  const waiters = tokenWaiters;
+  tokenWaiters = [];
+  waiters.forEach((w) => w.reject(new Error("CAPTCHA request superseded")));
+}
 
 /**
- * Generate a fresh Turnstile token.
- *
- * Opens a plain semi-transparent backdrop with the raw Cloudflare widget
- * rendered at `size: "normal"` (300×65 px checkbox). No custom card or
- * spinner — just the native CF UI. Auto-passes silently for clean traffic;
- * shows the interactive checkbox/puzzle for VPN or suspicious IPs.
+ * Fresh token: resets the widget so Turnstile issues a brand-new single-use
+ * token, then resolves when its callback fires. The checkbox stays visible
+ * the whole time — this is the "always visible" path.
  */
+async function nextTokenFromWidget(): Promise<string> {
+  if (!widgetHost) throw new Error("CAPTCHA widget is not mounted");
+  await loadTurnstileScript();
+  clearTokenWaiters();
+  setWidgetState("idle");
+  window.turnstile?.reset(widgetHost);
+  return new Promise<string>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      clearTokenWaiters();
+      reject(new Error("CAPTCHA timed out — please refresh the security check"));
+    }, 90000);
+    tokenWaiters.push({
+      resolve: (token) => {
+        window.clearTimeout(timeout);
+        resolve(token);
+      },
+      reject: (err) => {
+        window.clearTimeout(timeout);
+        reject(err);
+      },
+    });
+  });
+}
 
-/** Overlay left open after a successful token, awaiting the auth call. */
+// ── Fallback overlay (only when no inline widget is mounted) ─────────────────
+
 let heldOverlay: { close: () => void } | null = null;
 
-/** Close the overlay once the wrapped auth call has settled. */
 export function closeCaptchaOverlay(): void {
   heldOverlay?.close();
   heldOverlay = null;
 }
 
-function getToken(): Promise<string> {
+const TOKEN_TIMEOUT_MS = 60000;
+
+async function getTokenViaOverlay(): Promise<string> {
+  if (!window.turnstile) throw new Error("CAPTCHA widget is not ready");
   return new Promise<string>((resolve, reject) => {
-    // Plain semi-transparent backdrop — Cloudflare widget sits in the center.
-    // No custom card / spinner / label: just the native CF checkbox so it
-    // always works regardless of IP reputation or browser environment.
     const backdrop = document.createElement("div");
     backdrop.setAttribute("role", "dialog");
     backdrop.setAttribute("aria-modal", "true");
@@ -118,7 +241,6 @@ function getToken(): Promise<string> {
       "background:rgba(0,0,0,0.55)",
     ].join(";");
 
-    // The widget div — Cloudflare renders its own iframe inside this.
     const widget = document.createElement("div");
     backdrop.appendChild(widget);
     document.body.appendChild(backdrop);
@@ -134,16 +256,12 @@ function getToken(): Promise<string> {
       reject(new Error("CAPTCHA timed out"));
     }, TOKEN_TIMEOUT_MS);
 
-    window.turnstile?.render(widget, {
+    window.turnstile!.render(widget, {
       sitekey: SITE_KEY,
-      // "normal" = standard 300×65 Cloudflare checkbox widget.
-      // Auto-passes silently for clean traffic; shows interactive puzzle
-      // for VPN/suspicious IPs. Always visible, never clipped.
       size: "normal",
       theme: "dark",
       callback: (token) => {
         window.clearTimeout(timeout);
-        // Keep backdrop up briefly so it doesn't flash away before auth runs.
         heldOverlay = { close: cleanup };
         resolve(token);
       },
@@ -159,17 +277,11 @@ function getToken(): Promise<string> {
   });
 }
 
-/** CAPTCHA options for a Supabase auth call — `{}` when not configured. */
+/** CAPTCHA options for a Supabase auth call — fresh token from the visible widget. */
 export async function captchaOptions(): Promise<CaptchaOptions> {
   if (!isCaptchaEnabled) return {};
-  await loadTurnstileScript();
-  if (!window.turnstile) {
-    throw new Error("CAPTCHA widget is not ready");
-  }
-  // A stale "Confirming…" overlay (e.g. from a retry) must go before we open
-  // a fresh token attempt.
-  closeCaptchaOverlay();
-  return { captchaToken: await getToken() };
+  const token = widgetHost ? await nextTokenFromWidget() : await getTokenViaOverlay();
+  return { captchaToken: token };
 }
 
 /**
@@ -191,7 +303,6 @@ async function runGuard(action: string, token?: string): Promise<string | null> 
     return payload.error ?? "We couldn't verify your request. Please try again.";
   }
 
-  // Non-2xx — read the error body from the FunctionsHttpError context.
   if (error && error instanceof Error && (error as { context?: unknown }).context instanceof Response) {
     try {
       const resp = (error as { context?: unknown }).context as Response;
@@ -206,11 +317,7 @@ async function runGuard(action: string, token?: string): Promise<string | null> 
   return null; // fail open on transport failure only
 }
 
-/**
- * Wrap a Supabase auth call so it sends `options.captchaToken`, runs the
- * abuse-prevention gate for `action`, and retries once with a fresh token if
- * the server rejects the first one.
- */
+/** Wrap a Supabase auth call — same shape as before, token from the visible widget. */
 export function withCaptcha<T extends { error: unknown }>(
   action: string,
   execute: (options: CaptchaOptions) => Promise<T>,

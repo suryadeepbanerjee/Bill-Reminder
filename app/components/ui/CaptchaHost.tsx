@@ -83,6 +83,7 @@ export function CaptchaHost() {
   const [active, setActive] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [solved, setSolved] = useState(false);
   const [nonce, setNonce] = useState(() => Date.now());
 
   useEffect(() => subscribeCaptchaActive(setActive), []);
@@ -94,12 +95,14 @@ export function CaptchaHost() {
     if (active) {
       setLoaded(false);
       setFailed(null);
+      setSolved(false);
     }
   }, [active, nonce]);
 
   const retry = useCallback(() => {
     setLoaded(false);
     setFailed(null);
+    setSolved(false);
     setNonce(Date.now());
   }, []);
 
@@ -112,6 +115,7 @@ export function CaptchaHost() {
     }
     if (msg.type === "token" && typeof msg.token === "string" && msg.token) {
       setFailed(null);
+      setSolved(true);
       completeCaptcha(msg.token, undefined, true);
     } else if (msg.type === "error") {
       // Keep the popup open with a retry option — the pending request stays
@@ -239,20 +243,20 @@ export function CaptchaHost() {
             <View
               style={{
                 alignItems: "center",
-                paddingTop: 16,
+                paddingTop: 14,
                 paddingBottom: 12,
                 paddingHorizontal: 24,
               }}
             >
               <Text
                 style={{
-                  color: "#A3A3A3",
-                  fontSize: 12,
+                  color: solved ? "#34D399" : "#A3A3A3",
+                  fontSize: 13,
+                  fontWeight: solved ? "600" : "400",
                   textAlign: "center",
-                  marginBottom: 10,
                 }}
               >
-                Complete the security check below
+                {solved ? "✓ Verification passed — confirming…" : "Tick the checkbox to verify you're human"}
               </Text>
             </View>
           )}

@@ -19,6 +19,7 @@ import Modal from "../../components/ui/Modal";
 import AlertBadge from "../../components/ui/AlertBadge";
 import { deleteAccount } from "../../lib/api/household";
 import { withCaptcha } from "../../lib/captcha";
+import CaptchaField from "../../components/ui/CaptchaField";
 import { friendlyError } from "@shared/utils/errors";
 
 /** GitHub mark — lucide dropped brand icons, so inline SVG. */
@@ -274,6 +275,8 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
               placeholder="000000"
               autoFocus
             />
+
+            <CaptchaField />
 
             <button
               type="button"
