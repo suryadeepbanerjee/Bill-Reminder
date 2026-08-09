@@ -42,6 +42,8 @@ const SAFE_MESSAGES = new Set([
   "Only the household owner can invite members.",
   "This user is already a member of this household.",
   "This invite has reached the maximum number of sends.",
+  // Account deletion guard (from delete-account edge function)
+  "You still own a household with other members. Transfer ownership to another member before deleting your account.",
 ]);
 
 /** Generic fallback messages by context. */

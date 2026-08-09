@@ -243,10 +243,15 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
   };
 
   const deleteAccount = async (): Promise<void> => {
-    const { error } = await supabase.functions.invoke("delete-account", {
+    const { data, error } = await supabase.functions.invoke("delete-account", {
       body: {},
     });
     if (error) throw new Error(error.message ?? "Request failed");
+    // Ownership guard rejections arrive as 200 + success:false so the
+    // readable note survives the invoke() error wrapper (audit finding).
+    if (data && typeof data === "object" && "success" in data && (data as { success: boolean }).success === false) {
+      throw new Error((data as { error?: string }).error ?? "Account deletion was blocked.");
+    }
   };
 
   const savePushToken = async (
