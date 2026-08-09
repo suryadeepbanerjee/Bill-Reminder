@@ -124,7 +124,7 @@ export function closeCaptchaOverlay(): void {
 }
 
 const TOKEN_TIMEOUT_MS = 90000;
-const MAX_WIDGET_ERRORS = 3;
+const MAX_WIDGET_ERRORS = 2; // one automatic retry, then a manual Try again
 
 const POPUP_STYLES = {
   backdrop: [
@@ -156,7 +156,7 @@ const POPUP_STYLES = {
     "letter-spacing:-0.01em",
   ].join(";"),
   sub: [
-    "margin:6px 0 16px",
+    "margin:6px 0 14px",
     "font-size:12.5px",
     "line-height:1.45",
     "color:#8e929e",
@@ -164,17 +164,19 @@ const POPUP_STYLES = {
   widgetHost: [
     "min-height:65px",
     "display:flex",
+    "flex-direction:column",
     "align-items:center",
     "justify-content:center",
+    "gap:10px",
   ].join(";"),
   status: [
-    "margin:14px 0 0",
-    "min-height:18px",
+    "margin:10px 0 0",
     "font-size:12px",
     "color:#8e929e",
+    "display:none",
   ].join(";"),
   cancel: [
-    "margin:12px auto 0",
+    "margin:10px auto 0",
     "display:block",
     "background:none",
     "border:none",
@@ -264,11 +266,32 @@ async function getTokenViaOverlay(): Promise<string> {
 
     const setStatus = (text: string): void => {
       status.textContent = text;
+      status.style.display = text ? "block" : "none";
     };
     const showLoading = (): void => {
       widgetHost.textContent = "";
       widgetHost.appendChild(spinnerElement());
       setStatus("Loading security check…");
+    };
+
+    /** Keep the popup open with an inline message + Try again button. */
+    const showFailed = (message: string): void => {
+      widgetHost.textContent = "";
+      const msg = document.createElement("p");
+      msg.style.cssText = "margin:0;font-size:12.5px;color:#8e929e;text-align:center;";
+      msg.textContent = message;
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.style.cssText =
+        "background:none;border:1px solid #30343f;border-radius:8px;padding:6px 18px;font-size:12.5px;font-weight:600;color:#fafafa;cursor:pointer;";
+      retry.textContent = "Try again";
+      retry.addEventListener("click", () => {
+        if (settled) return;
+        widgetErrors = 0;
+        tryLoad();
+      });
+      widgetHost.append(msg, retry);
+      setStatus("");
     };
 
     const fail = (message: string): void => {
@@ -287,7 +310,7 @@ async function getTokenViaOverlay(): Promise<string> {
     const renderWidget = (): void => {
       widgetHost.textContent = "";
       if (!window.turnstile) {
-        fail("CAPTCHA widget is not ready");
+        showFailed("CAPTCHA widget is not ready");
         return;
       }
       setStatus("");
@@ -307,17 +330,28 @@ async function getTokenViaOverlay(): Promise<string> {
         "error-callback": () => {
           if (settled) return;
           widgetErrors += 1;
-          if (widgetErrors >= MAX_WIDGET_ERRORS) {
-            fail("Security check failed — please try again.");
+          // One quiet automatic retry…
+          if (widgetErrors < MAX_WIDGET_ERRORS) {
+            setStatus("Something went wrong — retrying…");
+            window.setTimeout(() => {
+              if (settled) return;
+              try {
+                window.turnstile?.remove(widgetHost);
+              } catch {
+                /* noop */
+              }
+              widgetHost.textContent = "";
+              renderWidget();
+            }, 900);
             return;
           }
-          setStatus("Something went wrong — retrying…");
-          window.setTimeout(() => {
-            if (settled) return;
+          // …then surface the error with a manual retry so the popup stays open.
+          try {
             window.turnstile?.remove(widgetHost);
-            widgetHost.textContent = "";
-            renderWidget();
-          }, 900);
+          } catch {
+            /* noop */
+          }
+          showFailed("Security check failed — please try again.");
         },
         "expired-callback": () => {
           if (settled) return;
@@ -332,16 +366,22 @@ async function getTokenViaOverlay(): Promise<string> {
       });
     };
 
+    const tryLoad = (): void => {
+      showLoading();
+      loadTurnstileScript()
+        .then(() => {
+          if (settled) return;
+          if (!widgetHost.isConnected) return;
+          setStatus("");
+          renderWidget();
+        })
+        .catch((err: unknown) =>
+          showFailed(err instanceof Error ? err.message : "Could not load the CAPTCHA widget"),
+        );
+    };
+
     injectSpinnerStyle();
-    showLoading();
-    loadTurnstileScript()
-      .then(() => {
-        if (settled) return;
-        if (widgetHost.isConnected) renderWidget();
-      })
-      .catch((err: unknown) =>
-        fail(err instanceof Error ? err.message : "Could not load the CAPTCHA widget"),
-      );
+    tryLoad();
 
     const timeout = window.setTimeout(() => {
       fail("CAPTCHA timed out — please try again.");
