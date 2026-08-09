@@ -108,6 +108,43 @@ serve(async (req: Request) => {
     const householdIds = memberships?.map((m: { household_id: string }) => m.household_id) || [];
     console.log(`[delete-account] Found ${householdIds.length} households`);
 
+    // 6b. Ownership guard — a super_admin who still has other active members
+    // in their household must not delete the account: it would orphan every
+    // member of that household. They have to transfer ownership first
+    // (transfer-ownership edge function) so the household keeps an owner.
+    const { data: ownedHomes } = await adminClient
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .eq("role", "super_admin");
+
+    for (const owned of ownedHomes ?? []) {
+      const { count, error: countError } = await adminClient
+        .from("household_members")
+        .select("id", { count: "exact", head: true })
+        .eq("household_id", owned.household_id)
+        .neq("user_id", userId)
+        .eq("status", "active");
+      if (countError) throw countError;
+
+      if ((count ?? 0) > 0) {
+        console.warn(
+          "[delete-account] Blocked: user still owns a household with other members"
+        );
+        // 200 + success:false — the SDK treats non-2xx as an opaque
+        // FunctionsHttpError, which would swallow this note into the
+        // generic "Something went wrong" fallback on the clients.
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error:   "You still own a household with other members. Transfer ownership to another member before deleting your account.",
+          }),
+          { headers: { ...corsHeaders(req), "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+    }
+
     // 7. Determine which households will be deleted (sole-member), then delete
     //    audit log entries the user is the actor of OR that belong to
     //    sole-member households. Shared-household audit history is preserved —
