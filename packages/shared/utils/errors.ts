@@ -139,9 +139,16 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
       return "No account found with this email. Please sign up.";
     }
 
-    // Password too short
-    if (lower.includes("password") && lower.includes("short")) {
-      return "Password must be at least 8 characters.";
+    // Password too short — echo GoTrue's actual requirement so the message
+    // stays truthful whether the auth minimum is 8, 12, or anything else.
+    if (
+      lower.includes("password") &&
+      (lower.includes("short") || lower.includes("at least") || lower.includes("weaker"))
+    ) {
+      const lenMatch = raw.match(/at least\s+(\d+)\s+characters?/i);
+      return lenMatch
+        ? `Password must be at least ${lenMatch[1]} characters.`
+        : "Password must be at least 8 characters.";
     }
 
     // Generic expired token
