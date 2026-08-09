@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { takePendingPath } from "../lib/pending-path";
+import { withCaptcha } from "../lib/captcha";
+import { isCaptchaError } from "@shared/utils/captcha";
 import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
@@ -66,13 +68,17 @@ export default function SignIn() {
     setError(null);
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: err } = await withCaptcha("signin", (o) =>
+        supabase.auth.signInWithPassword({ email, password, options: o })
+      );
       if (err) {
         const msg = err.message.toLowerCase();
         if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
           setError("Incorrect email or password.");
         } else if (msg.includes("email not confirmed")) {
           setError("Please verify your email first. Check your inbox.");
+        } else if (isCaptchaError(err)) {
+          setError("We couldn't verify you're human. Please try again.");
         } else {
           setError(humanize(err, "auth"));
         }

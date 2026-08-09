@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
+import { withCaptcha } from "../../lib/captcha";
 import { useProfile, useUpdateProfile } from "../../hooks/useProfile";
 import { useAuthStore } from "../../stores/auth-store";
 import { Button } from "../../components/ui/Button";
@@ -126,20 +127,26 @@ function EmailSection({ profileEmail }: { profileEmail: string | null }) {
     setError(null);
     try {
       if (!oldEmailVerified) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
+        const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
+          supabase.auth.verifyOtp({
             email: currentEmail,
             token: oldOtp.trim(),
             type: "email_change",
-          });
+            options: o,
+          })
+        );
         if (verifyError) throw verifyError;
         setOldEmailVerified(true);
       }
 
-      const { error: verifyError2 } = await supabase.auth.verifyOtp({
+      const { error: verifyError2 } = await withCaptcha("otp_verify", (o) =>
+          supabase.auth.verifyOtp({
           email: email.trim(),
           token: newOtp.trim(),
           type: "email_change",
-        });
+          options: o,
+        })
+      );
       if (verifyError2) throw verifyError2;
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -262,7 +269,9 @@ function PasswordSection({ profileEmail }: { profileEmail: string | null }) {
     setError(null);
     setIsLoading(true);
     try {
-      const { error: authError } = await supabase.auth.resetPasswordForEmail(email);
+      const { error: authError } = await withCaptcha("recover", (o) =>
+        supabase.auth.resetPasswordForEmail(email, o)
+      );
       if (authError) throw authError;
       setShowOtpModal(true);
     } catch (e) {
@@ -278,11 +287,14 @@ function PasswordSection({ profileEmail }: { profileEmail: string | null }) {
     setError(null);
     try {
       if (!isOtpVerified) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
+        const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
+          supabase.auth.verifyOtp({
             email,
             token: otp.trim(),
             type: "recovery",
-          });
+            options: o,
+          })
+        );
         if (verifyError) throw verifyError;
         setIsOtpVerified(true);
       }

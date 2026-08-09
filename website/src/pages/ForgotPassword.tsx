@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { withCaptcha } from "../lib/captcha";
 import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
@@ -22,9 +23,12 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
-      const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: authError } = await withCaptcha("recover", (o) =>
+        supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth/callback`,
-        });
+          ...o,
+        })
+      );
       if (authError) { setError(humanize(authError, "auth")); return; }
       setSent(true);
     } catch {

@@ -18,6 +18,7 @@ import Switch from "../../components/ui/Switch";
 import Modal from "../../components/ui/Modal";
 import AlertBadge from "../../components/ui/AlertBadge";
 import { deleteAccount } from "../../lib/api/household";
+import { withCaptcha } from "../../lib/captcha";
 import { friendlyError } from "@shared/utils/errors";
 
 /** GitHub mark — lucide dropped brand icons, so inline SVG. */
@@ -180,7 +181,9 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
     setError(null);
     setSending(true);
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({ email: user?.email ?? "" });
+      const { error: otpError } = await withCaptcha("otp_request", (o) =>
+        supabase.auth.signInWithOtp({ email: user?.email ?? "", options: o })
+      );
       if (otpError) throw otpError;
       setStep("otp");
       setCooldown(60);
@@ -200,11 +203,14 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
     setError(null);
     setVerifying(true);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
+          supabase.auth.verifyOtp({
           email: user?.email ?? "",
           token: otp,
           type: "magiclink",
-        });
+          options: o,
+        })
+      );
       if (verifyError) throw verifyError;
 
       await deleteAccount();

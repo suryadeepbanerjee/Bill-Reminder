@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase, webRedirectUri } from "../../lib/supabase/client";
+import { withCaptcha } from "../../lib/captcha";
 import { tempAuth } from "../../lib/tempAuth";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
@@ -64,11 +65,14 @@ export default function VerifyEmailScreen() {
 
     setVerifyLoading(true);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      const { error: verifyError } = await withCaptcha("otp_verify", (o) =>
+        supabase.auth.verifyOtp({
           email: email,
           token: code,
           type: "signup",
-        });
+          options: o,
+        })
+      );
 
       if (verifyError) {
         const msg = verifyError.message.toLowerCase();
@@ -101,11 +105,13 @@ export default function VerifyEmailScreen() {
 
     setResendLoading(true);
     try {
-      const { error: resendError } = await supabase.auth.resend({
+      const { error: resendError } = await withCaptcha("resend_verify", (o) =>
+        supabase.auth.resend({
           type: "signup",
           email,
-          options: { emailRedirectTo: webRedirectUri },
-        });
+          options: { ...o, emailRedirectTo: webRedirectUri },
+        })
+      );
 
       if (resendError) {
         const msg = resendError.message.toLowerCase();
