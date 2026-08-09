@@ -56,7 +56,7 @@ A quick view of the financial work that actually needs attention.
 </td>
 <td width="50%" valign="top">
 
-<img src="screenshots/mobile-home.png" alt="Bill Reminder mobile dashboard">
+<img src="screenshots/mobile-dashboard.jpg" alt="Bill Reminder mobile dashboard">
 
 </td>
 </tr>
@@ -68,7 +68,7 @@ A quick view of the financial work that actually needs attention.
 <tr>
 <td width="50%" valign="top">
 
-<img src="screenshots/mobile-bills.png" alt="Bill Reminder mobile bills screen">
+<img src="screenshots/mobile-bills.jpg" alt="Bill Reminder mobile bills screen">
 
 </td>
 <td width="50%" valign="top">
@@ -117,7 +117,7 @@ The creation flow is intentionally split into three steps:
 <tr>
 <td width="33%" align="center">
 
-<img src="screenshots/mobile-add-bill-category.png" alt="Bill category selection">
+<img src="screenshots/mobile-add-bill-category.jpg" alt="Bill category selection">
 
 **01 — Category**
 
@@ -126,7 +126,7 @@ Choose the type of bill.
 </td>
 <td width="33%" align="center">
 
-<img src="screenshots/mobile-add-bill-details.png" alt="Bill details">
+<img src="screenshots/mobile-add-bill-details.jpg" alt="Bill details">
 
 **02 — Details**
 
@@ -135,7 +135,7 @@ Define the name, provider, amount and billing model.
 </td>
 <td width="33%" align="center">
 
-<img src="screenshots/mobile-add-bill-schedule.png" alt="Bill schedule">
+<img src="screenshots/mobile-add-bill-schedule.jpg" alt="Bill schedule">
 
 **03 — Schedule**
 
@@ -151,7 +151,7 @@ This is backed by React Hook Form and Zod validation rather than trusting the UI
 
 ## Bill details
 
-<img src="screenshots/mobile-bill-details-amazon.png" alt="Amazon Prime bill details" width="430">
+<img src="screenshots/mobile-bill-details-amazon.jpg" alt="Amazon Prime bill details" width="430">
 
 The detail screen brings the complete lifecycle of a bill together:
 
@@ -165,7 +165,7 @@ The detail screen brings the complete lifecycle of a bill together:
 
 A second example shows how the same screen handles variable amounts and fixed due dates:
 
-<img src="screenshots/mobile-bill-details-hdfc.png" alt="HDFC Credit Card bill details" width="430">
+<img src="screenshots/mobile-bill-details-hdfc.jpg" alt="HDFC Credit Card bill details" width="430">
 
 ---
 
@@ -196,7 +196,7 @@ Authentication uses Supabase Auth with email/password, Google Sign-In and OTP-ba
 
 ## Settings and privacy
 
-<img src="screenshots/mobile-settings.png" alt="Bill Reminder settings" width="430">
+<img src="screenshots/mobile-settings.jpg" alt="Bill Reminder settings" width="430">
 
 The settings area keeps account, appearance, notification and data controls together.
 
