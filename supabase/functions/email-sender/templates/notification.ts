@@ -1,3 +1,5 @@
+import { EMAIL_LOGO_HTML } from "../../_shared/email-logo.ts";
+
 export const notificationEmailTemplate = `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -116,15 +118,8 @@ export const notificationEmailTemplate = `<!DOCTYPE html>
                             ">
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto 16px;">
                                     <tr>
-                                        <td style="
-                                            width: 52px;
-                                            height: 52px;
-                                            background-color: rgba(182,147,24,0.1);
-                                            border-radius: 50%;
-                                            text-align: center;
-                                            vertical-align: middle;
-                                        ">
-                                            <span style="font-size:24px; line-height:52px;">🔔</span>
+                                        <td style="text-align:center; vertical-align:middle;">
+                                            ${EMAIL_LOGO_HTML}
                                         </td>
                                     </tr>
                                 </table>

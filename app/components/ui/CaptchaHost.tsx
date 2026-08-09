@@ -40,10 +40,18 @@ function buildHtml(siteKey: string, nonce: number): string {
     align-items: center;
     justify-content: center;
   }
+  #widget-host {
+    min-height: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 </style>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit" async defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit" async defer>
+</script>
 </head>
 <body>
+<div id="widget-host"></div>
 <script>
 function post(type, extra) {
   var payload = { type: type };
@@ -57,8 +65,9 @@ function __brTurnstileReady() {
     post("error", { message: "widget unavailable" });
     return;
   }
+  var host = document.getElementById("widget-host");
   try {
-    window.turnstile.render(document.body, {
+    window.turnstile.render(host, {
       sitekey: "${siteKey}",
       // "normal" = standard 300×65 Cloudflare checkbox widget.
       // Auto-passes silently for clean traffic; shows interactive puzzle
@@ -71,7 +80,27 @@ function __brTurnstileReady() {
     });
   } catch (e) {
     post("error", { message: "init failed" });
+    return;
   }
+  // Only when Turnstile's checkbox iframe actually appears in the DOM do we
+  // tell the app the widget is on screen. Until then the app keeps showing
+  // its buffering spinner instead of a premature "tick the checkbox" prompt.
+  var reported = false;
+  function reportReady() {
+    if (reported) return;
+    reported = true;
+    post("widget-ready");
+  }
+  var attempts = 0;
+  var poll = window.setInterval(function () {
+    attempts += 1;
+    if (host.querySelector("iframe[src*='challenges.cloudflare.com']")) {
+      window.clearInterval(poll);
+      window.setTimeout(reportReady, 250); // let it paint
+    } else if (attempts > 300) {
+      window.clearInterval(poll); // 60s max wait — outer timeout posts anyway
+    }
+  }, 200);
 }
 setTimeout(function () { post("timeout"); }, ${WIDGET_TIMEOUT_MS});
 </script>
@@ -81,7 +110,7 @@ setTimeout(function () { post("timeout"); }, ${WIDGET_TIMEOUT_MS});
 
 export function CaptchaHost() {
   const [active, setActive] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [solved, setSolved] = useState(false);
   const [nonce, setNonce] = useState(() => Date.now());
@@ -90,17 +119,18 @@ export function CaptchaHost() {
   useEffect(() => subscribeCaptchaRequest(setNonce), []);
 
   // Every activation gets a fresh widget run (nonce changes the html source
-  // so the WebView reloads and Turnstile issues a brand-new token).
+  // so the WebView reloads and Turnstile issues a brand-new token). The
+  // buffering spinner stays up until the widget itself reports checkbox.
   useEffect(() => {
     if (active) {
-      setLoaded(false);
+      setWidgetReady(false);
       setFailed(null);
       setSolved(false);
     }
   }, [active, nonce]);
 
   const retry = useCallback(() => {
-    setLoaded(false);
+    setWidgetReady(false);
     setFailed(null);
     setSolved(false);
     setNonce(Date.now());
@@ -113,23 +143,22 @@ export function CaptchaHost() {
     } catch {
       return;
     }
-    if (msg.type === "token" && typeof msg.token === "string" && msg.token) {
+    if (msg.type === "widget-ready") {
+      setWidgetReady(true);
+    } else if (msg.type === "token" && typeof msg.token === "string" && msg.token) {
       setFailed(null);
       setSolved(true);
       completeCaptcha(msg.token, undefined, true);
     } else if (msg.type === "error") {
       // Keep the popup open with a retry option — the pending request stays
       // alive until the user retries or cancels.
-      setLoaded(true);
       setFailed(msg.message ?? "CAPTCHA challenge failed");
     } else if (msg.type === "timeout") {
-      setLoaded(true);
       setFailed("Security check timed out — please try again");
     }
   }, []);
 
   const handleLoadFailure = useCallback(() => {
-    setLoaded(true);
     setFailed("Could not load the security check — check your connection");
   }, []);
 
@@ -160,11 +189,11 @@ export function CaptchaHost() {
           style={{
             width: "100%",
             maxWidth: 360,
-            backgroundColor: "#141420",
+            backgroundColor: "#1E1E1E",
             borderRadius: 16,
             overflow: "hidden",
             borderWidth: 1,
-            borderColor: "#262626",
+            borderColor: "#333333",
           }}
         >
           {/* Header */}
@@ -176,10 +205,10 @@ export function CaptchaHost() {
               paddingHorizontal: 16,
               paddingVertical: 12,
               borderBottomWidth: 1,
-              borderBottomColor: "#262626",
+              borderBottomColor: "#333333",
             }}
           >
-            <Text style={{ color: "#F5F5F5", fontSize: 14, fontWeight: "600" }}>
+            <Text style={{ color: "#F9FAFB", fontSize: 14, fontWeight: "600" }}>
               Security check
             </Text>
             <Pressable
@@ -202,7 +231,7 @@ export function CaptchaHost() {
             >
               <Text
                 style={{
-                  color: "#F5F5F5",
+                  color: "#F9FAFB",
                   fontSize: 13,
                   textAlign: "center",
                   lineHeight: 19,
@@ -215,23 +244,23 @@ export function CaptchaHost() {
                 accessibilityRole="button"
                 accessibilityLabel="Try the security check again"
                 style={{
-                  backgroundColor: "#5B5BD6",
+                  backgroundColor: "#D1A920",
                   borderRadius: 10,
                   paddingHorizontal: 20,
                   paddingVertical: 10,
                 }}
               >
-                <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
+                <Text style={{ color: "#121212", fontSize: 13, fontWeight: "600" }}>
                   Try again
                 </Text>
               </Pressable>
             </View>
-          ) : !loaded ? (
+          ) : !widgetReady ? (
             <View style={{ alignItems: "center", padding: 32, gap: 12 }}>
-              <ActivityIndicator size="small" color="#5B5BD6" />
+              <ActivityIndicator size="small" color="#D1A920" />
               <Text
                 style={{
-                  color: "#A3A3A3",
+                  color: "#9CA3AF",
                   fontSize: 13,
                   textAlign: "center",
                 }}
@@ -250,7 +279,7 @@ export function CaptchaHost() {
             >
               <Text
                 style={{
-                  color: solved ? "#34D399" : "#A3A3A3",
+                  color: solved ? "#34D399" : "#9CA3AF",
                   fontSize: 13,
                   fontWeight: solved ? "600" : "400",
                   textAlign: "center",
@@ -273,14 +302,12 @@ export function CaptchaHost() {
                 height: 300,
                 backgroundColor: "transparent",
               },
-              (!loaded || !!failed) && { display: "none" },
+              (!widgetReady || !!failed) && { display: "none" },
             ]}
             originWhitelist={["*"]}
             javaScriptEnabled
             setSupportMultipleWindows={false}
             onMessage={handleMessage}
-            onLoadStart={() => setLoaded(false)}
-            onLoadEnd={() => setLoaded(true)}
             onError={handleLoadFailure}
             onHttpError={handleLoadFailure}
           />

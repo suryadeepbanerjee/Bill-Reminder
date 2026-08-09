@@ -4,6 +4,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { internalError } from "../_shared/http.ts";
 import { inviteUrl } from "../_shared/site.ts";
 import { getRateLimiter } from "../_shared/rate-limit.ts";
+import { EMAIL_LOGO_HTML } from "../_shared/email-logo.ts";
 
 // ── Invite resend policy ─────────────────────────────────────────────────────
 // 2 minute cooldown between sends, max 3 resends (4 total sends),
@@ -284,7 +285,7 @@ serve(async (req: Request) => {
         <table width="480" cellpadding="0" cellspacing="0" style="background-color:#141420;border-radius:16px;border:1px solid #262626;overflow:hidden;">
           <tr>
             <td style="padding:32px 32px 24px;text-align:center;">
-              <div style="font-size:32px;margin-bottom:16px;">🏠</div>
+              ${EMAIL_LOGO_HTML}
               <h1 style="color:#F5F5F5;font-size:22px;font-weight:700;margin:0 0 8px;">You're Invited!</h1>
               <p style="color:#A3A3A3;font-size:15px;margin:0;">
                 <strong style="color:#F5F5F5;">${safeCallerName}</strong> invited you to join
