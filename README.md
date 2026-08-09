@@ -14,9 +14,9 @@
   <a href="https://billreminder.suryadeepbanerjee.in">
     <img src="https://img.shields.io/badge/Live-billreminder.suryadeepbanerjee.in-D1A920?style=flat-square&labelColor=0A0A0C" alt="Live website">
   </a>
-  <img src="https://img.shields.io/badge/License-MIT-D1A920?style=flat-square&labelColor=0A0A0C" alt="MIT License">
-  <img src="https://img.shields.io/badge/Status-Actively%20developed-D1A920?style=flat-square&labelColor=0A0A0C" alt="Actively developed">
-  <img src="https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Web-D1A920?style=flat-square&labelColor=0A0A0C" alt="Platforms">
+  <a href="https://github.com/suryadeepbanerjee/Bill-Reminder/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-D1A920?style=flat-square&labelColor=0A0A0C" alt="MIT License"></a>
+  <a href="https://github.com/suryadeepbanerjee/Bill-Reminder/commits/main"><img src="https://img.shields.io/badge/Status-Actively%20developed-D1A920?style=flat-square&labelColor=0A0A0C" alt="Actively developed"></a>
+  <a href="https://billreminder.suryadeepbanerjee.in"><img src="https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Web-D1A920?style=flat-square&labelColor=0A0A0C" alt="Platforms"></a>
 </p>
 
 <p>
@@ -36,7 +36,7 @@
 ---
 
 <details>
-<summary><b>📖 Table of contents</b></summary>
+<summary><b>Table of contents</b></summary>
 
 - [The idea](#the-idea)
 - [Product tour](#product-tour)
@@ -601,8 +601,6 @@ Built by **Suryadeep Banerjee**
 <a href="https://billreminder.suryadeepbanerjee.in">Website</a>
 &nbsp;&nbsp;·&nbsp;&nbsp;
 <a href="https://github.com/suryadeepbanerjee">GitHub</a>
-
-<br>
 
 <img src="https://capsule-render.vercel.app/api?type=waving&height=100&section=footer&color=0A0A0C&reversal=false" width="100%" alt="">
 
