@@ -18,6 +18,7 @@ export const SearchField = forwardRef<RNTextInput, SearchFieldProps>(
         label=""
         placeholder={placeholder}
         value={value}
+        maxLength={120}
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}

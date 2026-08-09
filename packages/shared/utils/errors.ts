@@ -141,7 +141,7 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
 
     // Password too short
     if (lower.includes("password") && lower.includes("short")) {
-      return "Password must be at least 12 characters.";
+      return "Password must be at least 8 characters.";
     }
 
     // Generic expired token

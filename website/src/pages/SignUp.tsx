@@ -22,7 +22,7 @@ function GoogleIcon() {
 
 function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   let s = 0;
-  if (pw.length >= 12) s++;
+  if (pw.length >= 8) s++;
   if (/[A-Z]/.test(pw)) s++;
   if (/[0-9]/.test(pw)) s++;
   if (/[^A-Za-z0-9]/.test(pw)) s++;
@@ -71,7 +71,7 @@ export default function SignUp() {
 
     if (!name.trim())           { setError({ msg: "Please enter your name." }); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError({ msg: "Please enter a valid email address." }); return; }
-    if (password.length < 12)   { setError({ msg: "Password must be at least 12 characters." }); return; }
+    if (password.length < 8)   { setError({ msg: "Password must be at least 8 characters." }); return; }
 
     setLoading(true);
     try {
@@ -279,7 +279,7 @@ export default function SignUp() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Minimum 12 characters"
+            placeholder="Minimum 8 characters"
             className="pr-2"
             trailingElement={
               <button

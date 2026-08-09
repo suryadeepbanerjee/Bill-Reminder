@@ -9,7 +9,7 @@ import { TextInput } from "../components/ui/TextInput";
 
 function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   let s = 0;
-  if (pw.length >= 12) s++;
+  if (pw.length >= 8) s++;
   if (/[A-Z]/.test(pw)) s++;
   if (/[0-9]/.test(pw)) s++;
   if (/[^A-Za-z0-9]/.test(pw)) s++;
@@ -58,7 +58,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (password.length < 12) { setError("Password must be at least 12 characters."); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm)  { setError("Passwords do not match."); return; }
 
     setLoading(true);
@@ -163,7 +163,7 @@ export default function ResetPassword() {
             autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Minimum 12 characters"
+            placeholder="Minimum 8 characters"
             className="pr-2"
             trailingElement={
               <button
@@ -227,7 +227,7 @@ export default function ResetPassword() {
 
         <Button
           type="submit"
-          disabled={loading || password.length < 12 || password !== confirm}
+          disabled={loading || password.length < 8 || password !== confirm}
           loading={loading}
           className="w-full justify-center h-11"
         >

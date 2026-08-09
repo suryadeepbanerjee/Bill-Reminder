@@ -20,7 +20,7 @@ import { Divider } from "../../components/ui/Divider";
 /** Simple password strength indicator — 0..4 */
 function passwordStrength(pw: string): number {
   let score = 0;
-  if (pw.length >= 12)                     score++;
+  if (pw.length >= 8)                     score++;
   if (/[A-Z]/.test(pw))                   score++;
   if (/[0-9]/.test(pw))                   score++;
   if (/[^A-Za-z0-9]/.test(pw))            score++;
@@ -190,7 +190,7 @@ export default function SignUpScreen() {
             <View className="gap-2">
               <PasswordField
                 label="Password"
-                placeholder="Minimum 12 characters"
+                placeholder="Minimum 8 characters"
                 textContentType="newPassword"
                 autoComplete="new-password"
                 returnKeyType="done"

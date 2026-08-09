@@ -263,7 +263,7 @@ function PasswordSection({ profileEmail }: { profileEmail: string | null }) {
 
   const handleRequestChange = async () => {
     if (!password) { setError("Password cannot be empty."); return; }
-    if (password.length <= 12) { setError("Password must be greater than 12 characters."); return; }
+    if (password.length <= 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
 
     setError(null);

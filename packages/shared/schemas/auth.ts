@@ -2,12 +2,12 @@ import { z } from "zod";
 
 export const signInSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(12, "Password must be at least 12 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export const signUpSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(12, "Password must be at least 12 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   displayName: z
     .string()
     .trim()
@@ -20,8 +20,8 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  password: z.string().min(12, "Password must be at least 12 characters"),
-  confirmPassword: z.string().min(12, "Password must be at least 12 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],

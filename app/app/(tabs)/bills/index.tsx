@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import type { ListRenderItem } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { useBills }                  from "../../../hooks/useBills";
@@ -39,10 +39,25 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "paid",     label: "Recently paid" },
 ];
 
+function isFilterKey(v: string | string[] | undefined): v is FilterKey {
+  return typeof v === "string" && (FILTERS.map((f) => f.key) as string[]).includes(v);
+}
+
 export default function BillsScreen() {
+  const params  = useLocalSearchParams<{ filter?: string; t?: string }>();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<FilterKey>(() =>
+    isFilterKey(params.filter) ? params.filter : "all"
+  );
   const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
+
+  // Apply the deep-linked filter whenever the dashboard re-points us here
+  // (the tab stays mounted, so state must follow the URL param changes).
+  // `t` is a nonce the dashboard stamps so re-tapping the same pill still
+  // re-applies its filter even though the tab never unmounts.
+  useEffect(() => {
+    if (isFilterKey(params.filter)) setFilter(params.filter);
+  }, [params.filter, params.t]);
 
   const activeHousehold = useHouseholdStore((s) => s.activeHousehold);
   const canEdit = canEditBills(activeHousehold?.member.role);

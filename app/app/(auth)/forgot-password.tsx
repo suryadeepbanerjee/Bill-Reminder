@@ -62,7 +62,7 @@ export default function ForgotPasswordScreen() {
 
   const onVerifyAndReset = async () => {
     if (!otp || otp.length < 6) { setError("Please enter a valid 6-digit code."); return; }
-    if (!password || password.length <= 12) { setError("Password must be greater than 12 characters."); return; }
+    if (!password || password.length <= 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
 
     setError(null);

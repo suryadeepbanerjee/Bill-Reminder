@@ -311,6 +311,13 @@ export default function DashboardScreen() {
     router.push("/(tabs)/bills");
   }, []);
 
+  // Navigate to the Bills tab pre-filtered (mirrors the web pills). The
+  // `t` nonce forces the param change through even when the tab is mounted.
+  const goToBillFilter = useCallback((filter: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: "/(tabs)/bills", params: { filter, t: String(Date.now()) } });
+  }, []);
+
   const noop = useCallback(() => {}, []);
 
   const totalDueNow = useMemo(() => {
@@ -427,7 +434,7 @@ export default function DashboardScreen() {
                 icon="warning-outline"
                 iconColor="text-error"
                 bg="bg-error/10 border border-error/20"
-                onPress={() => router.push("/(tabs)/bills")}
+                onPress={() => goToBillFilter("overdue")}
               />
               <SummaryPill
                 label="Today"
@@ -435,7 +442,7 @@ export default function DashboardScreen() {
                 icon="today-outline"
                 iconColor="text-accent"
                 bg={Platform.OS === 'web' ? "bg-accent/20 border border-accent/40" : "bg-accent/10 border border-accent/20"}
-                onPress={() => router.push("/(tabs)/bills")}
+                onPress={() => goToBillFilter("due_today")}
               />
               <SummaryPill
                 label="Upcoming"
@@ -443,6 +450,7 @@ export default function DashboardScreen() {
                 icon="time-outline"
                 iconColor="text-success"
                 bg="bg-success/10 border border-success/20"
+                onPress={() => goToBillFilter("upcoming")}
               />
             </View>
 
