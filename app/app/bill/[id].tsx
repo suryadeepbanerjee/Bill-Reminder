@@ -858,19 +858,19 @@ export default function BillDetailScreen() {
   const heroIsPaid       = heroOccurrence?.state === "paid";
 
   // Next open occurrence — feeds the "(Next: …)" bracket after a same-day payment.
-  const nextOpenDue = useMemo(() => {
+  const nextOpenDue = (() => {
     const next = occurrences.find((o) =>
       ["due_today","overdue","expected_payment","generated","upcoming"].includes(o.state)
     );
     const d = next ? (next.due_date ?? next.expected_payment_date) : null;
     return d ?? null;
-  }, [occurrences]);
+  })();
 
-  const heroDaysLeft = useMemo(() => {
+  const heroDaysLeft = (() => {
     if (!heroDue || heroIsPaid) return null;
     const d = daysUntil(heroDue);
     return d != null && d > 0 ? d : null;
-  }, [heroDue, heroIsPaid]);
+  })();
 
   const heroChipLabel =
     heroIsPaid                      ? undefined

@@ -17,6 +17,6 @@
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "/favicon.png", "sizes": "500x500", "type": "image/png", "purpose": "any" },
-    { "src": "/logo.png", "sizes": "495x495", "type": "image/png", "purpose": "any" }
+    { "src": "/logo.png", "sizes": "500x500", "type": "image/png", "purpose": "any" }
   ]
 }

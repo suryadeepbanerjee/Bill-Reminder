@@ -151,11 +151,11 @@ export default function BillDetailPage() {
     : null;
   const heroIsPaid = heroOccurrence?.state === "paid";
 
-  const nextOpenDue = useMemo(() => {
+  const nextOpenDue = (() => {
     const next = (occurrences ?? []).find((o) => CURRENT_STATES.includes(o.state));
     const d = next ? (next.due_date ?? next.expected_payment_date ?? null) : null;
     return d;
-  }, [occurrences]);
+  })();
 
   const heroDaysLeft = heroDue && !heroIsPaid ? daysUntil(heroDue) : null;
 
