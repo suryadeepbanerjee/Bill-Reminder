@@ -20,11 +20,11 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/React%20Native-Expo%2054-20232A?style=for-the-badge&logo=expo&logoColor=D1A920" alt="React Native + Expo">
-  <img src="https://img.shields.io/badge/React-Vite%206-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React + Vite">
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-20232A?style=for-the-badge&logo=supabase&logoColor=3FCF8E" alt="Supabase">
-  <img src="https://img.shields.io/badge/TypeScript-Strict-20232A?style=for-the-badge&logo=typescript&logoColor=3178C6" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Tailwind%20%2F%20NativeWind-20232A?style=for-the-badge&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind / NativeWind">
+  <a href="https://expo.dev"><img src="https://img.shields.io/badge/React%20Native-Expo%2054-20232A?style=for-the-badge&logo=expo&logoColor=D1A920" alt="React Native + Expo"></a>
+  <a href="https://vitejs.dev"><img src="https://img.shields.io/badge/React-Vite%206-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React + Vite"></a>
+  <a href="https://supabase.com"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-20232A?style=for-the-badge&logo=supabase&logoColor=3FCF8E" alt="Supabase"></a>
+  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-Strict-20232A?style=for-the-badge&logo=typescript&logoColor=3178C6" alt="TypeScript"></a>
+  <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind%20%2F%20NativeWind-20232A?style=for-the-badge&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind / NativeWind"></a>
 </p>
 
 <p>
@@ -277,7 +277,20 @@ Supabase Auth backs email/password, Google Sign-In, and a passwordless **sign-in
 
 ## Settings and privacy
 
-<img src="screenshots/mobile-settings.jpg" alt="Bill Reminder settings" width="430">
+<table>
+<tr>
+<td width="50%" valign="top">
+
+<img src="screenshots/mobile-settings-1.jpg" alt="Bill Reminder settings — profile and appearance">
+
+</td>
+<td width="50%" valign="top">
+
+<img src="screenshots/mobile-settings-2.jpg" alt="Bill Reminder settings — notifications and data">
+
+</td>
+</tr>
+</table>
 
 The settings area keeps account, appearance, notification and data controls together, rather than scattering them across the app.
 
@@ -589,7 +602,7 @@ Built by **Suryadeep Banerjee**
 &nbsp;&nbsp;·&nbsp;&nbsp;
 <a href="https://github.com/suryadeepbanerjee">GitHub</a>
 
-<br><br>
+<br>
 
 <img src="https://capsule-render.vercel.app/api?type=waving&height=100&section=footer&color=0A0A0C&reversal=false" width="100%" alt="">
 
