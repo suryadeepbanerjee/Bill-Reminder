@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
           <h1 style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)", fontWeight: 800, letterSpacing: "-0.025em", color: "var(--ink)", marginBottom: 8 }}>
             Privacy Policy
           </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-3)" }}>Last updated: January 2025</p>
+          <p style={{ fontSize: 13, color: "var(--ink-3)" }}>Last updated: August 2026</p>
         </div>
 
         <div className="card" style={{ padding: "36px 36px" }}>
@@ -59,9 +59,14 @@ export default function PrivacyPolicy() {
           <Section title="Third-party services">
             <P>We use the following third parties:</P>
             <UL items={[
-              "Supabase — database and authentication.",
-              "Resend — transactional email (verification, password reset). Only your email address is shared.",
-              "Vercel — website hosting. Standard web logs (IP, user agent) apply.",
+              "Supabase — database, authentication, PostgreSQL, Row-Level Security, and backend/Edge Functions.",
+              "Resend — transactional email for verification, password reset, and bill reminders. Your email address is shared when an email is sent.",
+              "Vercel — website hosting and serverless infrastructure. Standard web logs such as IP address and user agent may apply.",
+              "Upstash — Redis-based rate limiting and request protection. Limited request metadata is processed to enforce rate limits.",
+              "Cloudflare Turnstile — CAPTCHA and bot protection for authentication and sensitive operations.",
+              "Google OAuth — optional Google sign-in. Google provides your name and email address when you authenticate with Google. No access to Gmail, Drive, Calendar, Photos, or Contacts is requested.",
+              "Expo Notifications — mobile push notification delivery for bill reminders. Device notification identifiers and related delivery data may be processed.",
+              "Firebase — Android notification infrastructure and Google services used by the mobile application, where enabled.",
             ]} />
             <P>We do <strong>not</strong> sell, share, or monetise your data with advertisers or data brokers.</P>
           </Section>
@@ -73,7 +78,7 @@ export default function PrivacyPolicy() {
               "Request deletion of your account and all associated data.",
               "Update your email address or display name from within the app.",
             ]} />
-            <P>To exercise any of these rights, email <a href="mailto:official@suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>official@suryadeepbanerjee.in</a>. We will respond within 30 days.</P>
+            <P>To exercise any of these rights, email <a href="mailto:official@suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>official@suryadeepbanerjee.in</a>. We aim to respond to privacy requests as soon as reasonably practicable, and generally within 30 days.</P>
           </Section>
 
           <Section title="Changes to this policy">
