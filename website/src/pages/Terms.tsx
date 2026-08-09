@@ -56,7 +56,7 @@ export default function Terms() {
 
           <Section title="Your account">
             <P>To use features such as cloud sync and household sharing, you need to create an account. Please provide accurate information when you register, particularly your email address, since it's how reminders and account-related messages reach you.</P>
-            <P>You are responsible for keeping your login credentials confidential and for all activity that occurs under your account. If you believe someone has gained unauthorized access to your account, please notify us immediately at official@suryadeepbanerjee.in.</P>
+            <P>You are responsible for keeping your login credentials confidential and for all activity that occurs under your account. If you believe someone has gained unauthorized access to your account, please notify us immediately at <a href="mailto:official@suryadeepbanerjee.in" style={{ color: "var(--brand)", textDecoration: "none" }}>official@suryadeepbanerjee.in</a>.</P>
           </Section>
 
           <Section title="Household sharing">
