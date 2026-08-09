@@ -134,6 +134,11 @@ export default function BillsPage() {
             />
           ))}
         </div>
+        {(search.trim() || filter !== "all") && (
+          <p className="text-xs text-secondary">
+            {filteredBills.length} {filteredBills.length === 1 ? "bill" : "bills"} found
+          </p>
+        )}
       </div>
 
       {billsLoading && <LoadingSkeleton variant="list" count={5} />}

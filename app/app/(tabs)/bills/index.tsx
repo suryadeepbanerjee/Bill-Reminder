@@ -181,6 +181,12 @@ export default function BillsScreen() {
             />
           ))}
         </ScrollView>
+
+        {(search.trim() || filter !== "all") && (
+          <Text className="text-caption text-secondary">
+            {filteredBills.length} {filteredBills.length === 1 ? "bill" : "bills"} found
+          </Text>
+        )}
       </View>
 
       {/* ── Content ────────────────────────────────────────────────── */}

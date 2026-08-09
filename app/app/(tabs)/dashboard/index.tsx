@@ -22,6 +22,7 @@ import { LoadingSkeleton }           from "../../../components/ui/LoadingSkeleto
 import { ErrorView }                 from "../../../components/ui/ErrorView";
 import { EmptyState }                from "../../../components/ui/EmptyState";
 import { SectionHeader }             from "../../../components/ui/SectionHeader";
+import { SearchField }               from "../../../components/ui/SearchField";
 import { FAB }                       from "../../../components/ui/FAB";
 import { Toast }                     from "../../../components/ui/Toast";
 import { formatCurrency }            from "@shared/utils/format";
@@ -286,6 +287,8 @@ export default function DashboardScreen() {
   // ── Mark paid modal state ────────────────────────────────────────────
   const [markPaidTarget, setMarkPaidTarget] = useState<MarkPaidTarget | null>(null);
 
+  const [search, setSearch] = useState("");
+
   const openMarkPaid = useCallback((o: DashboardOccurrence) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setMarkPaidTarget({
@@ -330,6 +333,28 @@ export default function DashboardScreen() {
     [data]
   );
 
+  // ── Global search — matches bills in every group (overdue / today /
+  // upcoming / recently paid) on title, provider, or category name.
+  const searchActive = useMemo(() => search.trim().length > 0, [search]);
+
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || !data) return [];
+    const seen   = new Set<string>();
+    const out: DashboardOccurrence[] = [];
+    for (const o of [...actionRequired, ...data.upcoming, ...data.recentlyPaid]) {
+      if (seen.has(o.bills.id)) continue;
+      const bill = o.bills;
+      const haystack =
+        `${bill.title} ${bill.provider_name ?? ""} ${bill.categories?.name ?? ""}`
+          .toLowerCase();
+      if (!haystack.includes(q)) continue;
+      seen.add(bill.id);
+      out.push(o);
+    }
+    return out;
+  }, [data, search, actionRequired]);
+
   return (
       <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView
@@ -345,13 +370,22 @@ export default function DashboardScreen() {
         }
       >
         {/* ── Header ───────────────────────────────────────────────────── */}
-        <View className="px-5 pt-6 pb-6">
-          <Text className="text-caption text-secondary mb-1">
-            {greeting}{firstName ? `, ${firstName}` : ""}
-          </Text>
-          <Text className="text-[32px] leading-[40px] font-bold tracking-tight text-primary">
-            Your bills
-          </Text>
+        <View className="px-5 pt-6 pb-6 gap-4">
+          <View>
+            <Text className="text-caption text-secondary mb-1">
+              {greeting}{firstName ? `, ${firstName}` : ""}
+            </Text>
+            <Text className="text-[32px] leading-[40px] font-bold tracking-tight text-primary">
+              Your bills
+            </Text>
+          </View>
+
+          <SearchField
+            value={search}
+            onChangeText={setSearch}
+            onClear={() => setSearch("")}
+            placeholder="Search bills…"
+          />
         </View>
 
         {isLoading && <LoadingSkeleton variant="dashboard" />}
@@ -365,6 +399,26 @@ export default function DashboardScreen() {
 
         {data && (
           <View className="px-4 gap-6">
+            {/* ── Global search results ─────────────────────────────── */}
+            {searchActive ? (
+              searchResults.length > 0 ? (
+                <View className="gap-3">
+                  <SectionHeader title={`Results · ${searchResults.length}`} />
+                  {searchResults.map((o) => (
+                    <BillCard
+                      key={o.id}
+                      bill={o.bills as any}
+                      occurrence={o}
+                      onPress={() => openBill(o.bills.id)}
+                      onMarkPaid={o.state === "paid" ? undefined : () => openMarkPaid(o)}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <EmptyState variant="search" />
+              )
+            ) : (
+              <>
             {/* ── Summary pills ──────────────────────────────────────── */}
             <View className="flex-row gap-3 mb-4">
               <SummaryPill
@@ -433,6 +487,8 @@ export default function DashboardScreen() {
                 ctaLabel="Add your first bill"
                 onCta={() => router.push("/add-bill")}
               />
+            )}
+              </>
             )}
           </View>
         )}

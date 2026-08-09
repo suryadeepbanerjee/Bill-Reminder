@@ -8,6 +8,7 @@ import MarkPaidModal, { type MarkPaidTarget } from "../../components/bills/MarkP
 import LoadingSkeleton from "../../components/ui/LoadingSkeleton";
 import ErrorView from "../../components/ui/ErrorView";
 import EmptyState from "../../components/ui/EmptyState";
+import SearchField from "../../components/ui/SearchField";
 import SectionHeader from "../../components/ui/SectionHeader";
 import FAB from "../../components/ui/FAB";
 import { useToast } from "../../components/ui/Toast";
@@ -111,6 +112,30 @@ export default function DashboardPage() {
     [data]
   );
 
+  const [search, setSearch] = useState("");
+
+  // Global search — matches bills in every group (overdue / today /
+  // upcoming / recently paid) on title, provider, or category name.
+  const searchActive = useMemo(() => search.trim().length > 0, [search]);
+
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || !data) return [];
+    const seen   = new Set<string>();
+    const out: DashboardOccurrence[] = [];
+    for (const o of [...actionRequired, ...data.upcoming, ...data.recentlyPaid]) {
+      if (seen.has(o.bills.id)) continue;
+      const bill = o.bills;
+      const haystack =
+        `${bill.title} ${bill.provider_name ?? ""} ${bill.categories?.name ?? ""}`
+          .toLowerCase();
+      if (!haystack.includes(q)) continue;
+      seen.add(bill.id);
+      out.push(o);
+    }
+    return out;
+  }, [data, search, actionRequired]);
+
   return (
     <div className="min-h-screen">
       <div className="flex items-center justify-between mb-6">
@@ -125,6 +150,15 @@ export default function DashboardPage() {
         )}
       </div>
 
+      <div className="mb-6">
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          onClear={() => setSearch("")}
+          placeholder="Search bills…"
+        />
+      </div>
+
       {isLoading && <LoadingSkeleton variant="dashboard" />}
 
       {isError && (
@@ -133,6 +167,27 @@ export default function DashboardPage() {
 
       {data && (
         <div className="space-y-6">
+          {searchActive ? (
+            searchResults.length > 0 ? (
+              <>
+                <SectionHeader title={`Results · ${searchResults.length}`} />
+                <div className="space-y-3">
+                  {searchResults.map((o) => (
+                    <BillCard
+                      key={o.id}
+                      bill={o.bills as any}
+                      occurrence={o}
+                      onPress={() => navigate(`/app/bill/${o.bills.id}`)}
+                      onMarkPaid={o.state === "paid" ? null : () => openMarkPaid(o)}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <EmptyState variant="search" />
+            )
+          ) : (
+            <>
           {/* Summary pills */}
           <div className="grid grid-cols-3 gap-3">
             <SummaryPill
@@ -233,6 +288,8 @@ export default function DashboardPage() {
               ctaLabel="Add your first bill"
               onCta={() => navigate("/app/add-bill")}
             />
+          )}
+            </>
           )}
         </div>
       )}

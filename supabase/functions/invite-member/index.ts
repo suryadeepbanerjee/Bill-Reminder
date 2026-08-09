@@ -212,6 +212,7 @@ serve(async (req: Request) => {
         .update({
           status:             "invited",
           invited_email:      email,
+          role:               "member", // re-invites always come back as member
           invite_count:       inviteCount + 1,
           invite_last_sent_at: nowIso,
         })
