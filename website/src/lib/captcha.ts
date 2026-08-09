@@ -1,19 +1,18 @@
 /**
  * Web CAPTCHA helper (Vite + Cloudflare Turnstile).
  *
- * ALWAYS-VISIBLE widget: every sensitive form embeds the Turnstile checkbox
- * inline via <CaptchaField/> (see components/ui/CaptchaField.tsx). No more
- * hidden/overlay flow — the user sees and completes the checkbox themselves.
+ * The Turnstile widget is NEVER embedded inside the page. Submitting a
+ * protected action opens a modal popup block with the checkbox; the submit
+ * continues automatically once the challenge completes.
  *
  * Contract:
- *   mountCaptchaWidget(host, onState) – render the widget into a container
- *   hasSolvedCaptcha() / getWidgetState() – read-only widget state
- *   captchaOptions()                – fresh token per call (resets the widget)
- *   withCaptcha(action, execute)    – token + abuse-prevention gate + retry
+ *   captchaOptions()   – opens the popup, resolves with a fresh token
+ *   withCaptcha(action, execute) – token + abuse-prevention gate + retry
+ *   closeCaptchaOverlay() – programmatically close the popup
  *
- * Each captchaOptions() call regenerates the token: the widget resets and the
- * promise resolves on its next callback. Clean traffic auto-passes instantly;
- * challenged traffic re-asks for the checkbox interaction.
+ * Each captchaOptions() call creates a brand-new single-use token. Clean
+ * traffic auto-passes instantly; challenged traffic re-asks for the checkbox
+ * interaction inside the popup. Closing the popup cancels the action.
  */
 
 import { runWithCaptcha, type CaptchaOptions } from "@shared/utils/captcha";
@@ -53,167 +52,69 @@ declare global {
 }
 
 let scriptPromise: Promise<void> | null = null;
+const SCRIPT_LOAD_TIMEOUT_MS = 15000;
 
+function removeScriptTag(): void {
+  const existing = document.getElementById("turnstile-script");
+  existing?.remove();
+}
+
+/**
+ * Load Turnstile's api.js exactly once and make sure `window.turnstile` is
+ * actually usable before resolving. Self-healing: a stale/failed script tag
+ * is removed and retried instead of poison-pill-resolving without the API.
+ */
 function loadTurnstileScript(): Promise<void> {
   if (!isCaptchaEnabled) {
     return Promise.reject(new Error("CAPTCHA not configured"));
   }
   if (!scriptPromise) {
     scriptPromise = new Promise<void>((resolve, reject) => {
-      if (document.getElementById("turnstile-script")) {
-        resolve();
-        return;
-      }
-      window.__brTurnstileReady = () => resolve();
-      const script = document.createElement("script");
-      script.id = "turnstile-script";
-      script.src =
-        "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit";
-      script.async = true;
-      script.onerror = () => {
-        scriptPromise = null;
-        reject(new Error("Could not load the CAPTCHA widget"));
+      const attempt = (): void => {
+        removeScriptTag();
+        if (window.turnstile) {
+          resolve();
+          return;
+        }
+        window.__brTurnstileReady = () => {
+          if (window.turnstile) {
+            resolve();
+          } else {
+            // onload fired but the API is still missing — kill and retry.
+            removeScriptTag();
+            scriptPromise = null;
+            reject(new Error("CAPTCHA widget is not ready"));
+          }
+        };
+        const script = document.createElement("script");
+        script.id = "turnstile-script";
+        script.src =
+          "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__brTurnstileReady&render=explicit";
+        script.async = true;
+        script.onerror = () => {
+          removeScriptTag();
+          scriptPromise = null;
+          reject(new Error("Could not load the CAPTCHA widget"));
+        };
+        document.head.appendChild(script);
       };
-      document.head.appendChild(script);
+      attempt();
+      // If the CDN hangs without firing onload/onerror, surface it promptly.
+      window.setTimeout(() => {
+        if (!window.turnstile) {
+          removeScriptTag();
+          scriptPromise = null;
+          reject(new Error("Could not load the CAPTCHA widget"));
+        }
+      }, SCRIPT_LOAD_TIMEOUT_MS);
     });
   }
   return scriptPromise;
 }
 
-// ── Widget registry ───────────────────────────────────────────────────────────
-// A single visible widget per page. Pages mount it with <CaptchaField/> which
-// calls `mountCaptchaWidget(host, { onState })`.
-
-export type CaptchaWidgetState = "idle" | "solving" | "solved" | "expired" | "error";
-
-let widgetHost: HTMLElement | null = null;
-let widgetState: CaptchaWidgetState = "idle";
-
-type StateListener = (next: CaptchaWidgetState) => void;
-const stateListeners = new Set<StateListener>();
-
-interface TokenWaiter {
-  resolve: (token: string) => void;
-  reject: (err: Error) => void;
-}
-let tokenWaiters: TokenWaiter[] = [];
-
-function setWidgetState(next: CaptchaWidgetState): void {
-  widgetState = next;
-  stateListeners.forEach((l) => l(next));
-}
-
-function buildWidgetOptions(theme: "light" | "dark" | "auto" = "dark"): TurnstileOptions {
-  return {
-    sitekey: SITE_KEY,
-    size: "normal", // 300×65 standard checkbox — always visible
-    theme,
-    callback: (token) => {
-      const waiters = tokenWaiters;
-      tokenWaiters = [];
-      waiters.forEach((w) => w.resolve(token));
-      setWidgetState("solved");
-    },
-    "error-callback": () => {
-      const waiters = tokenWaiters;
-      tokenWaiters = [];
-      waiters.forEach((w) => w.reject(new Error("CAPTCHA challenge failed")));
-      setWidgetState("error");
-    },
-    "expired-callback": () => {
-      setWidgetState("expired");
-    },
-    "before-interactive-callback": () => {
-      setWidgetState("solving");
-    },
-  };
-}
-
-export interface CaptchaMountHandle {
-  readonly element: HTMLElement;
-  destroy(): void;
-}
-
-/** Render the ALWAYS-VISIBLE Turnstile widget into `host` (a plain <div>). */
-export async function mountCaptchaWidget(
-  host: HTMLElement,
-  onState?: (state: CaptchaWidgetState) => void,
-  options?: { theme?: "light" | "dark" | "auto" },
-): Promise<CaptchaMountHandle> {
-  await loadTurnstileScript();
-  if (!window.turnstile) throw new Error("CAPTCHA widget is not ready");
-  if (widgetHost && widgetHost !== host) {
-    try {
-      window.turnstile.remove(widgetHost);
-    } catch {
-      /* noop */
-    }
-  }
-  widgetHost = host;
-  window.turnstile.render(host, buildWidgetOptions(options?.theme));
-  if (onState) stateListeners.add(onState);
-  return {
-    element: host,
-    destroy: () => {
-      try {
-        window.turnstile?.remove(host);
-      } catch {
-        /* noop */
-      }
-      if (widgetHost === host) {
-        widgetHost = null;
-      }
-      if (onState) stateListeners.delete(onState);
-    },
-  };
-}
-
-/** True when the widget holds a solved (unused) token. */
-export function hasSolvedCaptcha(): boolean {
-  return widgetState === "solved";
-}
-
-/** Current widget state — mirrors <CaptchaField/> states. */
-export function getWidgetState(): CaptchaWidgetState {
-  return widgetState;
-}
-
-function clearTokenWaiters(): void {
-  const waiters = tokenWaiters;
-  tokenWaiters = [];
-  waiters.forEach((w) => w.reject(new Error("CAPTCHA request superseded")));
-}
-
-/**
- * Fresh token: resets the widget so Turnstile issues a brand-new single-use
- * token, then resolves when its callback fires. The checkbox stays visible
- * the whole time — this is the "always visible" path.
- */
-async function nextTokenFromWidget(): Promise<string> {
-  if (!widgetHost) throw new Error("CAPTCHA widget is not mounted");
-  await loadTurnstileScript();
-  clearTokenWaiters();
-  setWidgetState("idle");
-  window.turnstile?.reset(widgetHost);
-  return new Promise<string>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      clearTokenWaiters();
-      reject(new Error("CAPTCHA timed out — please refresh the security check"));
-    }, 90000);
-    tokenWaiters.push({
-      resolve: (token) => {
-        window.clearTimeout(timeout);
-        resolve(token);
-      },
-      reject: (err) => {
-        window.clearTimeout(timeout);
-        reject(err);
-      },
-    });
-  });
-}
-
-// ── Fallback overlay (only when no inline widget is mounted) ─────────────────
+// ── Modal popup ───────────────────────────────────────────────────────────────
+// Single popup at a time. The widget only exists inside the popup — the page
+// itself never embeds Turnstile.
 
 let heldOverlay: { close: () => void } | null = null;
 
@@ -222,67 +123,233 @@ export function closeCaptchaOverlay(): void {
   heldOverlay = null;
 }
 
-const TOKEN_TIMEOUT_MS = 60000;
+const TOKEN_TIMEOUT_MS = 90000;
+const MAX_WIDGET_ERRORS = 3;
+
+const POPUP_STYLES = {
+  backdrop: [
+    "position:fixed",
+    "inset:0",
+    "z-index:99999",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    "background:rgba(9,10,14,0.72)",
+    "padding:20px",
+  ].join(";"),
+  panel: [
+    "position:relative",
+    "width:min(92vw, 360px)",
+    "background:#131418",
+    "border:1px solid #282b34",
+    "border-radius:16px",
+    "padding:24px 20px 18px",
+    "box-shadow:0 24px 64px rgba(0,0,0,0.55)",
+    "text-align:center",
+    "font-family:Inter, system-ui, -apple-system, sans-serif",
+  ].join(";"),
+  title: [
+    "margin:0",
+    "font-size:15px",
+    "font-weight:700",
+    "color:#fafafa",
+    "letter-spacing:-0.01em",
+  ].join(";"),
+  sub: [
+    "margin:6px 0 16px",
+    "font-size:12.5px",
+    "line-height:1.45",
+    "color:#8e929e",
+  ].join(";"),
+  widgetHost: [
+    "min-height:65px",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+  ].join(";"),
+  status: [
+    "margin:14px 0 0",
+    "min-height:18px",
+    "font-size:12px",
+    "color:#8e929e",
+  ].join(";"),
+  cancel: [
+    "margin:12px auto 0",
+    "display:block",
+    "background:none",
+    "border:none",
+    "padding:4px 10px",
+    "font-size:12.5px",
+    "font-weight:600",
+    "color:#8e929e",
+    "cursor:pointer",
+  ].join(";"),
+} as const;
+
+function injectSpinnerStyle(): void {
+  if (document.getElementById("br-captcha-spin-style")) return;
+  const style = document.createElement("style");
+  style.id = "br-captcha-spin-style";
+  style.textContent = "@keyframes spinner-rotation{to{transform:rotate(360deg)}}";
+  document.head.appendChild(style);
+}
+
+function spinnerElement(): HTMLElement {
+  const el = document.createElement("div");
+  el.style.cssText =
+    "width:22px;height:22px;border:2px solid #2e2e37;border-top-color:#ba9618;border-radius:50%;animation:spinner-rotation 0.8s linear infinite";
+  return el;
+}
+
+export async function captchaOptions(): Promise<CaptchaOptions> {
+  if (!isCaptchaEnabled) return {};
+  return { captchaToken: await getTokenViaOverlay() };
+}
 
 async function getTokenViaOverlay(): Promise<string> {
-  if (!window.turnstile) throw new Error("CAPTCHA widget is not ready");
   return new Promise<string>((resolve, reject) => {
     const backdrop = document.createElement("div");
     backdrop.setAttribute("role", "dialog");
     backdrop.setAttribute("aria-modal", "true");
     backdrop.setAttribute("aria-label", "Security check");
-    backdrop.style.cssText = [
-      "position:fixed",
-      "inset:0",
-      "z-index:99999",
-      "display:flex",
-      "align-items:center",
-      "justify-content:center",
-      "background:rgba(0,0,0,0.55)",
-    ].join(";");
+    backdrop.style.cssText = POPUP_STYLES.backdrop;
 
-    const widget = document.createElement("div");
-    backdrop.appendChild(widget);
+    const panel = document.createElement("div");
+    panel.style.cssText = POPUP_STYLES.panel;
+
+    const title = document.createElement("p");
+    title.style.cssText = POPUP_STYLES.title;
+    title.textContent = "Security check";
+
+    const sub = document.createElement("p");
+    sub.style.cssText = POPUP_STYLES.sub;
+    sub.textContent = "Complete the check below to continue";
+
+    const widgetHost = document.createElement("div");
+    widgetHost.style.cssText = POPUP_STYLES.widgetHost;
+
+    const status = document.createElement("p");
+    status.style.cssText = POPUP_STYLES.status;
+    status.textContent = "";
+
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.style.cssText = POPUP_STYLES.cancel;
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => finishAbort());
+
+    panel.append(title, sub, widgetHost, status, cancel);
+    backdrop.appendChild(panel);
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) finishAbort();
+    });
     document.body.appendChild(backdrop);
 
-    const cleanup = () => {
+    let settled = false;
+    let widgetErrors = 0;
+    let cleanupDone = false;
+    const destroy = () => {
+      if (cleanupDone) return;
+      cleanupDone = true;
       window.clearTimeout(timeout);
-      window.turnstile?.remove(widget);
+      try {
+        window.turnstile?.remove(widgetHost);
+      } catch {
+        /* noop */
+      }
       backdrop.remove();
+      if (heldOverlay === overlayControl) heldOverlay = null;
+    };
+    const overlayControl = { close: destroy };
+
+    const setStatus = (text: string): void => {
+      status.textContent = text;
+    };
+    const showLoading = (): void => {
+      widgetHost.textContent = "";
+      widgetHost.appendChild(spinnerElement());
+      setStatus("Loading security check…");
     };
 
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("CAPTCHA timed out"));
-    }, TOKEN_TIMEOUT_MS);
+    const fail = (message: string): void => {
+      if (settled) return;
+      settled = true;
+      destroy();
+      reject(new Error(message));
+    };
+    const finishAbort = (): void => {
+      if (settled) return;
+      settled = true;
+      destroy();
+      reject(new Error("Security check cancelled"));
+    };
 
-    window.turnstile!.render(widget, {
-      sitekey: SITE_KEY,
-      size: "normal",
-      theme: "dark",
-      callback: (token) => {
-        window.clearTimeout(timeout);
-        heldOverlay = { close: cleanup };
-        resolve(token);
-      },
-      "error-callback": () => {
-        cleanup();
-        reject(new Error("CAPTCHA challenge failed"));
-      },
-      "expired-callback": () => {
-        cleanup();
-        reject(new Error("CAPTCHA token expired"));
-      },
-    });
+    const renderWidget = (): void => {
+      widgetHost.textContent = "";
+      if (!window.turnstile) {
+        fail("CAPTCHA widget is not ready");
+        return;
+      }
+      setStatus("");
+      window.turnstile.render(widgetHost, {
+        sitekey: SITE_KEY,
+        size: "normal",
+        theme: "dark",
+        callback: (token) => {
+          if (settled) return;
+          settled = true;
+          widgetHost.textContent = "";
+          widgetHost.appendChild(spinnerElement());
+          setStatus("Verifying…");
+          heldOverlay = overlayControl; // keep open until server verifies
+          resolve(token);
+        },
+        "error-callback": () => {
+          if (settled) return;
+          widgetErrors += 1;
+          if (widgetErrors >= MAX_WIDGET_ERRORS) {
+            fail("Security check failed — please try again.");
+            return;
+          }
+          setStatus("Something went wrong — retrying…");
+          window.setTimeout(() => {
+            if (settled) return;
+            window.turnstile?.remove(widgetHost);
+            widgetHost.textContent = "";
+            renderWidget();
+          }, 900);
+        },
+        "expired-callback": () => {
+          if (settled) return;
+          // Token expired before use — silently re-ask.
+          setStatus("Refreshing security check…");
+          try {
+            window.turnstile?.reset(widgetHost);
+          } catch {
+            /* noop */
+          }
+        },
+      });
+    };
+
+    injectSpinnerStyle();
+    showLoading();
+    loadTurnstileScript()
+      .then(() => {
+        if (settled) return;
+        if (widgetHost.isConnected) renderWidget();
+      })
+      .catch((err: unknown) =>
+        fail(err instanceof Error ? err.message : "Could not load the CAPTCHA widget"),
+      );
+
+    const timeout = window.setTimeout(() => {
+      fail("CAPTCHA timed out — please try again.");
+    }, TOKEN_TIMEOUT_MS);
   });
 }
 
-/** CAPTCHA options for a Supabase auth call — fresh token from the visible widget. */
-export async function captchaOptions(): Promise<CaptchaOptions> {
-  if (!isCaptchaEnabled) return {};
-  const token = widgetHost ? await nextTokenFromWidget() : await getTokenViaOverlay();
-  return { captchaToken: token };
-}
+// ── Guard + wrapper ──────────────────────────────────────────────────────────
 
 /**
  * Abuse-protection preflight: calls the turnstile-guard edge function, which
@@ -317,7 +384,7 @@ async function runGuard(action: string, token?: string): Promise<string | null> 
   return null; // fail open on transport failure only
 }
 
-/** Wrap a Supabase auth call — same shape as before, token from the visible widget. */
+/** Wrap a Supabase auth call — token comes from the modal popup. */
 export function withCaptcha<T extends { error: unknown }>(
   action: string,
   execute: (options: CaptchaOptions) => Promise<T>,

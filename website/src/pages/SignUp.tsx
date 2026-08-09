@@ -7,7 +7,6 @@ import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
-import CaptchaField from "../components/ui/CaptchaField";
 
 /** Google 'G' icon — official brand colours */
 function GoogleIcon() {
@@ -191,7 +190,6 @@ export default function SignUp() {
           </div>
 
           <div className="flex flex-col gap-2.5">
-            <CaptchaField theme="dark" />
             <Button type="submit" disabled={verifyLoading || otpCode.length !== 6} loading={verifyLoading} className="w-full justify-center h-11">
               Verify & continue
             </Button>
@@ -325,8 +323,6 @@ export default function SignUp() {
           {" "}and{" "}
           <Link to="/privacy" className="text-secondary no-underline hover:text-primary underline underline-offset-2">Privacy Policy</Link>.
         </p>
-
-        <CaptchaField theme="dark" />
 
         <Button type="submit" disabled={anyLoading} className="w-full justify-center h-11" loading={loading}>
           Create account

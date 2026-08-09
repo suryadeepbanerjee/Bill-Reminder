@@ -9,7 +9,6 @@ import { humanize } from "@shared/utils/errors";
 import AuthLayout from "../components/layout/AuthLayout";
 import { Button } from "../components/ui/Button";
 import { TextInput } from "../components/ui/TextInput";
-import CaptchaField from "../components/ui/CaptchaField";
 
 /** Google 'G' icon — official brand colours */
 function GoogleIcon() {
@@ -171,8 +170,6 @@ export default function SignIn() {
             </Link>
           </div>
         </div>
-
-        <CaptchaField theme="dark" />
 
         <Button type="submit" disabled={anyLoading} className="w-full justify-center mt-4 h-11" loading={loading}>
           Sign in
