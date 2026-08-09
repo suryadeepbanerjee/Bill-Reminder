@@ -87,6 +87,21 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── 2b. Expire invites 1 hour after they were (last) sent ────────────────
+    const INVITE_EXPIRY_MS = 60 * 60 * 1000;
+    const sentAtMs = new Date(invite.invite_last_sent_at ?? invite.created_at).getTime();
+    if (Date.now() - sentAtMs > INVITE_EXPIRY_MS) {
+      // Flip the membership so it stops appearing as pending everywhere.
+      await adminClient
+        .from("household_members")
+        .update({ status: "removed" })
+        .eq("id", invite.id);
+      return new Response(
+        JSON.stringify({ error: "This invitation link has expired. Ask the household owner to invite you again." }),
+        { status: 410, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
+
     // ── 3. Activate membership (rebind user_id if matched by email only) ────
     const { error: updateError } = await adminClient
       .from("household_members")

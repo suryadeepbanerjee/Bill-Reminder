@@ -33,21 +33,20 @@ import { friendlyError } from "@shared/utils/errors";
 import { isSuperAdmin, canEditBills, canInviteMembers } from "@shared/utils/roles";
 import type { HouseholdMember, Profile, HouseholdRole } from "@shared/types";
 
-const INVITE_EXPIRY_HOURS = 24;
+const INVITE_EXPIRY_HOURS = 1;
 const REINVITE_COOLDOWN_HOURS = 1;
 
-function isInviteExpired(createdAt: string): boolean {
-  const created = new Date(createdAt).getTime();
-  const now = Date.now();
-  const hoursElapsed = (now - created) / (1000 * 60 * 60);
-  return hoursElapsed > INVITE_EXPIRY_HOURS;
+/** When the invite link stops working — measured from the LAST send. */
+function inviteSentAt(m: { created_at: string; invite_last_sent_at?: string | null }): number {
+  return new Date(m.invite_last_sent_at ?? m.created_at).getTime();
 }
 
-function isInviteWithinCooldown(createdAt: string): boolean {
-  const created = new Date(createdAt).getTime();
-  const now = Date.now();
-  const hoursElapsed = (now - created) / (1000 * 60 * 60);
-  return hoursElapsed < REINVITE_COOLDOWN_HOURS;
+function isInviteExpired(m: { created_at: string; invite_last_sent_at?: string | null }): boolean {
+  return (Date.now() - inviteSentAt(m)) / (1000 * 60 * 60) > INVITE_EXPIRY_HOURS;
+}
+
+function isInviteWithinCooldown(m: { created_at: string; invite_last_sent_at?: string | null }): boolean {
+  return (Date.now() - inviteSentAt(m)) / (1000 * 60 * 60) < REINVITE_COOLDOWN_HOURS;
 }
 
 // ── Transfer Ownership Sheet ──────────────────────────────────────────────────
@@ -417,12 +416,20 @@ export default function MembersScreen() {
       .finally(() => setLoading(false));
   }, [householdId]);
 
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    // Re-evaluate invite expiry every minute so pending badges disappear on
+    // their own shortly after the 1-hour link expiry.
+    const timer = setInterval(() => setNowTick((t) => t + 1), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   const activeMembers = useMemo(() => {
     return members.filter((m) => {
       if (m.member.status !== "invited") return true;
-      return !isInviteExpired(m.member.created_at);
+      return !isInviteExpired(m.member);
     });
-  }, [members]);
+  }, [members, nowTick]);
 
   const [inviteError, setInviteError] = useState("");
 
@@ -442,9 +449,9 @@ export default function MembersScreen() {
     const recentInvite = members.find(
       (m) => m.member.status === "invited" && m.member.invited_email === email
     );
-    if (recentInvite && isInviteWithinCooldown(recentInvite.member.created_at)) {
-      const created = new Date(recentInvite.member.created_at).getTime();
-      const hoursElapsed = (Date.now() - created) / (1000 * 60 * 60);
+    if (recentInvite && isInviteWithinCooldown(recentInvite.member)) {
+      const sentAt = inviteSentAt(recentInvite.member);
+      const hoursElapsed = (Date.now() - sentAt) / (1000 * 60 * 60);
       const hoursLeft = Math.ceil(REINVITE_COOLDOWN_HOURS - hoursElapsed);
       setInviteError(`This email was already invited. Please wait ${hoursLeft}h before re-inviting.`);
       return;

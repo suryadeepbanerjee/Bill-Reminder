@@ -34,15 +34,20 @@ import {
 } from "@shared/utils/roles";
 import type { HouseholdMember, Profile } from "@shared/types";
 
-const INVITE_EXPIRY_HOURS = 24;
+const INVITE_EXPIRY_HOURS = 1;
 const REINVITE_COOLDOWN_HOURS = 1;
 
-function isInviteExpired(createdAt: string): boolean {
-  return (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60) > INVITE_EXPIRY_HOURS;
+/** When the invite link stops working — measured from the LAST send. */
+function inviteSentAt(m: { created_at: string; invite_last_sent_at?: string | null }): number {
+  return new Date(m.invite_last_sent_at ?? m.created_at).getTime();
 }
 
-function isInviteWithinCooldown(createdAt: string): boolean {
-  return (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60) < REINVITE_COOLDOWN_HOURS;
+function isInviteExpired(m: { created_at: string; invite_last_sent_at?: string | null }): boolean {
+  return (Date.now() - inviteSentAt(m)) / (1000 * 60 * 60) > INVITE_EXPIRY_HOURS;
+}
+
+function isInviteWithinCooldown(m: { created_at: string; invite_last_sent_at?: string | null }): boolean {
+  return (Date.now() - inviteSentAt(m)) / (1000 * 60 * 60) < REINVITE_COOLDOWN_HOURS;
 }
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -164,13 +169,21 @@ export default function MembersPage() {
     return () => clearTimeout(timer);
   }, [deleteHouseholdCooldown]);
 
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    // Re-evaluate invite expiry every minute so pending badges disappear on
+    // their own shortly after the 1-hour link expiry.
+    const timer = setInterval(() => setNowTick((t) => t + 1), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   const activeMembers = useMemo(
     () =>
       members.filter((m) => {
         if (m.member.status !== "invited") return true;
-        return !isInviteExpired(m.member.created_at);
+        return !isInviteExpired(m.member);
       }),
-    [members]
+    [members, nowTick]
   );
 
   const handleInvite = async () => {
@@ -183,8 +196,8 @@ export default function MembersPage() {
     const recentInvite = members.find(
       (m) => m.member.status === "invited" && m.member.invited_email === email
     );
-    if (recentInvite && isInviteWithinCooldown(recentInvite.member.created_at)) {
-      const hoursElapsed = (Date.now() - new Date(recentInvite.member.created_at).getTime()) / (1000 * 60 * 60);
+    if (recentInvite && isInviteWithinCooldown(recentInvite.member)) {
+      const hoursElapsed = (Date.now() - inviteSentAt(recentInvite.member)) / (1000 * 60 * 60);
       const hoursLeft = Math.ceil(REINVITE_COOLDOWN_HOURS - hoursElapsed);
       setInviteError(`This email was already invited. Please wait ${hoursLeft}h before re-inviting.`);
       return;

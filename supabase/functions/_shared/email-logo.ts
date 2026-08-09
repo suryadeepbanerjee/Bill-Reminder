@@ -7,14 +7,11 @@
 
 export const EMAIL_LOGO_URL = "https://billreminder.suryadeepbanerjee.in/logo-email.png";
 
-/** Rounded-square logo for dark email cards — drop-in for a header emoji. */
+/** Brand logo for email headers — no chip/border, just the mark. */
 export const EMAIL_LOGO_HTML = `
 <img src="${EMAIL_LOGO_URL}" alt="Bill Reminder" width="52" height="52" style="
   display:block;
   width:52px;
   height:52px;
   margin:0 auto 16px;
-  border-radius:12px;
-  background:#141420;
-  border:1px solid #262626;
 " />`;

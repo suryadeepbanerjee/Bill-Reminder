@@ -51,6 +51,20 @@ serve(async (req: Request) => {
 
     if (archiveError) throw archiveError;
 
+    // Expire pending invites 1 hour after their (last) send — the invite
+    // link stops working (accept-invite rejects it) and the row stops
+    // appearing as "Pending" in the members list (status 'removed').
+    const inviteCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { error: inviteError } = await supabase
+      .from("household_members")
+      .update({ status: "removed" })
+      .eq("status", "invited")
+      .or(
+        `and(invite_last_sent_at.is.null,created_at.lt.${inviteCutoff}),invite_last_sent_at.lt.${inviteCutoff}`
+      );
+
+    if (inviteError) throw inviteError;
+
     return new Response(
       JSON.stringify({ success: true, cleanedAt: new Date().toISOString() }),
       {
