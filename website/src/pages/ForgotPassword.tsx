@@ -32,8 +32,20 @@ export default function ForgotPassword() {
     setStep("request");
     const prev = step;
     try {
-      // No account-existence pre-check: GoTrue always returns 200 for unknown
-      // emails, and it avoids an enumeration surface (same as the app).
+      // Precheck: no point sending a code to an email with no account. Uses a
+      // SECURITY DEFINER boolean RPC — never leaks the account itself.
+      const { data: exists, error: checkError } = await supabase.rpc("user_exists", {
+        p_email: email,
+      });
+      if (exists === false) {
+        setError("No account found with this email. Please sign up.");
+        return;
+      }
+      if (checkError) console.warn("[forgot-password] user_exists check failed", checkError.message);
+
+      // No account-existence pre-check: the RPC above only answers boolean; a
+      // failed lookup must never block a legitimate reset (GoTrue always
+      // returns 200 for unknown emails, keeping the send safe).
       const { error: authError } = await withCaptcha("recover", (o) =>
         supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth/callback`,

@@ -41,9 +41,17 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      // No account-existence pre-check: RLS would block it for other users'
-      // emails (breaking reset entirely) AND it would be an enumeration
-      // surface. GoTrue always returns 200 for unknown emails (audit finding).
+      // Precheck: no point sending a code to an email with no account. Uses a
+      // SECURITY DEFINER boolean RPC — never leaks the account itself.
+      const { data: exists, error: checkError } = await supabase.rpc("user_exists", {
+        p_email: data.email,
+      });
+      if (exists === false) {
+        setError("No account found with this email. Please sign up.");
+        return;
+      }
+      if (checkError) console.warn("[forgot-password] user_exists check failed", checkError.message);
+
       const { error: authError } = await withCaptcha("recover", (o) =>
         supabase.auth.resetPasswordForEmail(data.email, { captchaToken: o.captchaToken })
       );
