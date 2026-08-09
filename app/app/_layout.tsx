@@ -94,8 +94,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Hide the splash as soon as the first frame paints — the LoadingScreen
-    // below uses the same background (#080810), so the handoff is seamless
-    // and auth restore (SecureStore read) never blocks perceived launch.
+    // below uses the new splash artwork's ambient tone (#D17D00), so the
+    // gold splash → loading handoff is seamless and auth restore (SecureStore
+    // read) never blocks perceived launch.
     SplashScreen.hideAsync();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -158,10 +159,10 @@ export default function RootLayout() {
             style={{
               position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
               alignItems: "center", justifyContent: "center",
-              backgroundColor: "#080810",
+              backgroundColor: "#D17D00",
             }}
           >
-            <ActivityIndicator size="large" color="#D1A920" />
+            <ActivityIndicator size="large" color="#080810" />
           </View>
         )}
       </View>

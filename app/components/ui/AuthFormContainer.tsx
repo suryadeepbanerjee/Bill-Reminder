@@ -58,7 +58,7 @@ export function AuthFormContainer({
                 }}
               >
                 <Image
-                  source={require("../../app/fevicon.png")}
+                  source={require("../../app/logo-mark.png")}
                   style={{ width: 56, height: 56 }}
                   resizeMode="cover"
                   accessibilityLabel="Bill Reminder logo"

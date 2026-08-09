@@ -15,7 +15,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       <div className="flex items-center justify-between max-w-[1360px] mx-auto w-full px-5 py-4.5">
         <Link to="/" className="flex items-center gap-2 no-underline text-secondary font-semibold text-sm tracking-tight hover:text-primary transition-colors">
           <div className="w-[26px] h-[26px] rounded-lg overflow-hidden">
-            <img src="/fevicon.png" alt="Bill Reminder" className="w-[26px] h-[26px] object-cover" />
+            <img src="/logo-mark.png" alt="Bill Reminder" className="w-[26px] h-[26px] object-cover" />
           </div>
           Bill Reminder
         </Link>

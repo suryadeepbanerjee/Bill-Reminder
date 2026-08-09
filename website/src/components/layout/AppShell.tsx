@@ -65,7 +65,7 @@ export default function AppShell({ children }: AppShellProps) {
       <aside className={`hidden lg:flex fixed inset-y-0 left-0 ${sidebarCollapsed ? "w-[76px]" : "w-64"} flex-col border-r border-border bg-surface transition-[width] duration-200`}>
         <div className={`flex items-center h-16 border-b border-border ${sidebarCollapsed ? "justify-center px-0" : "gap-2.5 px-5"}`}>
           <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-            <img src="/fevicon.png" alt="Bill Reminder" className="w-8 h-8 object-cover" />
+            <img src="/logo-mark.png" alt="Bill Reminder" className="w-8 h-8 object-cover" />
           </div>
           {!sidebarCollapsed && <span className="text-sm font-bold text-primary tracking-tight">Bill Reminder</span>}
         </div>
@@ -185,7 +185,7 @@ export default function AppShell({ children }: AppShellProps) {
       <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-canvas/90 backdrop-blur border-b border-border">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg overflow-hidden">
-            <img src="/fevicon.png" alt="Bill Reminder" className="w-7 h-7 object-cover" />
+            <img src="/logo-mark.png" alt="Bill Reminder" className="w-7 h-7 object-cover" />
           </div>
           <span className="text-sm font-bold text-primary tracking-tight">Bill Reminder</span>
         </div>
