@@ -1,4 +1,11 @@
 const path = require("path");
+
+// SDK 54 moves Metro's server root to the monorepo root (for web support), which
+// makes RN gradle's `expo export:embed --entry-file index.ts` resolve the entry
+// relative to the repo root: "Unable to resolve ./index.ts from <repo root>/.".
+// Keep the server root on the app so relative entries resolve against app/.
+process.env.EXPO_NO_METRO_WORKSPACE_ROOT = "1";
+
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 

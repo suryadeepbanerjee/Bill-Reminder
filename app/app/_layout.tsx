@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { AppState, Appearance, type AppStateStatus, View, ActivityIndicator } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -75,6 +75,24 @@ export default function RootLayout() {
 
   useLayoutEffect(() => {
     setColorScheme(resolved);
+  }, [resolved, setColorScheme]);
+
+  // Android drops the manual color-scheme override (Appearance.setColorScheme)
+  // during background/foreground round-trips — e.g. returning from the Google
+  // Sign-In activity — after which css-interop re-syncs its systemColorScheme
+  // to the device value and every CSS-variable surface flips theme. Re-apply
+  // the saved theme whenever the app re-enters the foreground or the system
+  // appearance changes, so the palette snaps back to the stored intent.
+  useEffect(() => {
+    const onActive = (state: AppStateStatus) => {
+      if (state === "active") setColorScheme(resolved);
+    };
+    const appStateSub = AppState.addEventListener("change", onActive);
+    const appearanceSub = Appearance.addChangeListener(() => setColorScheme(resolved));
+    return () => {
+      appStateSub.remove();
+      appearanceSub.remove();
+    };
   }, [resolved, setColorScheme]);
 
   // Lazy-mount the CAPTCHA popup host (react-native-webview is a native

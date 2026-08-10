@@ -146,6 +146,15 @@ android {
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
     }
+    // One small APK per CPU architecture instead of one fat APK containing all four.
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            universalApk true
+        }
+    }
     packagingOptions {
         jniLibs {
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
