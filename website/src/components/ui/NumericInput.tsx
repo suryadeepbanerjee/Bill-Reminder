@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 
 export interface NumericInputProps {
   value:    number | null | undefined;
@@ -12,17 +12,31 @@ export interface NumericInputProps {
   id?:      string;
 }
 
+const DECIMAL_RE = /^\d*\.?\d*$/;
+const INTEGER_RE = /^\d*$/;
+
 const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
   (
     { value, onChange, label, hint, error, placeholder, prefix, integer, id },
     ref
   ) => {
-    const display = value == null ? "" : String(value);
+    const [draft, setDraft] = useState<string>(value == null ? "" : String(value));
+
+    useEffect(() => {
+      const parsed = draft.trim() === "" ? undefined : integer ? parseInt(draft, 10) : parseFloat(draft);
+      const normalized = parsed == null || Number.isNaN(parsed) ? undefined : String(parsed);
+      const current = value == null ? undefined : String(value);
+      if (normalized !== current) {
+        setDraft(value == null ? "" : String(value));
+      }
+    }, [value]);
 
     const commit = (raw: string) => {
-      const trimmed = raw.trim();
-      if (trimmed === "") { onChange(undefined); return; }
-      const num = integer ? parseInt(trimmed, 10) : parseFloat(trimmed);
+      const pattern = integer ? INTEGER_RE : DECIMAL_RE;
+      if (!pattern.test(raw)) return;
+      setDraft(raw);
+      if (raw.trim() === "") { onChange(undefined); return; }
+      const num = integer ? parseInt(raw, 10) : parseFloat(raw);
       onChange(Number.isNaN(num) ? undefined : num);
     };
 
@@ -43,7 +57,7 @@ const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
             ref={ref}
             id={id}
             inputMode={integer ? "numeric" : "decimal"}
-            value={display}
+            value={draft}
             onChange={(e) => commit(e.target.value)}
             placeholder={placeholder}
             className="flex-1 px-3.5 py-2.5 bg-transparent text-primary placeholder:text-secondary focus:outline-none w-full tabular-nums"
