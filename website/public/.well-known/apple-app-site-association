@@ -1,15 +1,5 @@
 {
   "applinks": {
-    "details": [
-      {
-        "appIDs": ["TEAMID_PLACEHOLDER.com.billreminder.app"],
-        "components": [
-          {
-            "/": "/bill/*",
-            "comment": "Routes https://billreminder.suryadeepbanerjee.in/bill/<id> to the app"
-          }
-        ]
-      }
-    ]
+    "details": []
   }
 }

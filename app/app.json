@@ -14,8 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.billreminder.app",
-      "associatedDomains": ["applinks:billreminder.suryadeepbanerjee.in"]
+      "bundleIdentifier": "com.billreminder.app"
     },
     "android": {
       "adaptiveIcon": {
