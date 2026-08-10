@@ -385,10 +385,8 @@ export default function Hero() {
 							</p>
 
 							<div className="flex items-center gap-5 flex-wrap">
-								<a
-									href="https://github.com/suryadeepbanerjee/Bill-Reminder/releases/latest"
-									target="_blank"
-									rel="noopener noreferrer"
+								<Link
+									to="/download"
 									style={{ textDecoration: "none" }}
 								>
 									<Button
@@ -405,7 +403,7 @@ export default function Hero() {
 									>
 										Download App
 									</Button>
-								</a>
+								</Link>
 								<Link
 									to="/sign-in"
 									className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-primary/80 hover:text-primary transition-colors"

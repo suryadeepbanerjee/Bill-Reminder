@@ -1,5 +1,6 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "../ui/Button";
 
 export default function Download() {
@@ -23,10 +24,8 @@ export default function Download() {
             </p>
 
             <div className="flex gap-4 flex-wrap justify-center">
-              <a
-                href="https://github.com/suryadeepbanerjee/Bill-Reminder/releases/latest"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/download"
                 style={{ textDecoration: 'none' }}
               >
                 <Button size="lg" icon={
@@ -36,7 +35,7 @@ export default function Download() {
                 }>
                   Download APK
                 </Button>
-              </a>
+              </Link>
 
               <a
                 href="https://github.com/suryadeepbanerjee/Bill-Reminder"

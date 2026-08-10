@@ -13,6 +13,7 @@ import AuthError from "./pages/AuthError";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
+import Download from "./pages/Download";
 import AcceptInvite from "./pages/AcceptInvite";
 import LeaveHousehold from "./pages/LeaveHousehold";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -92,6 +93,7 @@ export default function App() {
 
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/download" element={<Download />} />
 
                 {/* Protected dashboard */}
                 <Route path="/app" element={<DashboardLayout />}>
