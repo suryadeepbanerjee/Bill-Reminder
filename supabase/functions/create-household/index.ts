@@ -42,13 +42,32 @@ serve(async (req: Request) => {
     });
     if (blocked) return blocked;
 
+    const trimmedName = name.trim();
+
     // Service-role client (bypasses RLS)
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // One account cannot own two households with the same name. The DB has a
+    // backstop unique index (072); this precheck exists for a clean, friendly
+    // error instead of a raw unique-violation.
+    const { data: existing } = await admin
+      .from("households")
+      .select("id")
+      .eq("created_by", user.id)
+      .ilike("name", trimmedName)
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(
+        JSON.stringify({ error: "You already have a household with this name. Choose a different name." }),
+        { status: 409, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
 
     // Create household
     const { data: hh, error: hhError } = await admin
       .from("households")
-      .insert({ name: name.trim(), created_by: user.id })
+      .insert({ name: trimmedName, created_by: user.id })
       .select()
       .single();
 
