@@ -559,13 +559,18 @@ export default function MembersScreen() {
   };
 
   const handleRename = async () => {
-    if (!renameValue.trim() || !householdId) return;
+    const name = renameValue.trim();
+    if (!name || !householdId) return;
+    if (households.some((h) => h.household.id !== householdId && h.household.name.trim().toLowerCase() === name.toLowerCase())) {
+      Alert.alert("Error", "You already have a household with this name. Choose a different name.");
+      return;
+    }
     setRenaming(true);
     try {
-      await renameHousehold(householdId, renameValue.trim());
+      await renameHousehold(householdId, name);
       const updated = households.map((h) =>
         h.household.id === householdId
-          ? { ...h, household: { ...h.household, name: renameValue.trim() } }
+          ? { ...h, household: { ...h.household, name } }
           : h
       );
       setHouseholds(updated);
@@ -596,6 +601,10 @@ export default function MembersScreen() {
   const handleCreateHousehold = async () => {
     const name = newHouseholdName.trim();
     if (!name || !user?.id) return;
+    if (households.some((h) => h.household.name.trim().toLowerCase() === name.toLowerCase())) {
+      Alert.alert("Error", "You already have a household with this name. Choose a different name.");
+      return;
+    }
     setCreatingHousehold(true);
     try {
       const { createHousehold } = await import("../../../lib/supabase/profile");

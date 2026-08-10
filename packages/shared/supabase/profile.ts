@@ -154,7 +154,7 @@ export function createProfileApi(supabase: SupabaseClient): ProfileApi {
     const { data, error } = await supabase.functions.invoke("create-household", {
       body: { name },
     });
-    if (error) throw new Error(error.message ?? "Request failed");
+    if (error) throw new Error(await extractInvokeError(error));
 
     const household = (data as { household: Household }).household;
     return {

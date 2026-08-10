@@ -42,6 +42,8 @@ const SAFE_MESSAGES = new Set([
   "Only the household owner can invite members.",
   "This user is already a member of this household.",
   "This invite has reached the maximum number of sends.",
+  // Household create (from create-household edge function)
+  "You already have a household with this name. Choose a different name.",
   // Account deletion guard (from delete-account edge function)
   "You still own a household with other members. Transfer ownership to another member before deleting your account.",
 ]);
@@ -114,6 +116,12 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
     // Invite member-specific messages (from edge function, safe to show)
     if (lower.includes("must sign up first") || lower.includes("household owner") || lower.includes("already a member")) {
       return raw;
+    }
+
+    // Household name uniqueness — DB unique index households_created_by_name_key
+    // (rename path is a direct client update; a race hits the raw constraint)
+    if (lower.includes("households_created_by_name_key")) {
+      return "You already have a household with this name. Choose a different name.";
     }
 
     // Rate limiting

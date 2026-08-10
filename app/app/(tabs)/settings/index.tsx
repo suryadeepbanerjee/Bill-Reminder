@@ -451,10 +451,15 @@ export default function SettingsScreen() {
   const version     = "1.0.0";
 
   const handleCreateHousehold = async () => {
-    if (!newHouseholdName.trim() || !user?.id) return;
+    const name = newHouseholdName.trim();
+    if (!name || !user?.id) return;
+    if (households.some((h) => h.household.name.trim().toLowerCase() === name.toLowerCase())) {
+      Alert.alert("Error", "You already have a household with this name. Choose a different name.");
+      return;
+    }
     setCreatingHousehold(true);
     try {
-      const result = await createHousehold(newHouseholdName.trim(), user.id);
+      const result = await createHousehold(name, user.id);
       setHouseholds([...households, result]);
       setActiveHousehold(result);
       setNewHouseholdName("");
