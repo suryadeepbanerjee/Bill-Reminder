@@ -380,7 +380,7 @@ export default function Hero() {
 							<p className="text-[clamp(15px,2vw,17px)] text-primary/70 leading-relaxed max-w-[60ch] mb-9">
 								Bill Reminder is a cross-platform application that helps you manage subscriptions, utility bills, mobile
 								recharges, rent, EMIs and other recurring payments. It pairs smart reminders and email + push
-								notifications with secure cloud sync, payment history, offline support and private-by-design
+								notifications with secure cloud sync, payment history and private-by-design
 								authentication — so you never pay a late fee again.
 							</p>
 
@@ -436,7 +436,6 @@ export default function Hero() {
 							<div className="flex gap-3 sm:gap-4 mt-11 flex-wrap justify-center sm:justify-start">
 								{[
 									{ value: "Free", label: "No subscription fee" },
-									{ value: "Offline", label: "Works without internet" },
 									{ value: "Private", label: "Your data, your rules" },
 								].map((m) => (
 									<div

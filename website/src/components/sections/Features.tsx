@@ -30,19 +30,6 @@ const features = [
 		),
 	},
 	{
-		title: "Offline First",
-		body: "Every feature works without internet. Your bills are always accessible, and changes sync automatically.",
-		icon: (
-			<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-				<path
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					d="M18.364 5.636a9 9 0 010 12.728M15.536 8.464a5 5 0 010 7.072M6.343 6.343a9 9 0 000 12.728M9.172 9.172a5 5 0 000 7.071M12 12h.01"
-				/>
-			</svg>
-		),
-	},
-	{
 		title: "Categories",
 		body: "Group bills into labelled categories with custom colours. See exactly where your money goes each month.",
 		icon: (

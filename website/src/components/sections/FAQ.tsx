@@ -11,8 +11,8 @@ const faqs = [
 		a: "No. Bill Reminder never asks for bank credentials, card numbers, or financial institution access. You manually enter bill names and amounts. Nothing is connected to your bank.",
 	},
 	{
-		q: "Does it work without internet?",
-		a: "Yes. Every feature is available offline. When you reconnect, changes sync automatically across your devices via Supabase.",
+		q: "Does Bill Reminder need internet?",
+		a: "Yes — it's a cloud-synced app. You need an internet connection to sign in, manage your bills and receive reminders. Your data stays synced across devices when you're online.",
 	},
 	{
 		q: "Is there an iOS version?",

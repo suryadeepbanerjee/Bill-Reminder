@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AppState, Appearance, type AppStateStatus, View, ActivityIndicator } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -48,6 +48,7 @@ export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
   const resetHousehold = useHouseholdStore((s) => s.reset);
   const pathname = usePathname();
+  const stateTimersRef = useRef<ReturnType<typeof setTimeout>[] | null>(null);
 
   useEffect(() => {
     _hydrate();
@@ -79,19 +80,35 @@ export default function RootLayout() {
 
   // Android drops the manual color-scheme override (Appearance.setColorScheme)
   // during background/foreground round-trips — e.g. returning from the Google
-  // Sign-In activity — after which css-interop re-syncs its systemColorScheme
-  // to the device value and every CSS-variable surface flips theme. Re-apply
-  // the saved theme whenever the app re-enters the foreground or the system
-  // appearance changes, so the palette snaps back to the stored intent.
+  // Sign-In activity or waking the phone after the screen was off — after
+  // which css-interop re-syncs its systemColorScheme to the device value and
+  // every CSS-variable surface flips theme. Re-apply the saved theme on every
+  // app-state/appearance event, plus a few staggered reasserts after waking,
+  // so the palette snaps back even if the override drop lands a beat late.
   useEffect(() => {
-    const onActive = (state: AppStateStatus) => {
-      if (state === "active") setColorScheme(resolved);
+    const reapplyNow = () => setColorScheme(resolved);
+
+    const onAppState = (state: AppStateStatus) => {
+      if (state !== "active") return;
+      reapplyNow();
+      // Staggered reasserts: the OS can re-sync the scheme AFTER the
+      // foreground event (activity recreation / config change on wake) and
+      // css-interop then repaints with the device value. Re-applying the
+      // stored intent a few times after the transition wins that race.
+      const timers = [400, 900, 1600].map((ms) =>
+        setTimeout(reapplyNow, ms)
+      );
+      timers.forEach((t) => t.unref?.());
+      stateTimersRef.current = timers;
     };
-    const appStateSub = AppState.addEventListener("change", onActive);
-    const appearanceSub = Appearance.addChangeListener(() => setColorScheme(resolved));
+
+    const appStateSub = AppState.addEventListener("change", onAppState);
+    const appearanceSub = Appearance.addChangeListener(reapplyNow);
     return () => {
       appStateSub.remove();
       appearanceSub.remove();
+      stateTimersRef.current?.forEach(clearTimeout);
+      stateTimersRef.current = null;
     };
   }, [resolved, setColorScheme]);
 

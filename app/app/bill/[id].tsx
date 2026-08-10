@@ -56,7 +56,7 @@ import {
   daysUntil,
 } from "@shared/utils/format";
 import { Colors }                         from "../../lib/theme";
-import { humanize }                       from "@shared/utils/errors";
+import { humanize, friendlyError }   from "@shared/utils/errors";
 import { canEditBills }                   from "@shared/utils/roles";
 import { updateBillSchema, UpdateBillFormData, DUE_DATE_YEAR_MIN, DUE_DATE_YEAR_MAX } from "@shared/schemas";
 import type { Bill, BillOccurrence, BillNotificationPreference, BillReminderRule } from "@shared/types";
@@ -819,7 +819,7 @@ export default function BillDetailScreen() {
       <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
         <Header title="Bill details" showBack />
         <ErrorView
-          message="Failed to load bill."
+          message={error ? friendlyError(error) : "Failed to load bill."}
           onRetry={refetch}
         />
       </SafeAreaView>

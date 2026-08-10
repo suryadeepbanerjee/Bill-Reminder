@@ -84,8 +84,15 @@ export function humanize(error: unknown, context: ErrorContext = "unknown"): str
   if (raw) {
     const lower = raw.toLowerCase();
 
-    // Network errors
-    if (lower.includes("network") || lower.includes("internet") || lower.includes("fetch")) {
+    // Network errors — covers fetch failures, DNS/timeout/socket errors and
+    // the device-level network results surfaced by the Google SDK.
+    const NETWORK_HINTS = [
+      "network", "internet", "fetch", "timeout", "timed out", "time out",
+      "enotfound", "enetunreach", "eai_again", "dns", "socket",
+      "unreachable", "connection refused", "offline", "no connection",
+      "no network", "could not connect", "connection error",
+    ];
+    if (NETWORK_HINTS.some((hint) => lower.includes(hint))) {
       return FALLBACKS.network;
     }
 

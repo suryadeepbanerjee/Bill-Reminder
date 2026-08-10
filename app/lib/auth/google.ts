@@ -12,6 +12,24 @@ export type GoogleSignInResult =
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
+const NO_INTERNET_MESSAGE = "No internet connection. Please check and try again.";
+
+/** True when an error is a device/network-level failure (offline, DNS, timeout…). */
+function isNetworkError(error: unknown): boolean {
+  const raw = error && typeof error === "object" && "message" in error
+    ? String((error as { message: unknown }).message)
+    : error instanceof Error
+      ? error.message
+      : "";
+  const lower = raw.toLowerCase();
+  return [
+    "network", "internet", "fetch", "timeout", "timed out", "time out",
+    "enotfound", "enetunreach", "eai_again", "dns", "socket",
+    "unreachable", "connection refused", "offline", "no connection",
+    "no network", "could not connect",
+  ].some((hint) => lower.includes(hint));
+}
+
 /**
  * Configure Google Sign-In native SDK.
  *
@@ -59,6 +77,9 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
 
     if (error) {
       console.warn("[GoogleAuth] Supabase token exchange failed:", error.message, "code:", error.code);
+      if (isNetworkError(error)) {
+        return { status: "error", message: NO_INTERNET_MESSAGE };
+      }
       return { status: "error", message: "Google sign-in failed. Please try again." };
     }
 
@@ -94,15 +115,22 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
           };
 
         case "7":
-          return { status: "error", message: "No internet connection. Please check and try again." };
+          return { status: "error", message: NO_INTERNET_MESSAGE };
 
         case "12500":
           return { status: "error", message: "Google sign-in failed. Please try again." };
 
         default:
+          if (isNetworkError(error)) {
+            return { status: "error", message: NO_INTERNET_MESSAGE };
+          }
           console.warn(`[GoogleAuth] Error code ${error.code}:`, error.message);
           return { status: "error", message: "Google sign-in failed. Please try again." };
       }
+    }
+
+    if (isNetworkError(error)) {
+      return { status: "error", message: NO_INTERNET_MESSAGE };
     }
 
     console.warn("[GoogleAuth] Unexpected error:", error?.message);

@@ -25,6 +25,7 @@ import { FAB }                       from "../../../components/ui/FAB";
 import { Colors }                    from "../../../lib/theme";
 import { useHouseholdStore }         from "../../../stores/household-store";
 import { canEditBills }              from "@shared/utils/roles";
+import { friendlyError }             from "@shared/utils/errors";
 import type { Bill, DashboardOccurrence } from "@shared/types";
 
 // ── Filter types ──────────────────────────────────────────────────────────────
@@ -209,7 +210,7 @@ export default function BillsScreen() {
 
       {isError && (
         <ErrorView
-          message="Failed to load bills."
+          message={billsErrorObj ? friendlyError(billsErrorObj) : "Failed to load bills."}
           onRetry={refetch}
         />
       )}

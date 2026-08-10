@@ -26,6 +26,7 @@ import { SearchField }               from "../../../components/ui/SearchField";
 import { FAB }                       from "../../../components/ui/FAB";
 import { Toast }                     from "../../../components/ui/Toast";
 import { formatCurrency }            from "@shared/utils/format";
+import { friendlyError }             from "@shared/utils/errors";
 import type { DashboardOccurrence }  from "@shared/types";
 
 // ── Greeting ──────────────────────────────────────────────────────────────────
@@ -399,7 +400,7 @@ export default function DashboardScreen() {
 
         {isError && (
           <ErrorView
-            message="Failed to load dashboard."
+            message={error ? friendlyError(error) : "Failed to load dashboard."}
             onRetry={refetch}
           />
         )}
