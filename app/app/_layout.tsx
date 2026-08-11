@@ -13,10 +13,8 @@ import { useThemeStore } from "../stores/theme-store";
 import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
 import { tokensFor } from "../lib/tokens";
-import { ThemeTransition } from "../components/ui/ThemeTransition";
 import { isCaptchaEnabled } from "../lib/captcha";
 
-// Side-effect: patches expo-router's routing queue
 import "../lib/guarded-navigation";
 import { releaseAllActions } from "@shared/utils/action-guard";
 
@@ -42,11 +40,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Slightly longer splash for a smoother first‑launch experience
-const MIN_COVER_MS = 1200;
-
-// Suppress self‑triggered Appearance events for this long
-const SELF_TRIGGER_SUPPRESS_MS = 60;
+const MIN_COVER_MS = 1600;
 
 export default function RootLayout() {
   const { setSession, setLoading, isLoading } = useAuthStore();
@@ -59,36 +53,31 @@ export default function RootLayout() {
   const [minCoverDone, setMinCoverDone] = useState(false);
   const [themeReady, setThemeReady] = useState(false);
 
-  // ── Wrapper to mark Appearance events we cause ──
-  const suppressAppearanceRef = useRef(false);
+  // Wrapper around NativeWind’s setter – no suppression needed now
   const setColorScheme = useCallback(
     (scheme: "light" | "dark") => {
-      suppressAppearanceRef.current = true;
       rawSetColorScheme(scheme);
-      setTimeout(() => {
-        suppressAppearanceRef.current = false;
-      }, SELF_TRIGGER_SUPPRESS_MS);
     },
     [rawSetColorScheme]
   );
 
-  // ── Hydrate theme store on mount ──
+  // Hydrate theme store on mount
   useEffect(() => {
     _hydrate();
   }, []);
 
-  // ── Minimum cover time ──
+  // Minimum cover time
   useEffect(() => {
     const t = setTimeout(() => setMinCoverDone(true), MIN_COVER_MS);
     return () => clearTimeout(t);
   }, []);
 
-  // ── Release action guard on navigation ──
+  // Release action guard on navigation
   useEffect(() => {
     releaseAllActions();
   }, [pathname]);
 
-  // ── Notification listeners ──
+  // Notification listeners
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let mounted = true;
@@ -101,60 +90,78 @@ export default function RootLayout() {
     };
   }, []);
 
-  // ── Apply theme whenever `resolved` changes (after hydration) ──
+  // Apply theme whenever `resolved` changes after hydration
   useLayoutEffect(() => {
     if (hydrated) {
       setColorScheme(resolved);
     }
   }, [resolved, hydrated, setColorScheme]);
 
-  // ── Simplified guardian: correct mismatch when it occurs ──
+  // Store latest resolved in a ref for the foreground sync
   const resolvedRef = useRef(resolved);
   resolvedRef.current = resolved;
-  const hydratedRef = useRef(hydrated);
-  hydratedRef.current = hydrated;
 
-  const checkNow = useCallback(() => {
-    if (!hydratedRef.current) return;
-    const r = resolvedRef.current;
-    if (cssColorScheme.get() !== r) {
-      // Directly set the correct scheme – no flip, no veil
-      setColorScheme(r);
-    }
-    // Once we've ensured the theme is applied, mark it ready
-    setThemeReady(true);
+  // Robust sync on return to foreground
+  useEffect(() => {
+    const handleActive = () => {
+      // Small delay ensures the theme store has processed any system change
+      const timer = setTimeout(() => {
+        // Force NativeWind to match the store’s resolved theme
+        setColorScheme(resolvedRef.current);
+        setThemeReady(true);
+      }, 50);
+
+      return () => clearTimeout(timer);
+    };
+
+    const subscription = AppState.addEventListener("change", (state: AppStateStatus) => {
+      if (state === "active") handleActive();
+    });
+
+    return () => subscription.remove();
   }, [setColorScheme]);
 
-  // Run on hydration change and initial mount
+  // Listen to system appearance changes as a fallback
   useEffect(() => {
-    checkNow();
-  }, [checkNow, hydrated]);
-
-  // ── Listen to app state and system appearance changes ──
-  useEffect(() => {
-    const onAppState = (state: AppStateStatus) => {
-      if (state !== "active") return;
-      // When the app returns to foreground, ensure the theme is correct
-      checkNow();
-    };
-
     const onAppearanceChange = () => {
-      if (suppressAppearanceRef.current) return; // ignore our own updates
-      // If system theme changed, we might need to reflect it? But we're using store's resolved,
-      // so we just re‑apply the store's value in case the cache drifted.
-      checkNow();
+      // Re-apply the store’s resolved value to keep things in sync
+      setColorScheme(resolvedRef.current);
+      setThemeReady(true);
     };
 
-    const appStateSub = AppState.addEventListener("change", onAppState);
     const appearanceSub = Appearance.addChangeListener(onAppearanceChange);
+    return () => appearanceSub.remove();
+  }, [setColorScheme]);
 
-    return () => {
-      appStateSub.remove();
-      appearanceSub.remove();
+  // Foreground watchdog — css-interop's JS cache is the paint source for every
+  // CSS-variable surface. On wake, the OS re-applies the SYSTEM scheme a tick
+  // after our single correction (NativeWind keeps its own internal Appearance
+  // subscription), flipping the pages to the wrong palette while the
+  // store-driven navbar stays right. Poll the cache and force it to match the
+  // stored intent: a plain re-apply may emit no native event, but the quick
+  // dark↔light double flip always does, so the pages repaint back.
+  const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const check = () => {
+      if (AppState.currentState !== "active") return;
+      const r = resolvedRef.current;
+      if (cssColorScheme.get() === r) {
+        // Cold-start signal: the scheme has genuinely converged — the cover
+        // may drop even if the OS never delivered an appearance event.
+        setThemeReady(true);
+        return;
+      }
+      setColorScheme(r === "dark" ? "light" : "dark");
+      flipTimerRef.current = setTimeout(() => setColorScheme(r), 120);
     };
-  }, [checkNow]);
+    const interval = setInterval(check, 250);
+    return () => {
+      clearInterval(interval);
+      if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+    };
+  }, [setColorScheme]);
 
-  // ── Fail‑safe: release cover after 3.5s no matter what ──
+  // Fail‑safe: release cover after 3.5s no matter what
   useEffect(() => {
     const t = setTimeout(() => {
       setThemeReady(true);
@@ -163,7 +170,7 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
-  // ── Splash + cover gate ──
+  // Splash + cover gate
   const splashHiddenRef = useRef(false);
   const allReady = !isLoading && hydrated && themeReady && minCoverDone;
 
@@ -176,7 +183,7 @@ export default function RootLayout() {
       .catch(() => setCoverVisible(false));
   }, [allReady]);
 
-  // ── Lazy CAPTCHA host ──
+  // Lazy CAPTCHA host
   const [CaptchaHost, setCaptchaHost] = useState<React.ComponentType | null>(null);
   useEffect(() => {
     if (!isCaptchaEnabled) return;
@@ -187,7 +194,7 @@ export default function RootLayout() {
     return () => { mounted = false; };
   }, []);
 
-  // ── Auth session ──
+  // Auth session
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -239,7 +246,7 @@ export default function RootLayout() {
 
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
 
-        <ThemeTransition />
+        {/* ThemeTransition removed – it was the most likely cause of the stuck dark overlay */}
 
         {CaptchaHost && <CaptchaHost />}
 

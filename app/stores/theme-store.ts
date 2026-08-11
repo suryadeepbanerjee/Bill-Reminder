@@ -19,12 +19,11 @@ export const useThemeStore = create<ThemeState>((set) => ({
   resolved: "light",
   hydrated: false,
 
-  // Records the *intent* immediately (updates the active highlight) but leaves
-  // `resolved` untouched — the ThemeTransition overlay applies it via
-  // `applyResolved` at the moment the veil is fully opaque, so the actual swap
-  // is always hidden behind the crossfade.
+  // Records the *intent* and applies it immediately. ThemeTransition used to
+  // own the delayed `resolved` swap; since it is no longer rendered, mode and
+  // resolved must move together or a toggle would do nothing.
   setMode: async (mode) => {
-    set({ mode });
+    set({ mode, resolved: mode });
     try {
       await SecureStore.setItemAsync(STORAGE_KEY, mode);
     } catch {
