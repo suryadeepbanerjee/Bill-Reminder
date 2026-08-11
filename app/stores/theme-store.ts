@@ -6,6 +6,7 @@ type ThemeMode = "light" | "dark";
 interface ThemeState {
   mode: ThemeMode;
   resolved: "light" | "dark";
+  hydrated: boolean;
   setMode: (mode: ThemeMode) => Promise<void>;
   applyResolved: (mode: ThemeMode) => void;
   _hydrate: () => Promise<void>;
@@ -16,6 +17,7 @@ const STORAGE_KEY = "br_theme_mode";
 export const useThemeStore = create<ThemeState>((set) => ({
   mode: "light",
   resolved: "light",
+  hydrated: false,
 
   // Records the *intent* immediately (updates the active highlight) but leaves
   // `resolved` untouched — the ThemeTransition overlay applies it via
@@ -36,9 +38,9 @@ export const useThemeStore = create<ThemeState>((set) => ({
     try {
       const stored = await SecureStore.getItemAsync(STORAGE_KEY);
       const mode: ThemeMode = stored === "dark" ? "dark" : "light";
-      set({ mode, resolved: mode });
+      set({ mode, resolved: mode, hydrated: true });
     } catch {
-      // Use default (light)
+      set({ hydrated: true });
     }
   },
 }));

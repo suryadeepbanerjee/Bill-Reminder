@@ -1,9 +1,13 @@
 import { Stack, router } from "expo-router";
 import { useEffect } from "react";
 import { useAuthStore } from "../../stores/auth-store";
+import { useThemeStore } from "../../stores/theme-store";
+import { tokensFor } from "../../lib/tokens";
 
 export default function AuthLayout() {
   const { session, isLoading } = useAuthStore();
+  const resolved = useThemeStore((s) => s.resolved);
+  const canvasColor = tokensFor(resolved).canvas;
 
   // Use router.replace() inside useEffect rather than <Redirect>.
   // <Redirect> uses useFocusEffect which calls useNavigation() from @react-navigation/native
@@ -19,7 +23,7 @@ export default function AuthLayout() {
   if (isLoading || session) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: canvasColor } }}>
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="sign-in-otp" />
       <Stack.Screen name="sign-up" />
