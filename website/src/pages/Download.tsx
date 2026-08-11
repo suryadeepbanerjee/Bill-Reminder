@@ -16,7 +16,7 @@ const ASSET_BASE =
   "https://github.com/suryadeepbanerjee/Bill-Reminder/releases/download/v1.0.0";
 
 const UNIVERSAL = {
-  name: "Universal APK",
+  name: "Universal Download",
   file: "Bill-Reminder-Universal.apk",
   size: "86.9 MB",
   description: "Works across supported Android architectures.",

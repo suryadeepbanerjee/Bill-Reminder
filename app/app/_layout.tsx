@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AppState, Appearance, type AppStateStatus, View, ActivityIndicator } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -12,6 +12,7 @@ import { useAuthStore } from "../stores/auth-store";
 import { useThemeStore } from "../stores/theme-store";
 import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
+import { tokensFor } from "../lib/tokens";
 import { ThemeTransition } from "../components/ui/ThemeTransition";
 import { isCaptchaEnabled } from "../lib/captcha";
 
@@ -49,7 +50,7 @@ export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
   const resetHousehold = useHouseholdStore((s) => s.reset);
   const pathname = usePathname();
-  const themeTimersRef = useRef<ReturnType<typeof setTimeout>[] | null>(null);
+  const guardianTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     _hydrate();
@@ -79,65 +80,98 @@ export default function RootLayout() {
     setColorScheme(resolved);
   }, [resolved, setColorScheme]);
 
+  // ── Theme guardian ─────────────────────────────────────────────────────────
   // Android drops the manual color-scheme override (Appearance.setColorScheme)
-  // during background/foreground round-trips — e.g. returning from the Google
-  // Sign-In activity or waking the phone after the screen was off — and
-  // css-interop then re-reads the device value into its systemColorScheme on
-  // the next 'active'/appearance event, repainting every CSS-variable surface
-  // with the wrong palette. Our setColorScheme() call alone does NOT update
+  // during background/foreground round-trips (Google Sign-In activity, waking
+  // the phone after the screen was off) and on cold start, after which
+  // css-interop re-reads the DEVICE value into its systemColorScheme on the
+  // next 'active'/appearance event and repaints every CSS-variable surface
+  // with the wrong palette. Our setColorScheme() call does NOT update
   // css-interop's cache — the cache only converges from native appearance
-  // events, and if such an event arrives with a null/stale value the cache
-  // stays wrong indefinitely. Watchdog: (1) re-apply the intent on every
-  // app-state/appearance event, (2) while foregrounded, compare the ACTUAL
-  // css-interop cache against the intent and re-apply on mismatch, and (3) as
-  // a last resort perform the same quick dark↔light double flip that manually
-  // re-syncs the cache when the native event round-trip fails.
+  // events, which some devices deliver slowly or with null values.
+  //
+  // The guardian treats css-interop's cache as the paint source:
+  //   1. `themeReady` keeps the splash/loading cover up on cold start until
+  //      the first convergence, so the wrong palette can never be seen.
+  //   2. While foregrounded it polls the cache against the stored intent; on
+  //      any mismatch it drops an opaque canvas-colored veil, forces
+  //      convergence with the dark↔light double-flip that reliably produces
+  //      concrete appearance events, and lifts the veil once the cache
+  //      matches — so a wake/login flip is fixed in a few hundred ms behind
+  //      an invisible buffer instead of flashing the broken palette.
+  //   Skipped entirely while a user-initiated theme toggle is in flight
+  //   (mode !== resolved) — ThemeTransition owns that window.
+  const mode = useThemeStore((s) => s.mode);
+  const [themeVeil, setThemeVeil] = useState(false);
+  const [themeReady, setThemeReady] = useState(false);
+  const resolvedRef = useRef(resolved);
+  resolvedRef.current = resolved;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const veilStateRef = useRef(false);
+
+  const forceConverge = useCallback(() => {
+    const r = resolvedRef.current;
+    if (veilStateRef.current) return; // already converging
+    veilStateRef.current = true;
+    setThemeVeil(true);
+    setColorScheme(r === "dark" ? "light" : "dark");
+    const flipTimer = setTimeout(() => {
+      setColorScheme(r);
+      const started = Date.now();
+      const checkTimer = setInterval(() => {
+        if (cssColorScheme.get() === r || Date.now() - started > 1500) {
+          clearInterval(checkTimer);
+          veilStateRef.current = false;
+          setThemeVeil(false);
+          setThemeReady(true);
+        }
+      }, 60);
+      guardianTimersRef.current.push(checkTimer);
+    }, 130);
+    guardianTimersRef.current.push(flipTimer);
+  }, [setColorScheme]);
+
+  const checkNow = useCallback(() => {
+    if (modeRef.current !== resolvedRef.current) return; // toggle in flight
+    if (veilStateRef.current) return; // already converging
+    if (cssColorScheme.get() === resolvedRef.current) {
+      setThemeReady(true);
+      return;
+    }
+    forceConverge();
+  }, [forceConverge]);
+
   useEffect(() => {
-    const apply = () => setColorScheme(resolved);
+    // Cold start: cover the first frames until the cache matches the intent.
+    checkNow();
+  }, [checkNow]);
 
-    // If the native override round-trip didn't converge the cache, force it:
-    // flipping the scheme twice produces concrete appearance events which
-    // css-interop converts into a deterministic cache value.
-    const flipFallback = () => {
-      const timer = setTimeout(() => {
-        if (cssColorScheme.get() === resolved) return;
-        setColorScheme(resolved === "dark" ? "light" : "dark");
-        setTimeout(() => setColorScheme(resolved), 220);
-      }, 450);
-      themeTimersRef.current?.push(timer);
-    };
-
+  useEffect(() => {
     const onAppState = (state: AppStateStatus) => {
       if (state !== "active") return;
-      apply();
-      // Staggered reasserts: the OS can re-sync the scheme AFTER the
-      // foreground event (activity recreation / config change on wake) and
-      // css-interop then repaints with the device value. Re-applying the
-      // stored intent a few times after the transition wins that race.
-      themeTimersRef.current = [350, 800].map((ms) => setTimeout(apply, ms));
-      flipFallback();
+      setColorScheme(resolved);
+      checkNow();
     };
-
     const appStateSub = AppState.addEventListener("change", onAppState);
-    const appearanceSub = Appearance.addChangeListener(apply);
-
-    // Foreground watchdog — the cache is the paint source; if it ever
-    // disagrees with the stored intent, force it back.
+    const appearanceSub = Appearance.addChangeListener(() => {
+      setColorScheme(resolved);
+      checkNow();
+    });
+    // Fast foreground poll — the cache is the paint source; any mismatch is
+    // veiled and converged within a few hundred ms.
     const interval = setInterval(() => {
       if (AppState.currentState !== "active") return;
-      if (cssColorScheme.get() === resolved) return;
-      apply();
-      flipFallback();
-    }, 1200);
-
+      checkNow();
+    }, 150);
     return () => {
       appStateSub.remove();
       appearanceSub.remove();
       clearInterval(interval);
-      themeTimersRef.current?.forEach(clearTimeout);
-      themeTimersRef.current = null;
+      guardianTimersRef.current.forEach(clearTimeout);
+      guardianTimersRef.current = [];
     };
-  }, [resolved, setColorScheme]);
+  }, [checkNow, resolved, setColorScheme]);
 
   // Lazy-mount the CAPTCHA popup host (react-native-webview is a native
   // module — never on the cold-start path). Only loads when a site key is
@@ -209,14 +243,25 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
+        {/* Flip-guard veil — opaque canvas-colored cover shown while the
+            guardian force-converges the color scheme after a wake/login flip;
+            invisible to the user (same color as the intended canvas). */}
+        {themeVeil && (
+          <View
+            style={{
+              position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: tokensFor(resolved).canvas,
+            }}
+          />
+        )}
         {/* Buffer screen that hides the theme swap behind an animated cover. */}
         <ThemeTransition />
         {/* CAPTCHA popup (lazy — only mounts when the site key is configured). */}
         {CaptchaHost && <CaptchaHost />}
-        {/* Overlay the loading screen until the session has been restored.
-            Rendered on top of Stack so it covers all screens, and dismissed
-            automatically once isLoading → false (no Stack remount needed). */}
-        {isLoading && (
+        {/* Overlay the loading screen until the session has been restored AND
+            the color scheme has converged (cold start), so the first frames
+            the user sees are always the correct theme. */}
+        {(isLoading || !themeReady) && (
           <View
             style={{
               position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
