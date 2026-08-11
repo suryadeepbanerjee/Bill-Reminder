@@ -14,6 +14,7 @@ import { useHouseholdStore } from "../stores/household-store";
 import { supabase } from "../lib/supabase/client";
 import { tokensFor } from "../lib/tokens";
 import { isCaptchaEnabled } from "../lib/captcha";
+import { ThemeTransition } from "../components/ui/ThemeTransition";
 
 import "../lib/guarded-navigation";
 import { releaseAllActions } from "@shared/utils/action-guard";
@@ -122,10 +123,27 @@ export default function RootLayout() {
   }, [setColorScheme]);
 
   // Listen to system appearance changes as a fallback
+  const lastFlipAtRef = useRef(0);
   useEffect(() => {
     const onAppearanceChange = () => {
-      // Re-apply the store’s resolved value to keep things in sync
-      setColorScheme(resolvedRef.current);
+      const r = resolvedRef.current;
+      if (cssColorScheme.get() === r) {
+        // Already in sync — cold-start signal that the cover may drop.
+        setThemeReady(true);
+        return;
+      }
+      const now = Date.now();
+      if (now - lastFlipAtRef.current > 400) {
+        // The OS re-applied the system scheme (our single corrections are not
+        // enough on wake). A plain re-apply may emit no native event, but the
+        // quick dark↔light double flip always does, so the pages repaint back.
+        lastFlipAtRef.current = now;
+        setColorScheme(r === "dark" ? "light" : "dark");
+        flipTimerRef.current = setTimeout(() => setColorScheme(r), 120);
+      } else {
+        // This event is an echo of our own flip — settle straight on the intent.
+        setColorScheme(r);
+      }
       setThemeReady(true);
     };
 
@@ -151,10 +169,11 @@ export default function RootLayout() {
         setThemeReady(true);
         return;
       }
+      lastFlipAtRef.current = Date.now();
       setColorScheme(r === "dark" ? "light" : "dark");
       flipTimerRef.current = setTimeout(() => setColorScheme(r), 120);
     };
-    const interval = setInterval(check, 250);
+    const interval = setInterval(check, 150);
     return () => {
       clearInterval(interval);
       if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
@@ -246,7 +265,9 @@ export default function RootLayout() {
 
         <StatusBar style={resolved === "dark" ? "light" : "dark"} />
 
-        {/* ThemeTransition removed – it was the most likely cause of the stuck dark overlay */}
+        {/* Animated cover that hides the theme swap behind the sun/moon buffer
+            scene when the user toggles the theme */}
+        <ThemeTransition />
 
         {CaptchaHost && <CaptchaHost />}
 

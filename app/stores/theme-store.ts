@@ -19,11 +19,12 @@ export const useThemeStore = create<ThemeState>((set) => ({
   resolved: "light",
   hydrated: false,
 
-  // Records the *intent* and applies it immediately. ThemeTransition used to
-  // own the delayed `resolved` swap; since it is no longer rendered, mode and
-  // resolved must move together or a toggle would do nothing.
+  // Records the *intent* immediately (updates the active highlight) but leaves
+  // `resolved` untouched — ThemeTransition applies it via `applyResolved` at
+  // the moment the animated cover is fully opaque, so the actual swap is
+  // always hidden behind the sun/moon buffer scene.
   setMode: async (mode) => {
-    set({ mode, resolved: mode });
+    set({ mode });
     try {
       await SecureStore.setItemAsync(STORAGE_KEY, mode);
     } catch {
