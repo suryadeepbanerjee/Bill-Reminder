@@ -16,6 +16,9 @@ export default function AddLayout() {
           fontWeight: "600",
           color: tokens.primary,
         },
+        // Paint the native screen container with the theme canvas so pushed
+        // screens slide in dark/light instead of the native default (white).
+        contentStyle: { backgroundColor: tokens.canvas },
       }}
     />
   );

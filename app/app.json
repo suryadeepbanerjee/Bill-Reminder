@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "bill-reminder",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "cover",
@@ -17,6 +17,7 @@
       "bundleIdentifier": "com.billreminder.app"
     },
     "android": {
+      "userInterfaceStyle": "light",
       "adaptiveIcon": {
         "backgroundColor": "#080810",
         "foregroundImage": "./assets/icon.png"
@@ -62,4 +63,3 @@
     ]
   }
 }
-

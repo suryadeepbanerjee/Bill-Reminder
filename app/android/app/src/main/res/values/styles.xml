@@ -1,7 +1,16 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
   <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
     <item name="android:windowBackground">#080810</item>
-    <item name="android:enforceNavigationBarContrast" tools:targetApi="29">true</item>
+    <!--
+      Edge-to-edge (targetSdk 35+): the system navigation bar is transparent
+      and owned by SystemUI. With contrast enforcement ON, the OS paints its
+      own light/dark scrim over the strip themed by the DEVICE's system
+      appearance — on wake a light-mode phone draws a solid white bar over the
+      dark app. The app's theme must never follow the device, so the scrim is
+      disabled: the strip then shows the app's own canvas behind it.
+      Keep this false; it cannot be overridden from JS.
+    -->
+    <item name="android:enforceNavigationBarContrast">false</item>
     <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
     <item name="colorPrimary">@color/colorPrimary</item>
     <item name="android:statusBarColor">#080810</item>

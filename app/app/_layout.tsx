@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AppState, Appearance, type AppStateStatus, View, ActivityIndicator } from "react-native";
 import { Stack, usePathname } from "expo-router";
+import { ThemeProvider, DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -223,12 +224,21 @@ export default function RootLayout() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (session) {
         import("../lib/notifications").then((m) => m.syncLocalReminders());
       } else {
         resetHousehold();
+      }
+
+      // Session boundary: drop every cached query from the previous session
+      // (dashboard / households / profile / bills / bill). Without this, a
+      // sign-out → sign-in cycle can keep serving stale cross-session state —
+      // e.g. a dashboard query that errored against the just-revoked token
+      // stays in the error state until the app is restarted.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        queryClient.clear();
       }
     });
 
@@ -236,10 +246,14 @@ export default function RootLayout() {
   }, []);
 
   const canvasColor = tokensFor(resolved).canvas;
+  const navTheme = resolved === "dark" 
+    ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: canvasColor, card: canvasColor } }
+    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: canvasColor, card: canvasColor } };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <View style={{ flex: 1, backgroundColor: canvasColor }}>
+    <ThemeProvider value={navTheme}>
+      <QueryClientProvider client={queryClient}>
+        <View style={{ flex: 1, backgroundColor: canvasColor }}>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -289,5 +303,6 @@ export default function RootLayout() {
         )}
       </View>
     </QueryClientProvider>
+    </ThemeProvider>
   );
 }

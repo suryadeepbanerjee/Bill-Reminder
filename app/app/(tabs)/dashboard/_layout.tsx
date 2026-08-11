@@ -1,5 +1,15 @@
 import { Stack } from "expo-router";
+import { useAppTokens } from "../../../lib/tokens";
 
 export default function DashboardLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const tokens = useAppTokens();
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: tokens.canvas },
+      }}
+    />
+  );
 }

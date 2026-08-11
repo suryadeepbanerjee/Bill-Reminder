@@ -18,15 +18,15 @@ const ASSET_BASE =
 const UNIVERSAL = {
   name: "Universal Download",
   file: "Bill-Reminder-Universal.apk",
-  size: "86.9 MB",
+  size: "88.8 MB",
   description: "Works across supported Android architectures.",
 };
 
 const VARIANTS = [
-  { name: "ARM64-v8a", file: "Bill-Reminder-arm64-v8a.apk", size: "36.8 MB", description: "Modern Android phones / most devices" },
-  { name: "ARMv7", file: "Bill-Reminder-armeabi-v7a.apk", size: "31.2 MB", description: "Older 32-bit ARM devices" },
-  { name: "x86_64", file: "Bill-Reminder-x86_64.apk", size: "37.3 MB", description: "64-bit Intel devices / emulators" },
-  { name: "x86", file: "Bill-Reminder-x86.apk", size: "37.7 MB", description: "Older Intel devices / emulators" },
+  { name: "ARM64-v8a", file: "Bill-Reminder-arm64-v8a.apk", size: "38.7 MB", description: "Modern Android phones / most devices" },
+  { name: "ARMv7", file: "Bill-Reminder-armeabi-v7a.apk", size: "33.1 MB", description: "Older 32-bit ARM devices" },
+  { name: "x86_64", file: "Bill-Reminder-x86_64.apk", size: "39.2 MB", description: "64-bit Intel devices / emulators" },
+  { name: "x86", file: "Bill-Reminder-x86.apk", size: "39.7 MB", description: "Older Intel devices / emulators" },
 ];
 
 const assetUrl = (file: string) => `${ASSET_BASE}/${file}`;

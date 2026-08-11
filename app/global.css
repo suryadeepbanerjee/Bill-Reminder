@@ -27,6 +27,13 @@
     --color-warning: 245 158 11;
   }
 
+  /* ── Dark Mode Variables (media-based) ──
+     KEYS: css-interop 0.2.6 compiles variable values ONLY from `:root` and
+     `@media (prefers-color-scheme: *)` blocks — class selectors like `.dark`
+     are NOT swapped at runtime on native. So dark values must live here.
+     The native theme must stay `Theme.AppCompat.DayNight.*` (styles.xml) and
+     the app pins AppCompat night mode via Appearance.setColorScheme, which
+     makes this media query resolve to the PINNED scheme, never the device's. */
   @media (prefers-color-scheme: dark) {
     :root {
       /* ── Better Material-style dark mode ── */
