@@ -50,7 +50,6 @@ export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
   const resetHousehold = useHouseholdStore((s) => s.reset);
   const pathname = usePathname();
-  const guardianTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     _hydrate();
@@ -90,17 +89,24 @@ export default function RootLayout() {
   // css-interop's cache — the cache only converges from native appearance
   // events, which some devices deliver slowly or with null values.
   //
-  // The guardian treats css-interop's cache as the paint source:
+  //  The guardian treats css-interop's cache as the paint source:
   //   1. `themeReady` keeps the splash/loading cover up on cold start until
   //      the first convergence, so the wrong palette can never be seen.
   //   2. While foregrounded it polls the cache against the stored intent; on
   //      any mismatch it drops an opaque canvas-colored veil, forces
-  //      convergence with the dark↔light double-flip that reliably produces
+  //      convergence with the dark↔light flip that reliably produces
   //      concrete appearance events, and lifts the veil once the cache
-  //      matches — so a wake/login flip is fixed in a few hundred ms behind
-  //      an invisible buffer instead of flashing the broken palette.
+  //      matches — so a wake/login flip is fixed behind an invisible buffer
+  //      instead of flashing the broken palette.
   //   Skipped entirely while a user-initiated theme toggle is in flight
   //   (mode !== resolved) — ThemeTransition owns that window.
+  //
+  //  Convergence is poll-driven and STATELESS: no one-shot convergence timers
+  //  exist that an effect re-run could cancel (a cancelled double-flip would
+  //  leave the veil latched and the app stuck on the loading cover). The
+  //  single 150 ms poll owns the whole lifecycle; every mismatch tick keeps
+  //  re-asserting the native override, and hard fail-safes guarantee the
+  //  cover is always released.
   const mode = useThemeStore((s) => s.mode);
   const [themeVeil, setThemeVeil] = useState(false);
   const [themeReady, setThemeReady] = useState(false);
@@ -108,39 +114,40 @@ export default function RootLayout() {
   resolvedRef.current = resolved;
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  const veilStateRef = useRef(false);
-
-  const forceConverge = useCallback(() => {
-    const r = resolvedRef.current;
-    if (veilStateRef.current) return; // already converging
-    veilStateRef.current = true;
-    setThemeVeil(true);
-    setColorScheme(r === "dark" ? "light" : "dark");
-    const flipTimer = setTimeout(() => {
-      setColorScheme(r);
-      const started = Date.now();
-      const checkTimer = setInterval(() => {
-        if (cssColorScheme.get() === r || Date.now() - started > 1500) {
-          clearInterval(checkTimer);
-          veilStateRef.current = false;
-          setThemeVeil(false);
-          setThemeReady(true);
-        }
-      }, 60);
-      guardianTimersRef.current.push(checkTimer);
-    }, 130);
-    guardianTimersRef.current.push(flipTimer);
-  }, [setColorScheme]);
+  const convergeStateRef = useRef({ active: false, startedAt: 0 });
 
   const checkNow = useCallback(() => {
     if (modeRef.current !== resolvedRef.current) return; // toggle in flight
-    if (veilStateRef.current) return; // already converging
-    if (cssColorScheme.get() === resolvedRef.current) {
+    const r = resolvedRef.current;
+    if (cssColorScheme.get() === r) {
+      if (convergeStateRef.current.active) {
+        convergeStateRef.current.active = false;
+        setThemeVeil(false);
+      }
       setThemeReady(true);
       return;
     }
-    forceConverge();
-  }, [forceConverge]);
+    const st = convergeStateRef.current;
+    if (st.active && Date.now() - st.startedAt > 2000) {
+      // Fail-safe: never block the app behind the cover.
+      st.active = false;
+      setThemeVeil(false);
+      setThemeReady(true);
+      return;
+    }
+    if (!st.active) {
+      st.active = true;
+      st.startedAt = Date.now();
+      setThemeVeil(true);
+      setColorScheme(r === "dark" ? "light" : "dark");
+      return;
+    }
+    if (Date.now() - st.startedAt > 150) {
+      // Re-target the intent — every value change emits a concrete
+      // appearance event css-interop converts into a cache update.
+      setColorScheme(r);
+    }
+  }, [setColorScheme]);
 
   useEffect(() => {
     // Cold start: cover the first frames until the cache matches the intent.
@@ -168,10 +175,16 @@ export default function RootLayout() {
       appStateSub.remove();
       appearanceSub.remove();
       clearInterval(interval);
-      guardianTimersRef.current.forEach(clearTimeout);
-      guardianTimersRef.current = [];
     };
   }, [checkNow, resolved, setColorScheme]);
+
+  // Absolute fail-safe: whatever happens on the device, the loading cover is
+  // released within 2.5 s of mount. Runs once — unaffected by later effect
+  // re-runs.
+  useEffect(() => {
+    const t = setTimeout(() => setThemeReady(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   // Lazy-mount the CAPTCHA popup host (react-native-webview is a native
   // module — never on the cold-start path). Only loads when a site key is
