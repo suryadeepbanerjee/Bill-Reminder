@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "nativewind";
 import { cssInterop } from "nativewind";
+import { colorScheme as cssColorScheme } from "react-native-css-interop";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../stores/auth-store";
 import { useThemeStore } from "../stores/theme-store";
@@ -48,7 +49,7 @@ export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
   const resetHousehold = useHouseholdStore((s) => s.reset);
   const pathname = usePathname();
-  const stateTimersRef = useRef<ReturnType<typeof setTimeout>[] | null>(null);
+  const themeTimersRef = useRef<ReturnType<typeof setTimeout>[] | null>(null);
 
   useEffect(() => {
     _hydrate();
@@ -80,35 +81,61 @@ export default function RootLayout() {
 
   // Android drops the manual color-scheme override (Appearance.setColorScheme)
   // during background/foreground round-trips — e.g. returning from the Google
-  // Sign-In activity or waking the phone after the screen was off — after
-  // which css-interop re-syncs its systemColorScheme to the device value and
-  // every CSS-variable surface flips theme. Re-apply the saved theme on every
-  // app-state/appearance event, plus a few staggered reasserts after waking,
-  // so the palette snaps back even if the override drop lands a beat late.
+  // Sign-In activity or waking the phone after the screen was off — and
+  // css-interop then re-reads the device value into its systemColorScheme on
+  // the next 'active'/appearance event, repainting every CSS-variable surface
+  // with the wrong palette. Our setColorScheme() call alone does NOT update
+  // css-interop's cache — the cache only converges from native appearance
+  // events, and if such an event arrives with a null/stale value the cache
+  // stays wrong indefinitely. Watchdog: (1) re-apply the intent on every
+  // app-state/appearance event, (2) while foregrounded, compare the ACTUAL
+  // css-interop cache against the intent and re-apply on mismatch, and (3) as
+  // a last resort perform the same quick dark↔light double flip that manually
+  // re-syncs the cache when the native event round-trip fails.
   useEffect(() => {
-    const reapplyNow = () => setColorScheme(resolved);
+    const apply = () => setColorScheme(resolved);
+
+    // If the native override round-trip didn't converge the cache, force it:
+    // flipping the scheme twice produces concrete appearance events which
+    // css-interop converts into a deterministic cache value.
+    const flipFallback = () => {
+      const timer = setTimeout(() => {
+        if (cssColorScheme.get() === resolved) return;
+        setColorScheme(resolved === "dark" ? "light" : "dark");
+        setTimeout(() => setColorScheme(resolved), 220);
+      }, 450);
+      themeTimersRef.current?.push(timer);
+    };
 
     const onAppState = (state: AppStateStatus) => {
       if (state !== "active") return;
-      reapplyNow();
+      apply();
       // Staggered reasserts: the OS can re-sync the scheme AFTER the
       // foreground event (activity recreation / config change on wake) and
       // css-interop then repaints with the device value. Re-applying the
       // stored intent a few times after the transition wins that race.
-      const timers = [400, 900, 1600].map((ms) =>
-        setTimeout(reapplyNow, ms)
-      );
-      timers.forEach((t) => t.unref?.());
-      stateTimersRef.current = timers;
+      themeTimersRef.current = [350, 800].map((ms) => setTimeout(apply, ms));
+      flipFallback();
     };
 
     const appStateSub = AppState.addEventListener("change", onAppState);
-    const appearanceSub = Appearance.addChangeListener(reapplyNow);
+    const appearanceSub = Appearance.addChangeListener(apply);
+
+    // Foreground watchdog — the cache is the paint source; if it ever
+    // disagrees with the stored intent, force it back.
+    const interval = setInterval(() => {
+      if (AppState.currentState !== "active") return;
+      if (cssColorScheme.get() === resolved) return;
+      apply();
+      flipFallback();
+    }, 1200);
+
     return () => {
       appStateSub.remove();
       appearanceSub.remove();
-      stateTimersRef.current?.forEach(clearTimeout);
-      stateTimersRef.current = null;
+      clearInterval(interval);
+      themeTimersRef.current?.forEach(clearTimeout);
+      themeTimersRef.current = null;
     };
   }, [resolved, setColorScheme]);
 
