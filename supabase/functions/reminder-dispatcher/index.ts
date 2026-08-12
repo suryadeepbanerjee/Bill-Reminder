@@ -57,7 +57,7 @@ serve(async (req: Request) => {
 				// Get occurrence and bill details for the notification content
 				const { data: occurrence, error: occError } = await supabase
 					.from("bill_occurrences")
-					.select("id, bill_id, due_date, status")
+					.select("id, bill_id, due_date, state")
 					.eq("id", reminder.occurrence_id)
 					.single();
 
@@ -66,7 +66,7 @@ serve(async (req: Request) => {
 				// Get bill details
 				const { data: bill, error: billError } = await supabase
 					.from("bills")
-					.select("id, name, amount, currency_id, household_id")
+					.select("id, title, amount_expected, currency, household_id")
 					.eq("id", occurrence?.bill_id)
 					.single();
 
@@ -99,7 +99,7 @@ serve(async (req: Request) => {
 							body: JSON.stringify({
 								reminderId: reminder.id,
 								userId: reminder.user_id,
-								title: `Bill due: ${bill.name}`,
+								title: `Bill due: ${bill.title}`,
 							}),
 						}
 					);
@@ -137,15 +137,15 @@ serve(async (req: Request) => {
 						continue;
 					}
 
-					const amountText = `${bill.amount} ${bill.currency_id}`;
+					const amountText = `${bill.amount_expected} ${bill.currency}`;
 					const item: EmailItem = {
 						reminderId: reminder.id,
 						userId: reminder.user_id,
 						billId: bill.id,
-						billName: bill.name,
+						billName: bill.title,
 						amount: amountText,
 						dueDate: occurrence?.due_date ?? "",
-						status: occurrence?.status ?? "upcoming",
+						status: occurrence?.state ?? "upcoming",
 					};
 
 					const existing = emailBatchByUser.get(reminder.user_id) ?? [];
