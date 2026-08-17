@@ -342,10 +342,10 @@ It includes:
           reminder materialization
           reminder dispatch
                     │
-              ┌─────┴─────┐
-              │           │
-          Expo Push     Email
-             API       notifications
+           ┌─────┴─────┐
+               │           │
+           FCM V1        Email
+           (direct)   notifications
 ```
 
 Both clients talk to Supabase through `packages/shared` — one set of TypeScript types, Zod schemas and client-bound adapter factories, so the mobile app and the website can never quietly drift into two different data models.
@@ -367,7 +367,7 @@ Both clients talk to Supabase through `packages/shared` — one set of TypeScrip
 | Scheduled work | PostgreSQL `pg_cron` |
 | Rate limiting | Upstash Redis (atomic sliding-window, Lua) |
 | Email | Resend |
-| Push | Expo Push API |
+| Push | Firebase Cloud Messaging V1 (direct) |
 | Web | React 18 + Vite 6 |
 | Web routing | React Router 7 |
 | Web motion | Framer Motion |
@@ -464,7 +464,7 @@ Reminder Dispatcher
      ▼               ▼
 Push Sender      Email Sender
      │               │
- Expo Push API     Resend
+  FCM V1 API       Resend
 ```
 
 Scheduled work is handled server-side through PostgreSQL cron jobs and Edge Functions.
@@ -589,6 +589,30 @@ The goal is not to keep adding features forever. The goal is to make the existin
 ## License
 
 MIT
+
+---
+
+## Downloads
+
+Download the latest release from [GitHub Releases](https://github.com/suryadeepbanerjee/Bill-Reminder/releases/tag/v1.0.0).
+
+| APK | Description | SHA-256 |
+|---|---|---|
+| `Bill-Reminder-arm64-v8a.apk` | Most modern Android phones | `33E1D5EE7B48FFCFAF747CF22D2B016B755D5A88FEB77596CCEDC69DCBAF0E04` |
+| `Bill-Reminder-armeabi-v7a.apk` | Older / entry-level Android phones | `1E54B0134F03BE5636DB851FCB9BFD354017DF222E1AE0C58A5788D42C27083F` |
+| `Bill-Reminder-Universal.apk` | All supported architectures | `D90868250AF5E2767DBF915F415F090D8B24BCC3D95861CDFB2554CA051F2BC8` |
+| `Bill-Reminder-x86.apk` | Older Android emulators | `04F27FF9830E80566338E82F39A34C923FA2F54E9459243445993B9234BF3298` |
+| `Bill-Reminder-x86_64.apk` | Emulators and compatible tablets | `A2B003D5D46A8F7CFDDCBF613C020FC17E8730A881E7B3C36FBC407A1871EDC4` |
+
+### Recommended download
+
+Universal APK is recommended for most users. It supports all supported Android architectures, so you don't need to determine your device's CPU architecture before installing.
+
+### Verify the download
+
+Each APK includes a SHA-256 checksum above. After downloading, calculate the SHA-256 hash of the file and compare it with the corresponding value listed here.
+
+If the hashes match, the downloaded APK is identical to the published release.
 
 ---
 
