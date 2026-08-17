@@ -77,7 +77,7 @@ serve(async (req: Request) => {
 					// Get the user's push tokens
 					const { data: pushTokens, error: tokensError } = await supabase
 						.from("push_tokens")
-						.select("id, platform")
+						.select("id")
 						.eq("user_id", reminder.user_id);
 
 					if (tokensError) throw tokensError;

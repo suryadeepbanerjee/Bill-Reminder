@@ -51,18 +51,25 @@ export async function registerForPushNotifications(): Promise<string | null> {
   if (!hasPermission) return null;
 
   try {
-    const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      ...(projectId ? { projectId } : {}),
-    });
-    const expoPushToken = tokenData.data;
+    // Android: register the raw FCM token — push-sender delivers via FCM V1
+    // directly (no Expo account/project needed). Other platforms: keep the
+    // Expo push token flow.
+    const tokenData =
+      Platform.OS === "android"
+        ? await Notifications.getDevicePushTokenAsync()
+        : await Notifications.getExpoPushTokenAsync({
+            ...(process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+              ? { projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID }
+              : {}),
+          });
+    const pushToken = tokenData.data;
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      await savePushToken(session.user.id, expoPushToken, Platform.OS);
+      await savePushToken(session.user.id, pushToken, Platform.OS);
     }
 
-    return expoPushToken;
+    return pushToken;
   } catch (error: any) {
     if (error?.message?.includes("projectId")) {
       console.warn("Push notifications skipped: no EXPO_PUBLIC_EAS_PROJECT_ID set. Email reminders still work.");
