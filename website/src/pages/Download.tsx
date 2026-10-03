@@ -6,14 +6,14 @@ import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 
 /**
- * APK assets are hosted exclusively on GitHub Releases (v1.0.0).
+ * APK assets are hosted exclusively on GitHub Releases (v2.0.0).
  * This page only links to the direct asset URLs — no binaries live here.
  */
-const VERSION = "v1.0.0";
+const VERSION = "v2.0.0";
 const RELEASE_URL =
-  "https://github.com/suryadeepbanerjee/Bill-Reminder/releases/tag/v1.0.0";
+  "https://github.com/suryadeepbanerjee/Bill-Reminder/releases/tag/v2.0.0";
 const ASSET_BASE =
-  "https://github.com/suryadeepbanerjee/Bill-Reminder/releases/download/v1.0.0";
+  "https://github.com/suryadeepbanerjee/Bill-Reminder/releases/download/v2.0.0";
 
 const UNIVERSAL = {
   name: "Universal Download",

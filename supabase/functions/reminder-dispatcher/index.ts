@@ -99,7 +99,13 @@ serve(async (req: Request) => {
 							body: JSON.stringify({
 								reminderId: reminder.id,
 								userId: reminder.user_id,
-								title: `Bill due: ${bill.title}`,
+								title: `Bill Reminder: ${bill.title}`,
+								body: occurrence?.state === "overdue"
+									? `${bill.title} is overdue!`
+									: occurrence?.state === "due_today"
+										? `${bill.title} is due today.`
+										: `${bill.title} is due on ${occurrence?.due_date ?? "soon"}.`,
+								billId: bill.id,
 							}),
 						}
 					);

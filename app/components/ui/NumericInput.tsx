@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TextInput } from "./TextInput";
 
 interface NumericInputProps {
@@ -27,9 +27,17 @@ export function NumericInput({
   ...rest
 }: NumericInputProps) {
   const [text, setText] = useState(toText(value));
+  // Track whether the field is currently focused so we don't
+  // overwrite the user's in-progress text with an incoming value prop.
+  const isFocused = useRef(false);
 
   useEffect(() => {
-    setText(toText(value));
+    // Only sync from parent value when the user is NOT actively editing.
+    // This prevents the "auto-refill" bug where clearing the field causes
+    // RHF to re-render which triggers this effect and re-fills the input.
+    if (!isFocused.current) {
+      setText(toText(value));
+    }
   }, [value]);
 
   // Parse and commit a raw text string → calls onChange with the number or undefined
@@ -51,12 +59,13 @@ export function NumericInput({
       value={text}
       onChangeText={(t) => {
         setText(t);
-        // Immediately propagate to react-hook-form so "Save" works
-        // even if the field hasn't lost focus yet.
         commit(t);
       }}
+      onFocus={() => {
+        isFocused.current = true;
+      }}
       onBlur={() => {
-        // Cleanup: ensure the displayed text matches the committed value.
+        isFocused.current = false;
         commit(text);
         onBlurProp?.();
       }}
