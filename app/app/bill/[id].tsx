@@ -209,6 +209,10 @@ function EditBillSheet({ visible, bill, onClose, onSuccess }: EditBillSheetProps
       const anchor_date = buildAnchorDate(data.anchor_month, data.anchor_day, data.anchor_year);
       const payload = {
         ...data,
+        // Explicitly null out amount_expected when cleared — undefined is
+        // silently dropped by JSON.stringify and Supabase .update(), so the
+        // old value would remain in the DB. null is sent explicitly.
+        amount_expected: data.amount_expected ?? null,
         anchor_date:                anchor_date || null,
         next_due_date:              nextDueDate,
         due_day_offset:             data.behavior_type === "fixed_due_date" ? (data.due_day_offset ?? null) : null,
